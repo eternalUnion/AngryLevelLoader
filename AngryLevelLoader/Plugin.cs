@@ -15,6 +15,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.Audio;
 
 namespace AngryLevelLoader
 {
@@ -57,7 +58,45 @@ namespace AngryLevelLoader
 			}
 		}
 
-        public class LevelAsset
+		public static void LinkMixers()
+        {
+            if (AudioMixerController.instance == null)
+                return;
+
+            AudioMixer[] realMixers = new AudioMixer[5]
+            {
+				AudioMixerController.instance.allSound,
+				AudioMixerController.instance.musicSound,
+				AudioMixerController.instance.goreSound,
+				AudioMixerController.instance.doorSound,
+				AudioMixerController.instance.unfreezeableSound
+			};
+
+            AudioMixer[] allMixers = Resources.FindObjectsOfTypeAll<AudioMixer>();
+
+			Dictionary<AudioMixerGroup, AudioMixerGroup> groupConversionMap = new Dictionary<AudioMixerGroup, AudioMixerGroup>();
+			foreach (AudioMixer mixer in allMixers.Where(_mixer => _mixer.name.EndsWith("_rude")).AsEnumerable())
+			{
+                AudioMixerGroup rudeGroup = mixer.FindMatchingGroups("")[0];
+
+                string realMixerName = mixer.name.Substring(0, mixer.name.Length - 5);
+                AudioMixer realMixer = realMixers.Where(mixer => mixer.name == realMixerName).First();
+                AudioMixerGroup realGroup = realMixer.FindMatchingGroups("")[0];
+
+                groupConversionMap[rudeGroup] = realGroup;
+                Debug.Log($"{mixer.name} => {realMixer.name}");
+            }
+
+			foreach (AudioSource source in Resources.FindObjectsOfTypeAll<AudioSource>())
+            {
+                if (source.outputAudioMixerGroup != null && groupConversionMap.TryGetValue(source.outputAudioMixerGroup, out AudioMixerGroup realGroup))
+                {
+                    source.outputAudioMixerGroup = realGroup;
+                }
+            }
+        }
+
+		public class LevelAsset
         {
             public AssetBundle sceneBundle;
             public AssetBundle assetBundle;
@@ -156,8 +195,11 @@ namespace AngryLevelLoader
                         SceneManager.sceneLoaded += (scene, mode) =>
                         {
                             if (scene.path == scenePath)
+                            {
                                 ReplaceShaders();
-                        };
+                                LinkMixers();
+                            }
+						};
 
                         scenes[scenePath] = sceneButton;
                     }
