@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using HarmonyLib;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
@@ -6,9 +7,14 @@ using PluginConfig.API.Functionals;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.AddressableAssets.ResourceLocators;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 namespace AngryLevelLoader
 {
@@ -33,6 +39,23 @@ namespace AngryLevelLoader
 
         public static PropertyInfo p_SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty("CurrentScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
         public static PropertyInfo p_SceneHelper_LastScene = typeof(SceneHelper).GetProperty("LastScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+        public static void ReplaceShaders()
+        {
+			foreach (Renderer rnd in Resources.FindObjectsOfTypeAll(typeof(Renderer)))
+			{
+                if (rnd.transform.parent != null && rnd.transform.parent.name == "Virtual Camera")
+                    continue;
+
+				foreach (Material mat in rnd.materials)
+				{
+					if (Plugin.shaderDictionary.TryGetValue(mat.shader.name, out Shader shader))
+					{
+						mat.shader = shader;
+					}
+				}
+			}
+		}
 
         public class LevelAsset
         {
@@ -111,7 +134,31 @@ namespace AngryLevelLoader
                             SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
                             p_SceneHelper_LastScene.SetValue(null, p_SceneHelper_CurrentScene.GetValue(null) as string);
                             p_SceneHelper_CurrentScene.SetValue(null, scenePath);
+
+                            IEnumerable<GameObject> GetAllSceneObjects()
+                            {
+                                Stack<GameObject> stack = new Stack<GameObject>();
+                                foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects())
+                                    stack.Push(obj);
+
+                                while (stack.Count != 0)
+                                {
+                                    GameObject obj = stack.Pop();
+                                    yield return obj;
+
+                                    foreach (Transform t in obj.transform)
+                                        stack.Push(t.gameObject);
+                                }
+                            }
+
                         };
+
+                        SceneManager.sceneLoaded += (scene, mode) =>
+                        {
+                            if (scene.path == scenePath)
+                                ReplaceShaders();
+                        };
+
                         scenes[scenePath] = sceneButton;
                     }
                 }
@@ -181,10 +228,15 @@ namespace AngryLevelLoader
             }
         }
 
+        public static Harmony harmony;
+
         private void Awake()
         {
             // Plugin startup logic
             config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
+            harmony = new Harmony(PLUGIN_GUID);
+            harmony.PatchAll();
+            InitShaderDictionary();
 
             ButtonField reloadButton = new ButtonField(config.rootPanel, "Scan For Levels", "refreshButton");
             reloadButton.onClick += ReloadBundles;
@@ -193,5 +245,94 @@ namespace AngryLevelLoader
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
+
+		public static ResourceLocationMap resourceMap = null;
+        private static void InitResourceMap()
+        {
+			if (resourceMap == null)
+			{
+				Addressables.InitializeAsync().WaitForCompletion();
+				resourceMap = Addressables.ResourceLocators.First() as ResourceLocationMap;
+			}
+		}
+
+		public static T LoadObject<T>(string path)
+		{
+            InitResourceMap();
+
+			Debug.Log($"Loading {path}");
+			KeyValuePair<object, IList<IResourceLocation>> obj;
+
+			try
+			{
+				obj = resourceMap.Locations.Where(
+					(KeyValuePair<object, IList<IResourceLocation>> pair) =>
+					{
+						return (pair.Key as string) == path;
+						//return (pair.Key as string).Equals(path, StringComparison.OrdinalIgnoreCase);
+					}).First();
+			}
+			catch (Exception) { return default(T); }
+
+			return Addressables.LoadAsset<T>(obj.Value.First()).WaitForCompletion();
+		}
+
+		public static Dictionary<string, Shader> shaderDictionary = new Dictionary<string, Shader>();
+        private void InitShaderDictionary()
+        {
+            InitResourceMap();
+            foreach (KeyValuePair<object, IList<IResourceLocation>> pair in resourceMap.Locations)
+            {
+                string path = pair.Key as string;
+                if (!path.EndsWith(".shader"))
+                    continue;
+
+                Shader shader = LoadObject<Shader>(path);
+                shaderDictionary[shader.name] = shader;
+            }
+
+            shaderDictionary.Remove("ULTRAKILL/PostProcessV2");
+        }
+    }
+
+    [HarmonyPatch(typeof(Material), MethodType.Constructor, typeof(Shader))]
+    public static class MaterialShaderPatch_Ctor0
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(ref Shader __0)
+        {
+            if (__0 != null && __0.name != null && Plugin.shaderDictionary.TryGetValue(__0.name, out Shader shader))
+            {
+                __0 = shader;
+            }
+
+			return true;
+        }
+    }
+
+	[HarmonyPatch(typeof(Material), MethodType.Constructor, typeof(Material))]
+	public static class MaterialShaderPatch_Ctor1
+	{
+		[HarmonyPostfix]
+		public static void Postfix(Material __instance)
+		{
+            if (__instance.shader != null && Plugin.shaderDictionary.TryGetValue(__instance.shader.name, out Shader shader))
+            {
+                __instance.shader = shader;
+			}
+		}
+	}
+
+    [HarmonyPatch(typeof(Material), MethodType.Constructor, typeof(string))]
+    public static class MaterialShaderPatch_Ctor2
+    {
+	    [HarmonyPostfix]
+	    public static void Postfix(Material __instance)
+	    {
+            if (__instance.shader != null && Plugin.shaderDictionary.TryGetValue(__instance.shader.name, out Shader shader))
+            {
+                __instance.shader = shader;
+			}
+		}
     }
 }
