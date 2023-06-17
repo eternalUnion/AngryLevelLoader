@@ -99,7 +99,6 @@ namespace AngryLevelLoader
 		public class LevelAsset
         {
             public AssetBundle sceneBundle;
-            public AssetBundle assetBundle;
             public string path;
 
             public ConfigPanel panel;
@@ -139,11 +138,6 @@ namespace AngryLevelLoader
                     sceneBundle.Unload(true);
                 }
                 catch (Exception) { }
-                try
-                {
-                    assetBundle.Unload(true);
-                }
-                catch (Exception) { }
 
                 if (!File.Exists(path))
                 {
@@ -152,8 +146,6 @@ namespace AngryLevelLoader
                 }
 
                 sceneBundle = AssetBundle.LoadFromFile(path);
-                if (File.Exists(path + "_assets"))
-                    assetBundle = AssetBundle.LoadFromFile(path + "_assets");
 
                 // Disable all scene buttons
                 foreach (KeyValuePair<string, ButtonField> pair in scenes)
@@ -213,8 +205,6 @@ namespace AngryLevelLoader
             {
                 this.path = path;
                 sceneBundle = AssetBundle.LoadFromFile(path);
-                if (File.Exists(path + "_assets"))
-                    assetBundle = AssetBundle.LoadFromFile(path + "_assets");
 
                 panel = new ConfigPanel(config.rootPanel, Path.GetFileName(path), Path.GetFileName(path));
                 
@@ -244,9 +234,6 @@ namespace AngryLevelLoader
             {
                 foreach (string path in Directory.GetFiles(bundlePath))
                 {
-                    if (path.EndsWith("_assets"))
-                        continue;
-
                     if (bundles.TryGetValue(path, out LevelAsset levelAsset))
                     {
                         levelAsset.panel.interactable = true;
