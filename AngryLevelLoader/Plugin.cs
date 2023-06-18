@@ -137,7 +137,7 @@ namespace AngryLevelLoader
 
                 try
                 {
-                    sceneBundle.Unload(true);
+                    sceneBundle.Unload(false);
                 }
                 catch (Exception) { }
 
@@ -171,23 +171,6 @@ namespace AngryLevelLoader
                             SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
                             p_SceneHelper_LastScene.SetValue(null, p_SceneHelper_CurrentScene.GetValue(null) as string);
                             p_SceneHelper_CurrentScene.SetValue(null, scenePath);
-
-                            IEnumerable<GameObject> GetAllSceneObjects()
-                            {
-                                Stack<GameObject> stack = new Stack<GameObject>();
-                                foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects())
-                                    stack.Push(obj);
-
-                                while (stack.Count != 0)
-                                {
-                                    GameObject obj = stack.Pop();
-                                    yield return obj;
-
-                                    foreach (Transform t in obj.transform)
-                                        stack.Push(t.gameObject);
-                                }
-                            }
-
                         };
 
                         SceneManager.sceneLoaded += (scene, mode) =>
@@ -216,6 +199,7 @@ namespace AngryLevelLoader
                 panel = new ConfigPanel(config.rootPanel, Path.GetFileName(path), Path.GetFileName(path));
                 
                 reloadButton = new ButtonField(panel, "Reload File", "reloadButton");
+                reloadButton.onClick += UpdateScenes;
                 reloadErrorText = new ConfigHeader(panel, "Level can only be reloaded in main menu", 20, TextAnchor.MiddleLeft);
                 reloadErrorText.hidden = true;
 
@@ -227,7 +211,7 @@ namespace AngryLevelLoader
                 sceneDiv = new ConfigDivision(panel, "sceneDiv_" + panel.guid);
                 UpdateScenes();
 
-                SceneManager.activeSceneChanged += UpdateReloadButton;
+                // SceneManager.activeSceneChanged += UpdateReloadButton;
             }
         }
 
