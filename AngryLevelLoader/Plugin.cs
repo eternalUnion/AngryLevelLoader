@@ -101,6 +101,8 @@ namespace AngryLevelLoader
             public AssetBundle sceneBundle;
             public string path;
 
+            public static string lastLoadedScenePath = "";
+
             public ConfigPanel panel;
             public ButtonField reloadButton;
             public ConfigHeader reloadErrorText;
@@ -159,7 +161,11 @@ namespace AngryLevelLoader
                     }
                     else
                     {
-                        ButtonField sceneButton = new ButtonField(sceneDiv, Path.GetFileName(scenePath), panel.guid + "_" + scenePath);
+                        string sceneName = Path.GetFileName(scenePath);
+                        if (sceneName.EndsWith(".unity"))
+                            sceneName = sceneName.Substring(0, sceneName.Length - 6);
+
+						ButtonField sceneButton = new ButtonField(sceneDiv, sceneName, panel.guid + "_" + scenePath);
                         sceneButton.onClick += () =>
                         {
                             SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
@@ -190,6 +196,7 @@ namespace AngryLevelLoader
                             {
                                 ReplaceShaders();
                                 LinkMixers();
+                                lastLoadedScenePath = scenePath;
                             }
 						};
 
@@ -363,5 +370,28 @@ namespace AngryLevelLoader
                 __instance.shader = shader;
 			}
 		}
+    }
+
+    [HarmonyPatch(typeof(SceneHelper), nameof(SceneHelper.RestartScene))]
+    public static class SceneHelperRestart_Patch
+    {
+        [HarmonyPrefix]
+        public static bool Prefix()
+        {
+            if (SceneManager.GetActiveScene().path != Plugin.LevelAsset.lastLoadedScenePath)
+                return true;
+
+			foreach (MonoBehaviour monoBehaviour in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>())
+			{
+				if (!(monoBehaviour == null) && !(monoBehaviour.gameObject.scene.name == "DontDestroyOnLoad"))
+				{
+					monoBehaviour.enabled = false;
+				}
+			}
+
+            SceneManager.LoadScene(Plugin.LevelAsset.lastLoadedScenePath);
+
+			return false;
+        }
     }
 }
