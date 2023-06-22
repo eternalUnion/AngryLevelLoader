@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -27,8 +27,8 @@
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
     </Reference>
-    <Reference Include="RudeLevelScripts">
-      <HintPath>libs\RudeLevelScripts.dll</HintPath>
+    <Reference Include="RudeLevelScript">
+      <HintPath>libs\RudeLevelScript.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>libs\Unity.Addressables.dll</HintPath>
