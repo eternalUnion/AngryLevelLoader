@@ -143,7 +143,9 @@ namespace AngryLevelLoader
 				timeText.text = $"{GetTimeStringFromSeconds(time)} {GetFormattedRankText(timeRank)}";
 				killsText.text = $"{kills} {GetFormattedRankText(killsRank)}";
 				styleText.text = $"{style} {GetFormattedRankText(styleRank)}";
-				secretsText.text = $"{secrets}/5";
+				secretsText.text = $"{secrets} / {data.secretCount}";
+				if (secrets == data.secretCount)
+					secretsText.text = $"<color=aqua>{secretsText.text}</color>";
 				finalRankText.text = GetFormattedRankText(finalRank);
 				challengePanel.color = challenge ? new Color(1, 1, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
 			}
@@ -203,6 +205,7 @@ namespace AngryLevelLoader
                 levelTextRect.anchorMin = new Vector2(0, 1);
                 levelTextRect.anchorMax = new Vector2(1, 1);
                 levelTextRect.anchoredPosition = new Vector2(10, -10);
+                levelTextRect.sizeDelta = new Vector2(-10, 18);
                 levelTextRect.localScale = Vector3.one;
 
                 // White line break
@@ -357,7 +360,9 @@ namespace AngryLevelLoader
 				// Secrets text
 				Text secretsText = MakeText(statsRect);
 				secretsText.font = gameFont;
-				secretsText.text = $"{secrets}/5";
+				secretsText.text = $"{secrets} / {data.secretCount}";
+                if (secrets == data.secretCount)
+                    secretsText.text = $"<color=aqua>{secretsText.text}</color>";
 				secretsText.alignment = TextAnchor.UpperRight;
 				secretsText.fontSize = 15;
 				RectTransform secretsTextRect = secretsText.GetComponent<RectTransform>();
@@ -451,6 +456,8 @@ namespace AngryLevelLoader
 				challengeTextRect.anchoredPosition = new Vector2(0, -20);
 				challengeTextRect.sizeDelta = new Vector2(-10, -18);
 				challengeTextRect.localScale = Vector3.one;
+
+                imgRect.SetAsLastSibling();
 			}
 
             private static string GetTimeStringFromSeconds(float s)
@@ -464,19 +471,19 @@ namespace AngryLevelLoader
 
             private static Dictionary<char, Color> rankColors = new Dictionary<char, Color>()
             {
-                { 'D', Color.blue },
-                { 'C', Color.green },
-                { 'B', Color.blue },
-                { 'A', Color.green },
+                { 'D', new Color(0, 0x94 / 255, 0xFF / 255) },
+                { 'C', new Color(0x4C / 255, 0xFF / 255, 0) },
+                { 'B', new Color(0xFF / 255, 0xD8 / 255, 0) },
+                { 'A', new Color(0xFF / 255, 0x6A / 255, 0) },
                 { 'S', Color.red },
-                { 'P', Color.yellow },
+                { 'P', new Color(0xff / 255, 0xa5 / 255, 0) },
                 { '-', Color.gray }
             };
 
             private static string GetFormattedRankText(char rank)
             {
                 Color textColor;
-                if (rankColors.TryGetValue(rank, out textColor))
+                if (!rankColors.TryGetValue(rank, out textColor))
                     textColor = Color.gray;
 
                 return $"<color=#{ColorUtility.ToHtmlStringRGB(textColor)}>{rank}</color>";
@@ -544,6 +551,11 @@ namespace AngryLevelLoader
                 for (int i = 0; i < data.secretCount; i++)
                     defSecretText += 'F';
                 secrets = new StringField(panel, "", $"l_{data.uniqueIdentifier}_secrets", defSecretText, true) { hidden = true };
+                if (secrets.value.Length != data.secretCount)
+                {
+                    Debug.LogWarning($"Secret orb count does not match for {data.scenePath}, resetting");
+                    secrets.value = defSecretText;
+                }
 
                 challenge = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_challenge", false) { hidden = true };
 
@@ -571,14 +583,14 @@ namespace AngryLevelLoader
 
             }
 
-            IEnumerable<string> GetAllScenePaths()
+            public IEnumerable<string> GetAllScenePaths()
             {
                 foreach (AssetBundle bundle in bundles)
                     foreach (string path in bundle.GetAllScenePaths())
                         yield return path;
             }
 
-            IEnumerable<RudeLevelScript.RudeLevelData> GetAllLevelData()
+            public IEnumerable<RudeLevelScript.RudeLevelData> GetAllLevelData()
             {
                 foreach (AssetBundle bundle in bundles)
                 {
@@ -649,18 +661,6 @@ namespace AngryLevelLoader
                     }
                     else
                     {
-                        /*string sceneName = Path.GetFileName(scenePath);
-                        if (sceneName.EndsWith(".unity"))
-                            sceneName = sceneName.Substring(0, sceneName.Length - 6);
-
-						ButtonField sceneButton = new ButtonField(sceneDiv, sceneName, panel.guid + "_" + scenePath);
-                        sceneButton.onClick += () =>
-                        {
-                            SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
-                            p_SceneHelper_LastScene.SetValue(null, p_SceneHelper_CurrentScene.GetValue(null) as string);
-                            p_SceneHelper_CurrentScene.SetValue(null, scenePath);
-                        };*/
-
                         RudeLevelScript.RudeLevelData data = GetAllLevelData().Where(data => data.scenePath == scenePath).First();
                         LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
                         levelContainer.onLevelButtonPress += () =>
@@ -680,6 +680,19 @@ namespace AngryLevelLoader
                                 ReplaceShaders();
                                 LinkMixers();
                                 lastLoadedScenePath = scenePath;
+
+                                string secretString = levelContainer.secrets.value;
+                                foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>())
+                                {
+                                    if (bonus.gameObject.scene.path != scenePath)
+                                        continue;
+
+                                    if (bonus.secretNumber >= 0 && secretString[bonus.secretNumber] == 'T')
+                                    {
+                                        bonus.beenFound = true;
+                                        bonus.BeenFound();
+                                    }
+                                }
                             }
 						};
 
@@ -748,6 +761,10 @@ namespace AngryLevelLoader
 
         public static Font gameFont;
 
+        public static bool isInCustomScene = false;
+        public static RudeLevelScript.RudeLevelData currentLevelData;
+        public static LevelContainer currentLevelContainer;
+
         private void Awake()
         {
             // Plugin startup logic
@@ -755,6 +772,26 @@ namespace AngryLevelLoader
             harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
             InitShaderDictionary();
+
+            SceneManager.activeSceneChanged += (before, after) =>
+            {
+                foreach (AngryBundleContainer container in angryBundles.Values)
+                {
+                    if (container.GetAllScenePaths().Contains(after.path))
+                    {
+                        isInCustomScene = true;
+                        currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == after.path).First();
+                        currentLevelContainer = container.scenes[after.path];
+                        
+                        return;
+                    }
+                }
+
+                isInCustomScene = false;
+                currentLevelData = null;
+                currentLevelContainer = null;
+
+			};
 
             gameFont = LoadObject<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
 
