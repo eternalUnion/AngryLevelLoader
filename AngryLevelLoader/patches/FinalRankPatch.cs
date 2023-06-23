@@ -25,4 +25,32 @@ namespace AngryLevelLoader.patches
 			return true;
 		}
 	}
+
+
+	[HarmonyPatch(typeof(FinalRank), nameof(FinalRank.CountSecrets))]
+	class FinalRank_CountSecrets_Patch
+	{
+		static bool Prefix(FinalRank __instance)
+		{
+			if (!Plugin.isInCustomScene)
+				return true;
+
+			Plugin.currentLevelContainer.AssureSecretsSize();
+			if (Plugin.currentLevelContainer.secrets.value[__instance.secretsCheckProgress] != 'T')
+			{
+				__instance.secretsInfo[__instance.secretsCheckProgress].color = Color.black;
+				__instance.secretsCheckProgress += 1;
+
+				if (__instance.secretsCheckProgress < __instance.levelSecrets.Length)
+				{
+					__instance.Invoke("CountSecrets", __instance.timeBetween);
+					return false;
+				}
+				__instance.Invoke("Appear", __instance.timeBetween);
+				return false;
+			}
+
+			return true;
+		}
+	}
 }

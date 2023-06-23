@@ -18,6 +18,7 @@ using System.Collections;
 using UnityEngine.Audio;
 using UnityEngine.UI;
 using UnityEngine.TextCore;
+using Sandbox;
 
 namespace AngryLevelLoader
 {
@@ -102,7 +103,7 @@ namespace AngryLevelLoader
 		{
             private bool inited = false;
             private static Sprite bgSprite;
-            RudeLevelScript.RudeLevelData data;
+            public RudeLevelScript.RudeLevelData data;
 
             public float time = 0;
             public char timeRank = '-';
@@ -115,13 +116,18 @@ namespace AngryLevelLoader
             public bool challenge = false;
 
             private RectTransform currentUI;
+
             public Text timeText;
             public Text killsText;
             public Text styleText;
             public Text secretsText;
             public Text finalRankText;
             public Image challengePanel;
+
+            private Text levelNameText;
+            private Image levelPreviewImage;
             public Button levelPreviewButton;
+            private Text challengeText;
 
 			public override bool hidden { get => base.hidden;
                 set
@@ -147,8 +153,19 @@ namespace AngryLevelLoader
 				if (secrets == data.secretCount)
 					secretsText.text = $"<color=aqua>{secretsText.text}</color>";
 				finalRankText.text = GetFormattedRankText(finalRank);
-				challengePanel.color = challenge ? new Color(1, 1, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+				challengePanel.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+                challengeText.text = data.levelChallengeEnabled ? data.levelChallengeText : "No challenge available for the level";
 			}
+
+			public void UpdateData()
+			{
+                if (currentUI == null)
+                    return;
+
+                levelNameText.text = data.levelName;
+                levelPreviewImage.sprite = data.levelPreviewImage ?? levelPreviewImage.sprite;
+                UpdateUI();
+            }
 
 			public LevelField(ConfigPanel panel, RudeLevelScript.RudeLevelData data) : base(panel, 600, 170)
 			{
@@ -159,7 +176,7 @@ namespace AngryLevelLoader
                     OnCreateUI(currentUI);
 			}
 
-            private Text MakeText(Transform parent)
+            private static Text MakeText(Transform parent)
             {
                 GameObject obj = new GameObject();
                 RectTransform rect = obj.AddComponent<RectTransform>();
@@ -170,7 +187,7 @@ namespace AngryLevelLoader
                 return obj.AddComponent<Text>();
             }
 
-			private RectTransform MakeRect(Transform parent)
+			private static RectTransform MakeRect(Transform parent)
 			{
 				GameObject obj = new GameObject();
 				RectTransform rect = obj.AddComponent<RectTransform>();
@@ -207,6 +224,7 @@ namespace AngryLevelLoader
                 levelTextRect.anchoredPosition = new Vector2(10, -10);
                 levelTextRect.sizeDelta = new Vector2(-10, 18);
                 levelTextRect.localScale = Vector3.one;
+                this.levelNameText = levelText;
 
                 // White line break
 				RectTransform lineBreakRect = MakeRect(fieldUI);
@@ -246,8 +264,9 @@ namespace AngryLevelLoader
 						onLevelButtonPress.Invoke();
 				});
 				this.levelPreviewButton = levelButton;
+                this.levelPreviewImage = img;
 
-                // Stats container
+				// Stats container
 				RectTransform statsRect = MakeRect(fieldUI);
 				statsRect.anchorMin = new Vector2(0, 1);
 				statsRect.anchorMax = new Vector2(0, 1);
@@ -414,7 +433,7 @@ namespace AngryLevelLoader
 				challengePanelRect.anchoredPosition = new Vector2(470, -40);
 				Image challengePanelImg = challengePanelRect.gameObject.AddComponent<Image>();
 				challengePanelImg.sprite = bgSprite;
-				challengePanelImg.color = challenge ? new Color(1, 1, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+				challengePanelImg.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
 				challengePanelImg.type = Image.Type.Sliced;
 				challengePanelRect.localScale = Vector3.one;
                 this.challengePanel = challengePanelImg;
@@ -456,6 +475,7 @@ namespace AngryLevelLoader
 				challengeTextRect.anchoredPosition = new Vector2(0, -20);
 				challengeTextRect.sizeDelta = new Vector2(-10, -18);
 				challengeTextRect.localScale = Vector3.one;
+                this.challengeText = challengeText;
 
                 imgRect.SetAsLastSibling();
 			}
@@ -471,12 +491,12 @@ namespace AngryLevelLoader
 
             private static Dictionary<char, Color> rankColors = new Dictionary<char, Color>()
             {
-                { 'D', new Color(0, 0x94 / 255, 0xFF / 255) },
-                { 'C', new Color(0x4C / 255, 0xFF / 255, 0) },
-                { 'B', new Color(0xFF / 255, 0xD8 / 255, 0) },
-                { 'A', new Color(0xFF / 255, 0x6A / 255, 0) },
+                { 'D', new Color(0, 0x94 / 255f, 0xFF / 255f) },
+                { 'C', new Color(0x4C / 255f, 0xFF / 255f, 0) },
+                { 'B', new Color(0xFF / 255f, 0xD8 / 255f, 0) },
+                { 'A', new Color(0xFF / 255f, 0x6A / 255f, 0) },
                 { 'S', Color.red },
-                { 'P', new Color(0xff / 255, 0xa5 / 255, 0) },
+                { 'P', new Color(0xff / 255f, 0xa5 / 255f, 0) },
                 { '-', Color.gray }
             };
 
@@ -529,6 +549,37 @@ namespace AngryLevelLoader
                 field.UpdateUI();
             }
 
+            public void AssureSecretsSize()
+            {
+				int currentSecretCount = secrets.value.Length;
+				if (currentSecretCount != field.data.secretCount)
+				{
+					Debug.LogWarning("Inconsistent secrets data detected");
+					string secretsStr = secrets.value;
+
+					if (currentSecretCount < field.data.secretCount)
+					{
+						while (secretsStr.Length != field.data.secretCount)
+							secretsStr += 'F';
+						secrets.value = secretsStr;
+						secrets.defaultValue = secretsStr.Replace('T', 'F');
+					}
+					else
+					{
+						secrets.value = secrets.value.Substring(0, field.data.secretCount);
+						secrets.defaultValue = secrets.value.Replace('T', 'F');
+					}
+				}
+			}
+
+            public void UpdateData(RudeLevelScript.RudeLevelData data)
+            {
+                field.data = data;
+
+                AssureSecretsSize();
+                field.UpdateData();
+            }
+
 			public LevelContainer(ConfigPanel panel, RudeLevelScript.RudeLevelData data)
             {
                 field = new LevelField(panel, data);
@@ -538,7 +589,7 @@ namespace AngryLevelLoader
                         onLevelButtonPress.Invoke();
                 };
 
-                time = new FloatField(panel, "", $"l_{data.uniqueIdentifier}_time", 0) { hidden = true };
+                time = new FloatField(panel, "", $"l_{data.uniqueIdentifier}_time", 0) { hidden = true, presetLoadPriority = -1 };
                 timeRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_timeRank", "-") { hidden = true };
 				kills = new IntField(panel, "", $"l_{data.uniqueIdentifier}_kills", 0) { hidden = true };
 				killsRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_killsRank", "-") { hidden = true };
@@ -561,7 +612,11 @@ namespace AngryLevelLoader
 
                 UpdateUI();
 
-                time.onValueChange += (e) => UpdateUI();
+                time.onValueChange += (e) =>
+                {
+                    AssureSecretsSize();
+                    UpdateUI();
+                };
             }
         }
 
@@ -572,16 +627,11 @@ namespace AngryLevelLoader
 
             public static string lastLoadedScenePath = "";
 
-            public ConfigPanel panel;
+            public ConfigPanel rootPanel;
             public ButtonField reloadButton;
             public ConfigHeader statusText;
             public ConfigDivision sceneDiv;
-            public Dictionary<string, LevelContainer> scenes = new Dictionary<string, LevelContainer>();
-
-            public void ReloadAsset()
-            {
-
-            }
+            public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
             public IEnumerable<string> GetAllScenePaths()
             {
@@ -628,6 +678,7 @@ namespace AngryLevelLoader
             public void UpdateScenes()
             {
                 sceneDiv.interactable = false;
+                sceneDiv.hidden = false;
                 statusText.text = "Reloading scenes...";
                 statusText.hidden = false;
 
@@ -644,20 +695,22 @@ namespace AngryLevelLoader
                 if (!File.Exists(pathToAngryBundle))
                 {
                     statusText.text = "Could not find the file";
+                    sceneDiv.hidden = true;
                     return;
                 }
 
                 LoadBundle(pathToAngryBundle);
 
-                // Disable all scene buttons
-                foreach (KeyValuePair<string, LevelContainer> pair in scenes)
+                // Disable all level interfaces
+                foreach (KeyValuePair<string, LevelContainer> pair in levels)
                     pair.Value.hidden = true;
 
                 foreach (string scenePath in GetAllScenePaths())
                 {
-                    if (scenes.TryGetValue(scenePath, out LevelContainer container))
+                    if (levels.TryGetValue(scenePath, out LevelContainer container))
                     {
                         container.hidden = false;
+                        container.UpdateData(GetAllLevelData().Where(data => data.scenePath == scenePath).First());
                     }
                     else
                     {
@@ -696,7 +749,7 @@ namespace AngryLevelLoader
                             }
 						};
 
-                        scenes[scenePath] = levelContainer;
+                        levels[scenePath] = levelContainer;
                     }
                 }
 
@@ -709,17 +762,17 @@ namespace AngryLevelLoader
                 this.pathToAngryBundle = path;
                 LoadBundle(path);
 
-                panel = new ConfigPanel(config.rootPanel, Path.GetFileName(path), Path.GetFileName(path));
+                rootPanel = new ConfigPanel(config.rootPanel, Path.GetFileName(path), Path.GetFileName(path));
                 
-                reloadButton = new ButtonField(panel, "Reload File", "reloadButton");
+                reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
                 reloadButton.onClick += UpdateScenes;
                 
-                new SpaceField(panel, 5);
+                new SpaceField(rootPanel, 5);
 
-                new ConfigHeader(panel, "Scenes");
-                statusText = new ConfigHeader(panel, "", 16, TextAnchor.MiddleLeft);
+                new ConfigHeader(rootPanel, "Scenes");
+                statusText = new ConfigHeader(rootPanel, "", 16, TextAnchor.MiddleLeft);
                 statusText.hidden = true;
-                sceneDiv = new ConfigDivision(panel, "sceneDiv_" + panel.guid);
+                sceneDiv = new ConfigDivision(rootPanel, "sceneDiv_" + rootPanel.guid);
                 UpdateScenes();
             }
         }
@@ -727,7 +780,7 @@ namespace AngryLevelLoader
         public static void ReloadBundles()
         {
             foreach (KeyValuePair<string, AngryBundleContainer> pair in angryBundles)
-                pair.Value.panel.interactable = false;
+                pair.Value.rootPanel.interactable = false;
 
             string bundlePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Levels");
             if (Directory.Exists(bundlePath))
@@ -736,7 +789,7 @@ namespace AngryLevelLoader
                 {
                     if (angryBundles.TryGetValue(path, out AngryBundleContainer levelAsset))
                     {
-                        levelAsset.panel.interactable = true;
+                        levelAsset.rootPanel.interactable = true;
                         continue;
                     }
 
@@ -765,6 +818,25 @@ namespace AngryLevelLoader
         public static RudeLevelScript.RudeLevelData currentLevelData;
         public static LevelContainer currentLevelContainer;
 
+        public static void CheckIsInCustomScene(Scene current)
+        {
+			foreach (AngryBundleContainer container in angryBundles.Values)
+			{
+				if (container.GetAllScenePaths().Contains(current.path))
+				{
+					isInCustomScene = true;
+					currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == current.path).First();
+					currentLevelContainer = container.levels[current.path];
+
+					return;
+				}
+			}
+
+			isInCustomScene = false;
+			currentLevelData = null;
+			currentLevelContainer = null;
+		}
+
         private void Awake()
         {
             // Plugin startup logic
@@ -775,22 +847,7 @@ namespace AngryLevelLoader
 
             SceneManager.activeSceneChanged += (before, after) =>
             {
-                foreach (AngryBundleContainer container in angryBundles.Values)
-                {
-                    if (container.GetAllScenePaths().Contains(after.path))
-                    {
-                        isInCustomScene = true;
-                        currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == after.path).First();
-                        currentLevelContainer = container.scenes[after.path];
-                        
-                        return;
-                    }
-                }
-
-                isInCustomScene = false;
-                currentLevelData = null;
-                currentLevelContainer = null;
-
+                CheckIsInCustomScene(after);
 			};
 
             gameFont = LoadObject<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");

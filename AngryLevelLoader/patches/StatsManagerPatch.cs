@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace AngryLevelLoader.patches
@@ -15,11 +16,19 @@ namespace AngryLevelLoader.patches
 		[HarmonyPostfix]
 		public static void Postfix(StatsManager __instance)
 		{
+			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
 			if (!Plugin.isInCustomScene)
 				return;
 
-			if (Plugin.currentLevelContainer.challenge.value)
-				__instance.challengeComplete = true;
+			__instance.challengeComplete = Plugin.currentLevelContainer.challenge.value;
+
+			__instance.prevSecrets.Clear();
+			__instance.newSecrets.Clear();
+			string secretsStr = Plugin.currentLevelContainer.secrets.value;
+			Debug.Log($"Setting previous secrets to {secretsStr}");
+			for (int i = 0; i < secretsStr.Length; i++)
+				if (secretsStr[i] == 'T')
+					__instance.prevSecrets.Add(i);
 		}
 	}
 
@@ -32,12 +41,17 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return true;
 
+			if (__instance.prevSecrets.Contains(__0) || __instance.newSecrets.Contains(__0))
+				return false;
+
 			string currentSecrets = Plugin.currentLevelContainer.secrets.value;
 			StringBuilder sb = new StringBuilder(currentSecrets);
 			sb[__0] = 'T';
 
 			Plugin.currentLevelContainer.secrets.value = sb.ToString();
 			Plugin.currentLevelContainer.UpdateUI();
+
+			__instance.newSecrets.Add(__0);
 
 			return false;
 		}
@@ -73,50 +87,11 @@ namespace AngryLevelLoader.patches
 			return -1;
 		}
 
-		[HarmonyPostfix]
-		static void Postfix(StatsManager __instance)
+		[HarmonyPrefix]
+		static bool Prefix(StatsManager __instance)
 		{
 			if (!Plugin.isInCustomScene)
-				return;
-
-			int previousRankScore = GetRankScore(Plugin.currentLevelContainer.finalRank.value[0]);
-			int currentRankScore = GetRankScore(RemoveFormatting(__instance.fr.totalRank.text)[0]);
-		
-			if (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < Plugin.currentLevelContainer.time.value))
-			{
-				Plugin.currentLevelContainer.time.value = __instance.seconds;
-				Plugin.currentLevelContainer.timeRank.value = RemoveFormatting(__instance.fr.timeRank.text);
-				Plugin.currentLevelContainer.kills.value = __instance.kills;
-				Plugin.currentLevelContainer.killsRank.value = RemoveFormatting(__instance.fr.killsRank.text);
-				Plugin.currentLevelContainer.style.value = __instance.stylePoints;
-				Plugin.currentLevelContainer.styleRank.value = RemoveFormatting(__instance.fr.styleRank.text);
-
-				Plugin.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
-
-				Plugin.currentLevelContainer.UpdateUI();
-			}
-
-			if (!Plugin.currentLevelContainer.challenge.value)
-				Plugin.currentLevelContainer.challenge.value = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
-
-			// Set challenge text
-			Transform challengeTextRect = __instance.fr.transform.Find("Challenge/Text");
-			if (challengeTextRect != null)
-			{
-				challengeTextRect.GetComponent<Text>().text = Plugin.currentLevelData.levelChallengeEnabled ? Plugin.currentLevelData.levelChallengeText : "No challenge available for the level";
-			}
-			else
-				Debug.LogWarning("Could not find challenge text");
-
-			// Set secrets
-			/*Transform secretsText = __instance.fr.transform.Find("Secrets -  Title/Text (1)");
-			if (secretsText != null)
-			{
-				secretsText.GetComponent<Text>().text = $"{Plugin.currentLevelContainer.secrets.value.ToCharArray().Count(c => c == 'T')} / {Plugin.currentLevelData.secretCount}";
-				
-			}
-			else
-				Debug.LogWarning("Could not find secrets text");*/
+				return true;
 
 			Transform secretContainer = __instance.fr.transform.Find("Secrets - Info");
 			if (secretContainer != null)
@@ -163,6 +138,44 @@ namespace AngryLevelLoader.patches
 			}
 			else
 				Debug.LogWarning("Could not find secrets container");
+
+			return true;
+		}
+
+		[HarmonyPostfix]
+		static void Postfix(StatsManager __instance)
+		{
+			if (!Plugin.isInCustomScene)
+				return;
+
+			int previousRankScore = GetRankScore(Plugin.currentLevelContainer.finalRank.value[0]);
+			int currentRankScore = GetRankScore(RemoveFormatting(__instance.fr.totalRank.text)[0]);
+		
+			if (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < Plugin.currentLevelContainer.time.value))
+			{
+				Plugin.currentLevelContainer.time.value = __instance.seconds;
+				Plugin.currentLevelContainer.timeRank.value = RemoveFormatting(__instance.fr.timeRank.text);
+				Plugin.currentLevelContainer.kills.value = __instance.kills;
+				Plugin.currentLevelContainer.killsRank.value = RemoveFormatting(__instance.fr.killsRank.text);
+				Plugin.currentLevelContainer.style.value = __instance.stylePoints;
+				Plugin.currentLevelContainer.styleRank.value = RemoveFormatting(__instance.fr.styleRank.text);
+
+				Plugin.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
+
+				Plugin.currentLevelContainer.UpdateUI();
+			}
+
+			if (!Plugin.currentLevelContainer.challenge.value)
+				Plugin.currentLevelContainer.challenge.value = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
+
+			// Set challenge text
+			Transform challengeTextRect = __instance.fr.transform.Find("Challenge/Text");
+			if (challengeTextRect != null)
+			{
+				challengeTextRect.GetComponent<Text>().text = Plugin.currentLevelData.levelChallengeEnabled ? Plugin.currentLevelData.levelChallengeText : "No challenge available for the level";
+			}
+			else
+				Debug.LogWarning("Could not find challenge text");
 		}
 	}
 }
