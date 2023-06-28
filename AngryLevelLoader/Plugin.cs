@@ -117,12 +117,21 @@ namespace AngryLevelLoader
 
             private RectTransform currentUI;
 
-            public Text timeText;
-            public Text killsText;
-            public Text styleText;
-            public Text secretsText;
-            public Text finalRankText;
-            public Image challengePanel;
+            private Text timeText;
+            private Text killsText;
+            private Text styleText;
+            private Text secretsText;
+            private Text finalRankText;
+            private Image uiImage;
+            private Image statsImage;
+            private Image finalRankImage;
+            private Image challengePanel;
+            private List<Text> headerTexts = new List<Text>();
+
+            public static Color perfectUiColor = new Color(171 / 255f, 108 / 255f, 2 / 255f);
+            public static Color perfectStatsColor = new Color(225 / 255f, 154 / 255f, 0);
+            public static Color perfectRankColor = new Color(241 / 255f, 168 / 255f, 8 / 255f);
+            public static Color colorSilver = new Color(0xc0 / 255f, 0xc0 / 255f, 0xc0 / 255f);
 
             private Text levelNameText;
             private Image levelPreviewImage;
@@ -141,21 +150,37 @@ namespace AngryLevelLoader
 			public delegate void onLevelButtonPressDelegate();
 			public event onLevelButtonPressDelegate onLevelButtonPress;
 
-			public void UpdateUI()
+            public void UpdateUI()
             {
                 if (currentUI == null)
                     return;
 
-				timeText.text = $"{GetTimeStringFromSeconds(time)} {GetFormattedRankText(timeRank)}";
-				killsText.text = $"{kills} {GetFormattedRankText(killsRank)}";
-				styleText.text = $"{style} {GetFormattedRankText(styleRank)}";
-				secretsText.text = $"{secrets} / {data.secretCount}";
-				if (secrets == data.secretCount)
-					secretsText.text = $"<color=aqua>{secretsText.text}</color>";
-				finalRankText.text = GetFormattedRankText(finalRank);
-				challengePanel.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+                timeText.text = $"{GetTimeStringFromSeconds(time)} {GetFormattedRankText(timeRank)}";
+                killsText.text = $"{kills} {GetFormattedRankText(killsRank)}";
+                styleText.text = $"{style} {GetFormattedRankText(styleRank)}";
+                secretsText.text = $"{secrets} / {data.secretCount}";
+                if (secrets == data.secretCount)
+                    secretsText.text = $"<color=aqua>{secretsText.text}</color>";
+                finalRankText.text = GetFormattedRankText(finalRank);
+                challengePanel.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+                challengePanel.gameObject.SetActive(data.levelChallengeEnabled);
                 challengeText.text = data.levelChallengeEnabled ? data.levelChallengeText : "No challenge available for the level";
-			}
+
+                if (finalRank == 'P')
+                {
+                    uiImage.color = perfectUiColor;
+                    statsImage.color = perfectStatsColor;
+                    finalRankImage.color = perfectRankColor;
+                    headerTexts.ForEach(header => header.color = Color.white);
+                }
+                else
+                {
+                    uiImage.color = Color.black;
+                    statsImage.color = new Color(0, 0, 0, 0.8f);
+                    finalRankImage.color = new Color(0, 0, 0, 0.8f);
+					headerTexts.ForEach(header => header.color = colorSilver);
+				}
+            }
 
 			public void UpdateData()
 			{
@@ -203,6 +228,7 @@ namespace AngryLevelLoader
                     return;
 
                 Image bgImage = fieldUI.gameObject.AddComponent<Image>();
+                uiImage = bgImage;
                 if (bgSprite == null)
                 {
                     bgSprite = Resources.FindObjectsOfTypeAll<Image>().Where(i => i.sprite != null && i.sprite.name == "Background").First().sprite;
@@ -274,6 +300,7 @@ namespace AngryLevelLoader
 				statsRect.sizeDelta = new Vector2(280, 120);
 				statsRect.anchoredPosition = new Vector2(180, -40);
                 Image statsImg = statsRect.gameObject.AddComponent<Image>();
+                statsImage = statsImg;
                 statsImg.sprite = bgSprite;
                 statsImg.color = new Color(0, 0, 0, 0.8f);
                 statsImg.type = Image.Type.Sliced;
@@ -282,7 +309,7 @@ namespace AngryLevelLoader
                 // Time header text
 				Text timeHeaderText = MakeText(statsRect);
 				timeHeaderText.font = gameFont;
-				timeHeaderText.text = "<color=silver>Time: </color>";
+				timeHeaderText.text = "Time: ";
 				timeHeaderText.fontSize = 15;
 				RectTransform timeHeaderTextRect = timeHeaderText.GetComponent<RectTransform>();
 				timeHeaderTextRect.pivot = new Vector2(0, 1);
@@ -310,7 +337,7 @@ namespace AngryLevelLoader
 				// Kills header text
 				Text killsHeaderText = MakeText(statsRect);
 				killsHeaderText.font = gameFont;
-				killsHeaderText.text = "<color=silver>Kills: </color>";
+				killsHeaderText.text = "Kills: ";
 				killsHeaderText.fontSize = 15;
 				RectTransform killsHeaderTextRect = killsHeaderText.GetComponent<RectTransform>();
 				killsHeaderTextRect.pivot = new Vector2(0, 1);
@@ -338,7 +365,7 @@ namespace AngryLevelLoader
 				// Style header text
 				Text styleHeaderText = MakeText(statsRect);
 				styleHeaderText.font = gameFont;
-				styleHeaderText.text = "<color=silver>Style: </color>";
+				styleHeaderText.text = "Style: ";
 				styleHeaderText.fontSize = 15;
 				RectTransform styleHeaderTextRect = styleHeaderText.GetComponent<RectTransform>();
 				styleHeaderTextRect.pivot = new Vector2(0, 1);
@@ -366,7 +393,7 @@ namespace AngryLevelLoader
 				// Secrets header text
 				Text secretsHeaderText = MakeText(statsRect);
 				secretsHeaderText.font = gameFont;
-				secretsHeaderText.text = "<color=silver>Secrets: </color>";
+				secretsHeaderText.text = "Secrets: ";
 				secretsHeaderText.fontSize = 15;
 				RectTransform secretsHeaderTextRect = secretsHeaderText.GetComponent<RectTransform>();
 				secretsHeaderTextRect.pivot = new Vector2(0, 1);
@@ -401,7 +428,8 @@ namespace AngryLevelLoader
 				finalRankPanelRect.sizeDelta = new Vector2(100, -20);
 				finalRankPanelRect.anchoredPosition = new Vector2(-10, 0);
 				Image finalRankPanel = finalRankPanelRect.gameObject.AddComponent<Image>();
-				finalRankPanel.sprite = bgSprite;
+                finalRankImage = finalRankPanel;
+                finalRankPanel.sprite = bgSprite;
 				finalRankPanel.color = new Color(0, 0, 0, 0.8f);
 				finalRankPanel.type = Image.Type.Sliced;
 				finalRankPanelRect.localScale = Vector3.one;
@@ -477,7 +505,13 @@ namespace AngryLevelLoader
 				challengeTextRect.localScale = Vector3.one;
                 this.challengeText = challengeText;
 
+                challengePanelRect.gameObject.SetActive(data.levelChallengeEnabled);
                 imgRect.SetAsLastSibling();
+                headerTexts.Clear();
+                headerTexts.Add(timeHeaderText);
+                headerTexts.Add(killsHeaderText);
+                headerTexts.Add(styleHeaderText);
+                UpdateUI();
 			}
 
             private static string GetTimeStringFromSeconds(float s)
@@ -496,7 +530,7 @@ namespace AngryLevelLoader
                 { 'B', new Color(0xFF / 255f, 0xD8 / 255f, 0) },
                 { 'A', new Color(0xFF / 255f, 0x6A / 255f, 0) },
                 { 'S', Color.red },
-                { 'P', new Color(0xff / 255f, 0xa5 / 255f, 0) },
+                { 'P', Color.white },
                 { '-', Color.gray }
             };
 
@@ -516,6 +550,14 @@ namespace AngryLevelLoader
 
             public delegate void onLevelButtonPressDelegate();
             public event onLevelButtonPressDelegate onLevelButtonPress;
+            public bool TriggerLevelButtonPress()
+            {
+                if (onLevelButtonPress == null)
+                    return false;
+
+                onLevelButtonPress.Invoke();
+                return true;
+			}
 
             public bool hidden
             {
@@ -718,6 +760,7 @@ namespace AngryLevelLoader
                         LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
                         levelContainer.onLevelButtonPress += () =>
                         {
+							MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", selectedDifficulty);
 							SceneManager.LoadScene(scenePath, LoadSceneMode.Single);
 							p_SceneHelper_LastScene.SetValue(null, p_SceneHelper_CurrentScene.GetValue(null) as string);
 							p_SceneHelper_CurrentScene.SetValue(null, scenePath);
@@ -760,9 +803,8 @@ namespace AngryLevelLoader
             public AngryBundleContainer(string path)
             {
                 this.pathToAngryBundle = path;
-                LoadBundle(path);
 
-                rootPanel = new ConfigPanel(config.rootPanel, Path.GetFileName(path), Path.GetFileName(path));
+                rootPanel = new ConfigPanel(config.rootPanel, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path));
                 
                 reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
                 reloadButton.onClick += UpdateScenes;
@@ -773,9 +815,10 @@ namespace AngryLevelLoader
                 statusText = new ConfigHeader(rootPanel, "", 16, TextAnchor.MiddleLeft);
                 statusText.hidden = true;
                 sceneDiv = new ConfigDivision(rootPanel, "sceneDiv_" + rootPanel.guid);
-                UpdateScenes();
             }
         }
+
+        private static Dictionary<string, AngryBundleContainer> failedBundles = new Dictionary<string, AngryBundleContainer>();
 
         public static void ReloadBundles()
         {
@@ -790,18 +833,44 @@ namespace AngryLevelLoader
                     if (angryBundles.TryGetValue(path, out AngryBundleContainer levelAsset))
                     {
                         levelAsset.rootPanel.interactable = true;
+                        levelAsset.rootPanel.hidden = false;
                         continue;
                     }
+                    else if (failedBundles.TryGetValue(path, out AngryBundleContainer failedBundle))
+                    {
+                        try
+                        {
+                            failedBundle.UpdateScenes();
+                        }
+						catch (Exception e)
+                        {
+							Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
+                            continue;
+						}
 
-                    AngryBundleContainer level;
+                        failedBundle.rootPanel.interactable = true;
+                        failedBundle.rootPanel.hidden = false;
+                        failedBundles.Remove(path);
+                        angryBundles[path] = failedBundle;
+                        continue;
+					}
+
+                    AngryBundleContainer level = null;
 
                     try
                     {
                         level = new AngryBundleContainer(path);
+                        level.UpdateScenes();
                     }
                     catch(Exception e)
                     {
                         Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
+                        
+                        if (level != null)
+                        {
+                            level.rootPanel.hidden = true;
+                            failedBundles[path] = level;
+                        }
                         continue;
                     }
 
@@ -817,6 +886,7 @@ namespace AngryLevelLoader
         public static bool isInCustomScene = false;
         public static RudeLevelScript.RudeLevelData currentLevelData;
         public static LevelContainer currentLevelContainer;
+        public static int selectedDifficulty;
 
         public static void CheckIsInCustomScene(Scene current)
         {
@@ -837,7 +907,9 @@ namespace AngryLevelLoader
 			currentLevelContainer = null;
 		}
 
-        private void Awake()
+        private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+
+		private void Awake()
         {
             // Plugin startup logic
             config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
@@ -854,7 +926,19 @@ namespace AngryLevelLoader
 
             ButtonField reloadButton = new ButtonField(config.rootPanel, "Scan For Levels", "refreshButton");
             reloadButton.onClick += ReloadBundles;
-            new ConfigHeader(config.rootPanel, "Level Bundles");
+            StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
+            difficultySelect.onValueChange += (e) =>
+            {
+                selectedDifficulty = Array.IndexOf(difficultyArr, e.value);
+                if (selectedDifficulty == -1)
+                {
+                    Debug.LogWarning("Invalid difficulty, setting to violent");
+                    selectedDifficulty = 3;
+                }
+            };
+            difficultySelect.TriggerValueChangeEvent();
+
+			new ConfigHeader(config.rootPanel, "Level Bundles");
             ReloadBundles();
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");

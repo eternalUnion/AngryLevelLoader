@@ -13,6 +13,8 @@ namespace AngryLevelLoader.patches
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.Awake))]
 	class StatsManager_Awake_Patch
 	{
+		// Load previously found secrets manually
+		// as well as challenge complete status
 		[HarmonyPostfix]
 		public static void Postfix(StatsManager __instance)
 		{
@@ -22,10 +24,11 @@ namespace AngryLevelLoader.patches
 
 			__instance.challengeComplete = Plugin.currentLevelContainer.challenge.value;
 
+			__instance.secretObjects = new GameObject[Plugin.currentLevelData.secretCount];
+
 			__instance.prevSecrets.Clear();
 			__instance.newSecrets.Clear();
 			string secretsStr = Plugin.currentLevelContainer.secrets.value;
-			Debug.Log($"Setting previous secrets to {secretsStr}");
 			for (int i = 0; i < secretsStr.Length; i++)
 				if (secretsStr[i] == 'T')
 					__instance.prevSecrets.Add(i);
@@ -35,6 +38,7 @@ namespace AngryLevelLoader.patches
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.SecretFound))]
 	class StatsManager_SecretFound_Patch
 	{
+		// Handle secret found trigger for custom levels
 		[HarmonyPrefix]
 		static bool Prefix(StatsManager __instance, int __0)
 		{
@@ -92,6 +96,9 @@ namespace AngryLevelLoader.patches
 		{
 			if (!Plugin.isInCustomScene)
 				return true;
+
+			if (!Plugin.currentLevelData.levelChallengeEnabled)
+				__instance.challengeComplete = true;
 
 			Transform secretContainer = __instance.fr.transform.Find("Secrets - Info");
 			if (secretContainer != null)
@@ -165,7 +172,7 @@ namespace AngryLevelLoader.patches
 				Plugin.currentLevelContainer.UpdateUI();
 			}
 
-			if (!Plugin.currentLevelContainer.challenge.value)
+			if (!Plugin.currentLevelContainer.challenge.value && Plugin.currentLevelData.levelChallengeEnabled)
 				Plugin.currentLevelContainer.challenge.value = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
 
 			// Set challenge text

@@ -36,6 +36,12 @@ namespace AngryLevelLoader.patches
 				return true;
 
 			Plugin.currentLevelContainer.AssureSecretsSize();
+			if (__instance.secretsCheckProgress >= Plugin.currentLevelData.secretCount)
+			{
+				__instance.Invoke("Appear", __instance.timeBetween);
+				return false;
+			}
+
 			if (Plugin.currentLevelContainer.secrets.value[__instance.secretsCheckProgress] != 'T')
 			{
 				__instance.secretsInfo[__instance.secretsCheckProgress].color = Color.black;
@@ -51,6 +57,39 @@ namespace AngryLevelLoader.patches
 			}
 
 			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(FinalRank), nameof(FinalRank.LevelChange))]
+	class FinalRank_LevelChange_Patch
+	{
+		[HarmonyPrefix]
+		static bool Prefix()
+		{
+			if (!Plugin.isInCustomScene)
+				return true;
+
+			if (!string.IsNullOrEmpty(Plugin.currentLevelData.optionalNextScenePath))
+				foreach (Plugin.AngryBundleContainer container in Plugin.angryBundles.Values)
+				{
+					foreach (string scenePath in container.GetAllScenePaths())
+					{
+						if (scenePath == Plugin.currentLevelData.optionalNextScenePath)
+						{
+							if (container.levels.TryGetValue(scenePath, out Plugin.LevelContainer level))
+							{
+								if (level.TriggerLevelButtonPress())
+									return false;
+							}
+
+							MonoSingleton<OptionsManager>.Instance.QuitMission();
+							return false;
+						}
+					}
+				}
+
+			MonoSingleton<OptionsManager>.Instance.QuitMission();
+			return false;
 		}
 	}
 }
