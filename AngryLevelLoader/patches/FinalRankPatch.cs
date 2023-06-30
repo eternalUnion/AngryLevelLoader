@@ -16,7 +16,7 @@ namespace AngryLevelLoader.patches
 
 			if (Plugin.currentLevelData.isSecretLevel)
 			{
-				Transform titleTrans = __instance.transform.Find("Panel/Title/Text");
+				Transform titleTrans = __instance.transform.Find("Title/Text");
 				if (titleTrans != null)
 				{
 					titleTrans.GetComponent<Text>().text = Plugin.currentLevelData.name;

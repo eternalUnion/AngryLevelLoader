@@ -163,18 +163,6 @@ namespace AngryLevelLoader
 			}
 		}
 
-        public static IEnumerable GetAllData()
-        {
-            foreach (AngryBundleContainer container in angryBundles.Values)
-            {
-                if (!container.rootPanel.interactable)
-                    continue;
-
-                foreach (RudeLevelData data in container.GetAllLevelData())
-                    yield return data;
-            }
-        }
-
 		public static LevelContainer GetLevel(string id)
 		{
 			foreach (AngryBundleContainer container in angryBundles.Values)
@@ -353,34 +341,18 @@ namespace AngryLevelLoader
 		public static char INCOMPLETE_LEVEL_CHAR = '-';
 		public static char GetLevelRank(string levelId)
         {
-			foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
-			{
-				foreach (RudeLevelData data in container.GetAllLevelData())
-				{
-					if (data.uniqueIdentifier == levelId)
-					{
-						return container.levels[data.scenePath].finalRank.value[0];
-					}
-				}
-			}
-
-			return INCOMPLETE_LEVEL_CHAR;
+			LevelContainer level = Plugin.GetLevel(levelId);
+			if (level == null)
+				return INCOMPLETE_LEVEL_CHAR;
+			return level.finalRank.value[0];
 		}
 	
         public static bool GetLevelChallenge(string levelId)
 		{
-			foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
-			{
-				foreach (RudeLevelData data in container.GetAllLevelData())
-				{
-					if (data.uniqueIdentifier == levelId)
-					{
-						return data.levelChallengeEnabled && container.levels[data.scenePath].challenge.value;
-					}
-				}
-			}
-
-			return false;
+			LevelContainer level = Plugin.GetLevel(levelId);
+			if (level == null)
+				return false;
+			return level.challenge.value;
 		}
 
 		public static bool GetLevelSecret(string levelId, int secretIndex)
@@ -388,23 +360,14 @@ namespace AngryLevelLoader
 			if (secretIndex < 0)
 				return false;
 
-			foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
-			{
-				foreach (RudeLevelData data in container.GetAllLevelData())
-				{
-					if (data.uniqueIdentifier == levelId)
-					{
-						if (secretIndex >= data.secretCount)
-							return false;
+			LevelContainer level = Plugin.GetLevel(levelId);
+			if (level == null)
+				return false;
 
-						LevelContainer level = container.levels[data.scenePath];
-						level.AssureSecretsSize();
-						return level.secrets.value[secretIndex] == 'T';
-					}
-				}
-			}
-
-			return false;
+			level.AssureSecretsSize();
+			if (secretIndex >= level.field.data.secretCount)
+				return false;
+			return level.secrets.value[secretIndex] == 'T';
 		}
 	}
 }

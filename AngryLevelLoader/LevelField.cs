@@ -104,6 +104,15 @@ namespace AngryLevelLoader
 
 		public delegate void onLevelButtonPressDelegate();
 		public event onLevelButtonPressDelegate onLevelButtonPress;
+		
+		public LevelField(ConfigPanel panel, RudeLevelData data) : base(panel, 600, 170)
+		{
+			this.data = data;
+
+			inited = true;
+			if (currentUI != null)
+				OnCreateUI(currentUI);
+		}
 
 		public void UpdateUI()
 		{
@@ -120,13 +129,13 @@ namespace AngryLevelLoader
 				statsImage.gameObject.SetActive(true);
 				challengePanel.gameObject.SetActive(true);
 
-				timeText.text = $"{GetTimeStringFromSeconds(time)} {GetFormattedRankText(timeRank)}";
-				killsText.text = $"{kills} {GetFormattedRankText(killsRank)}";
-				styleText.text = $"{style} {GetFormattedRankText(styleRank)}";
+				timeText.text = $"{GetTimeStringFromSeconds(time)} {RankUtils.GetFormattedRankText(timeRank)}";
+				killsText.text = $"{kills} {RankUtils.GetFormattedRankText(killsRank)}";
+				styleText.text = $"{style} {RankUtils.GetFormattedRankText(styleRank)}";
 				secretsText.text = $"{secrets} / {data.secretCount}";
 				if (secrets == data.secretCount)
 					secretsText.text = $"<color=aqua>{secretsText.text}</color>";
-				finalRankText.text = GetFormattedRankText(finalRank);
+				finalRankText.text = RankUtils.GetFormattedRankText(finalRank);
 				challengePanel.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
 				challengePanel.gameObject.SetActive(data.levelChallengeEnabled);
 				challengeText.text = data.levelChallengeEnabled ? data.levelChallengeText : "No challenge available for the level";
@@ -165,23 +174,6 @@ namespace AngryLevelLoader
 			}
 
 			hidden = !discovered;
-		}
-
-		public void UpdateData()
-		{
-			if (currentUI == null)
-				return;
-
-			UpdateUI();
-		}
-
-		public LevelField(ConfigPanel panel, RudeLevelData data) : base(panel, 600, 170)
-		{
-			this.data = data;
-
-			inited = true;
-			if (currentUI != null)
-				OnCreateUI(currentUI);
 		}
 
 		private static Text MakeText(Transform parent)
@@ -308,7 +300,7 @@ namespace AngryLevelLoader
 			// Time text
 			Text timeText = MakeText(statsRect);
 			timeText.font = Plugin.gameFont;
-			timeText.text = $"{GetTimeStringFromSeconds(time)} {GetFormattedRankText(timeRank)}";
+			timeText.text = $"{GetTimeStringFromSeconds(time)} {RankUtils.GetFormattedRankText(timeRank)}";
 			timeText.alignment = TextAnchor.UpperRight;
 			timeText.fontSize = 15;
 			RectTransform timeTextRect = timeText.GetComponent<RectTransform>();
@@ -336,7 +328,7 @@ namespace AngryLevelLoader
 			// Kills text
 			Text killsText = MakeText(statsRect);
 			killsText.font = Plugin.gameFont;
-			killsText.text = $"{kills} {GetFormattedRankText(killsRank)}";
+			killsText.text = $"{kills} {RankUtils.GetFormattedRankText(killsRank)}";
 			killsText.alignment = TextAnchor.UpperRight;
 			killsText.fontSize = 15;
 			RectTransform killsTextRect = killsText.GetComponent<RectTransform>();
@@ -364,7 +356,7 @@ namespace AngryLevelLoader
 			// Style text
 			Text styleText = MakeText(statsRect);
 			styleText.font = Plugin.gameFont;
-			styleText.text = $"{style} {GetFormattedRankText(styleRank)}";
+			styleText.text = $"{style} {RankUtils.GetFormattedRankText(styleRank)}";
 			styleText.alignment = TextAnchor.UpperRight;
 			styleText.fontSize = 15;
 			RectTransform styleTextRect = styleText.GetComponent<RectTransform>();
@@ -423,7 +415,7 @@ namespace AngryLevelLoader
 			// Total rank text
 			Text finalRankText = MakeText(finalRankPanelRect);
 			finalRankText.font = Plugin.gameFont;
-			finalRankText.text = GetFormattedRankText(finalRank);
+			finalRankText.text = RankUtils.GetFormattedRankText(finalRank);
 			finalRankText.fontSize = 15;
 			finalRankText.resizeTextForBestFit = true;
 			finalRankText.resizeTextMaxSize = 100;
@@ -497,36 +489,16 @@ namespace AngryLevelLoader
 			headerTexts.Add(timeHeaderText);
 			headerTexts.Add(killsHeaderText);
 			headerTexts.Add(styleHeaderText);
+			headerTexts.Add(secretsHeaderText);
 			UpdateUI();
 		}
 
 		private static string GetTimeStringFromSeconds(float s)
 		{
-			float seconds = s;
-			int minutes = (int)(seconds / 60);
-			seconds %= 60;
+			float seconds = s % 60;
+			int minutes = (int)(s / 60);
 
 			return minutes + ":" + seconds.ToString("00.000");
-		}
-
-		private static Dictionary<char, Color> rankColors = new Dictionary<char, Color>()
-			{
-				{ 'D', new Color(0, 0x94 / 255f, 0xFF / 255f) },
-				{ 'C', new Color(0x4C / 255f, 0xFF / 255f, 0) },
-				{ 'B', new Color(0xFF / 255f, 0xD8 / 255f, 0) },
-				{ 'A', new Color(0xFF / 255f, 0x6A / 255f, 0) },
-				{ 'S', Color.red },
-				{ 'P', Color.white },
-				{ '-', Color.gray }
-			};
-
-		private static string GetFormattedRankText(char rank)
-		{
-			Color textColor;
-			if (!rankColors.TryGetValue(rank, out textColor))
-				textColor = Color.gray;
-
-			return $"<color=#{ColorUtility.ToHtmlStringRGB(textColor)}>{rank}</color>";
 		}
 	}
 }

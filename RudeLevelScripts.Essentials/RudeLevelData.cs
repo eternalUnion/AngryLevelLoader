@@ -39,7 +39,7 @@ namespace RudeLevelScript
 	public class RudeLevelData : ScriptableObject
 	{
 		[SerializeField]
-		public UnityEngine.Object targetScene = null;
+		public Object targetScene = null;
 		[HideInInspector]
 		public string scenePath = "";
 		[Header("Level Locator")]
