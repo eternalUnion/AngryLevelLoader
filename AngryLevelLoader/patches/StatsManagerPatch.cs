@@ -110,6 +110,12 @@ namespace AngryLevelLoader.patches
 						secrets.Add(newChild.transform);
 					}
 
+					for (int i = 0; i < 5 - Plugin.currentLevelData.secretCount; i++)
+					{
+						GameObject newChild = UnityEngine.Object.Instantiate(secretContainer.GetChild(0).gameObject, secretContainer);
+						newChild.GetComponent<Image>().color = Color.black;
+					}
+
 					string secretStr = Plugin.currentLevelContainer.secrets.value;
 					for (int i = 0; i < secrets.Count; i++)
 					{
