@@ -21,14 +21,15 @@
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\RudeLevelScripts.Essentials\RudeLevelScripts.Essentials.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>libs\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
-    </Reference>
-    <Reference Include="RudeLevelScript">
-      <HintPath>libs\RudeLevelScript.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>libs\Unity.Addressables.dll</HintPath>

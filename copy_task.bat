@@ -1,0 +1,6 @@
+copy /B/Y "C:\Users\User\Documents\VS\AngryLevelLoader\AngryLevelLoader\bin\Debug\netstandard2.0\AngryLevelLoader.dll" "C:\Users\User\Documents\Ultrakill\ULTRAKILL\BepInEx\plugins\AngryLevelLoader\AngryLevelLoader.dll"
+copy /B/Y "C:\Users\User\Documents\VS\AngryLevelLoader\RudeLevelScripts.Essentials\bin\Debug\netstandard2.0\RudeLevelScripts.Essentials.dll" "C:\Users\User\Documents\Ultrakill\ULTRAKILL\BepInEx\plugins\AngryLevelLoader\RudeLevelScripts.Essentials.dll"
+copy /B/Y "C:\Users\User\Documents\VS\AngryLevelLoader\AngryLoaderAPI\bin\Debug\netstandard2.0\AngryLoaderAPI.dll" "C:\Users\User\Documents\Ultrakill\ULTRAKILL\BepInEx\plugins\AngryLevelLoader\Scripts\AngryLoaderAPI.dll"
+copy /B/Y "C:\Users\User\Documents\VS\AngryLevelLoader\RudeLevelScripts\bin\Debug\netstandard2.0\RudeLevelScripts.dll" "C:\Users\User\Documents\Ultrakill\ULTRAKILL\BepInEx\plugins\AngryLevelLoader\Scripts\RudeLevelScripts.dll"
+copy /B/Y "C:\Users\User\Documents\VS\AngryLevelLoader\RudeLevelScripts.Essentials\bin\Debug\netstandard2.0\RudeLevelScripts.Essentials.dll" "C:\Users\User\Documents\RudeNew\RudeLevelEditor\Assets\RudeScripts\RudeLevelScripts.Essentials.dll"
+copy /B/Y "C:\Users\User\Documents\VS\AngryLevelLoader\RudeLevelScripts\bin\Debug\netstandard2.0\RudeLevelScripts.dll" "C:\Users\User\Documents\RudeNew\RudeLevelEditor\Assets\RudeScripts\RudeLevelScripts.dll"

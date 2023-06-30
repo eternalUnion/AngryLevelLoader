@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -73,28 +72,10 @@ namespace AngryLevelLoader.patches
 				return str;
 		}
 
-		static int GetRankScore(char rank)
-		{
-			if (rank == 'D')
-				return 0;
-			if (rank == 'C')
-				return 1;
-			if (rank == 'B')
-				return 2;
-			if (rank == 'A')
-				return 3;
-			if (rank == 'S')
-				return 4;
-			if (rank == 'P')
-				return 5;
-
-			return -1;
-		}
-
 		[HarmonyPrefix]
 		static bool Prefix(StatsManager __instance)
 		{
-			if (!Plugin.isInCustomScene)
+			if (!Plugin.isInCustomScene || Plugin.currentLevelData.isSecretLevel)
 				return true;
 
 			if (!Plugin.currentLevelData.levelChallengeEnabled)
@@ -110,14 +91,14 @@ namespace AngryLevelLoader.patches
 				while (secretContainer.childCount != 1)
 				{
 					Transform child = secretContainer.GetChild(1);
-					GameObject.Destroy(child.gameObject);
+					UnityEngine.Object.Destroy(child.gameObject);
 					child.transform.SetParent(null);
 				}
 
 				if (Plugin.currentLevelData.secretCount == 0)
 				{
 					Transform child = secretContainer.GetChild(0);
-					GameObject.Destroy(child.gameObject);
+					UnityEngine.Object.Destroy(child.gameObject);
 					child.transform.SetParent(null);
 				}
 				else
@@ -125,7 +106,7 @@ namespace AngryLevelLoader.patches
 					List<Transform> secrets = new List<Transform>() { secretContainer.GetChild(0) };
 					for (int i = 1; i < Plugin.currentLevelData.secretCount; i++)
 					{
-						GameObject newChild = GameObject.Instantiate(secretContainer.GetChild(0).gameObject, secretContainer);
+						GameObject newChild = UnityEngine.Object.Instantiate(secretContainer.GetChild(0).gameObject, secretContainer);
 						secrets.Add(newChild.transform);
 					}
 
@@ -155,10 +136,28 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return;
 
-			int previousRankScore = GetRankScore(Plugin.currentLevelContainer.finalRank.value[0]);
-			int currentRankScore = GetRankScore(RemoveFormatting(__instance.fr.totalRank.text)[0]);
-		
-			if (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < Plugin.currentLevelContainer.time.value))
+			if (Plugin.currentLevelData.isSecretLevel)
+			{
+				char prevRank = Plugin.currentLevelContainer.finalRank.value[0];
+				if (prevRank != 'P')
+					Plugin.currentLevelContainer.finalRank.value = AssistController.instance.cheatsEnabled ? " " : "P";
+
+				return;
+			}
+
+			char currentRank = RemoveFormatting(__instance.fr.totalRank.text)[0];
+			// Ultrakill cheats symbol to angry loader cheats symbol
+			//  '-' : not completed, ' ' : cheats used
+			if (currentRank == '-')
+				currentRank = ' ';
+
+			int previousRankScore = RankUtils.GetRankScore(Plugin.currentLevelContainer.finalRank.value[0]);
+			int currentRankScore = RankUtils.GetRankScore(currentRank);
+
+			bool playerBestWithoutCheats = !AssistController.instance.cheatsEnabled && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < Plugin.currentLevelContainer.time.value));
+			bool firstTimeWithCheats = previousRankScore == -1 && AssistController.instance.cheatsEnabled;
+
+			if (playerBestWithoutCheats || firstTimeWithCheats)
 			{
 				Plugin.currentLevelContainer.time.value = __instance.seconds;
 				Plugin.currentLevelContainer.timeRank.value = RemoveFormatting(__instance.fr.timeRank.text);
@@ -167,13 +166,19 @@ namespace AngryLevelLoader.patches
 				Plugin.currentLevelContainer.style.value = __instance.stylePoints;
 				Plugin.currentLevelContainer.styleRank.value = RemoveFormatting(__instance.fr.styleRank.text);
 
-				Plugin.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
+				if (AssistController.instance.cheatsEnabled)
+				{
+					Plugin.currentLevelContainer.finalRank.value = " ";
+				}
+				else
+				{
+					Plugin.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
+					if (!Plugin.currentLevelContainer.challenge.value && Plugin.currentLevelData.levelChallengeEnabled)
+						Plugin.currentLevelContainer.challenge.value = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
+				}
 
-				Plugin.currentLevelContainer.UpdateUI();
+				Plugin.UpdateAllUI();
 			}
-
-			if (!Plugin.currentLevelContainer.challenge.value && Plugin.currentLevelData.levelChallengeEnabled)
-				Plugin.currentLevelContainer.challenge.value = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
 
 			// Set challenge text
 			Transform challengeTextRect = __instance.fr.transform.Find("Challenge/Text");

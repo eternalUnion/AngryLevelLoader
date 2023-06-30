@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AngryLevelLoader", "AngryLevelLoader\AngryLevelLoader.csproj", "{ED840C3A-4A99-4360-96CF-03C1F919C274}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AngryLevelLoader", "AngryLevelLoader\AngryLevelLoader.csproj", "{ED840C3A-4A99-4360-96CF-03C1F919C274}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AngryLoaderAPI", "AngryLoaderAPI\AngryLoaderAPI.csproj", "{53292DE8-FA95-4DF1-96B6-6FD87A761934}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RudeLevelScripts", "RudeLevelScripts\RudeLevelScripts.csproj", "{04A3AFA9-32CE-4E9D-9687-AB6117B00666}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RudeLevelScripts.Essentials", "RudeLevelScripts.Essentials\RudeLevelScripts.Essentials.csproj", "{AEBC9E75-C5E0-4351-A1D4-C5876D157233}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +21,18 @@ Global
 		{ED840C3A-4A99-4360-96CF-03C1F919C274}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED840C3A-4A99-4360-96CF-03C1F919C274}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED840C3A-4A99-4360-96CF-03C1F919C274}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53292DE8-FA95-4DF1-96B6-6FD87A761934}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53292DE8-FA95-4DF1-96B6-6FD87A761934}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53292DE8-FA95-4DF1-96B6-6FD87A761934}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53292DE8-FA95-4DF1-96B6-6FD87A761934}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04A3AFA9-32CE-4E9D-9687-AB6117B00666}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04A3AFA9-32CE-4E9D-9687-AB6117B00666}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04A3AFA9-32CE-4E9D-9687-AB6117B00666}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04A3AFA9-32CE-4E9D-9687-AB6117B00666}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEBC9E75-C5E0-4351-A1D4-C5876D157233}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEBC9E75-C5E0-4351-A1D4-C5876D157233}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEBC9E75-C5E0-4351-A1D4-C5876D157233}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEBC9E75-C5E0-4351-A1D4-C5876D157233}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

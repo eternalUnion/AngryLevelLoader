@@ -1,8 +1,7 @@
 ﻿using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using RudeLevelScript;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace AngryLevelLoader.patches
 {
@@ -15,6 +14,21 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return true;
 
+			if (Plugin.currentLevelData.isSecretLevel)
+			{
+				Transform titleTrans = __instance.transform.Find("Panel/Title/Text");
+				if (titleTrans != null)
+				{
+					titleTrans.GetComponent<Text>().text = Plugin.currentLevelData.name;
+				}
+				else
+				{
+					Debug.LogWarning("Could not find title text under final canvas");
+				}
+
+				return true;
+			}
+
 			__instance.levelSecrets = StatsManager.instance.secretObjects;
 			if (__instance.levelSecrets.Length != Plugin.currentLevelData.secretCount)
 			{
@@ -25,7 +39,6 @@ namespace AngryLevelLoader.patches
 			return true;
 		}
 	}
-
 
 	[HarmonyPatch(typeof(FinalRank), nameof(FinalRank.CountSecrets))]
 	class FinalRank_CountSecrets_Patch
@@ -69,26 +82,31 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return true;
 
-			if (!string.IsNullOrEmpty(Plugin.currentLevelData.optionalNextScenePath))
-				foreach (Plugin.AngryBundleContainer container in Plugin.angryBundles.Values)
-				{
-					foreach (string scenePath in container.GetAllScenePaths())
-					{
-						if (scenePath == Plugin.currentLevelData.optionalNextScenePath)
-						{
-							if (container.levels.TryGetValue(scenePath, out Plugin.LevelContainer level))
-							{
-								if (level.TriggerLevelButtonPress())
-									return false;
-							}
+			if (FinalPit_SendInfo_Patch.lastTarget != null && !string.IsNullOrEmpty(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId))
+			{
+				string idPath = FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId;
 
-							MonoSingleton<OptionsManager>.Instance.QuitMission();
+				foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
+				{
+					foreach (RudeLevelData data in container.GetAllLevelData())
+					{
+						if (data.uniqueIdentifier == idPath)
+						{
+							AngryBundleContainer.LoadLevel(data.scenePath);
 							return false;
 						}
 					}
 				}
 
-			MonoSingleton<OptionsManager>.Instance.QuitMission();
+				Debug.LogWarning("Could not find target level id " + idPath);
+				MonoSingleton<OptionsManager>.Instance.QuitMission();
+				return false;
+			}
+			else
+			{
+				MonoSingleton<OptionsManager>.Instance.QuitMission();
+			}
+
 			return false;
 		}
 	}
