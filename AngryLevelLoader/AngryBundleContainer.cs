@@ -83,8 +83,8 @@ namespace AngryLevelLoader
 
 		public static void LoadLevel(string path)
 		{
-			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
 			SceneManager.LoadScene(path, LoadSceneMode.Single);
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
 			p_SceneHelper_LastScene.SetValue(null, p_SceneHelper_CurrentScene.GetValue(null) as string);
 			p_SceneHelper_CurrentScene.SetValue(null, path);
 		}
@@ -136,7 +136,7 @@ namespace AngryLevelLoader
 
 				Plugin.currentDatas.Add(data);
 
-				if (levels.TryGetValue(data.scenePath, out LevelContainer container))
+				if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
 				{
 					container.field.forceHidden = false;
 					container.UpdateData(data);
@@ -174,7 +174,7 @@ namespace AngryLevelLoader
 						}
 					};
 
-					levels[data.scenePath] = levelContainer;
+					levels[data.uniqueIdentifier] = levelContainer;
 				}
 			}
 

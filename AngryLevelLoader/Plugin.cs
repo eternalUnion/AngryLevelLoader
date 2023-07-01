@@ -223,7 +223,7 @@ namespace AngryLevelLoader
 				{
 					isInCustomScene = true;
 					currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == current.path).First();
-					currentLevelContainer = container.levels[current.path];
+					currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == current.path).First().uniqueIdentifier];
 					currentLevelContainer.discovered.value = true;
 					currentLevelContainer.UpdateUI();
 

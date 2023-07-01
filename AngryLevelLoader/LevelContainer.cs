@@ -118,7 +118,7 @@ namespace AngryLevelLoader
 			}
 
 			challenge = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_challenge", false) { hidden = true };
-			discovered = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_discovered", !data.hideIfNotPlayed) { hidden = true };
+			discovered = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_discovered", false) { hidden = true };
 
 			UpdateUI();
 

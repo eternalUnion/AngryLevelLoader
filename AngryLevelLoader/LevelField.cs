@@ -173,7 +173,7 @@ namespace AngryLevelLoader
 					levelPreviewImage.sprite = data.levelPreviewImage;
 			}
 
-			hidden = !discovered;
+			hidden = !discovered && data.hideIfNotPlayed;
 		}
 
 		private static Text MakeText(Transform parent)
