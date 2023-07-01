@@ -20,8 +20,22 @@ namespace RudeLevelScript
 			GameObject firstRoomRef = Utils.LoadObject<GameObject>(secretRoom ? "FirstRoom Secret" : "FirstRoom");
 			GameObject firstRoomInst = Instantiate(firstRoomRef, transform.parent);
 
+			// Reverse combined mesh
+			foreach (MeshCollider col in firstRoomInst.GetComponentsInChildren<MeshCollider>())
+			{
+				if (col.gameObject.TryGetComponent(out MeshFilter mf))
+				{
+					mf.mesh = col.sharedMesh;
+				}
+			}
+			// Update player position and orientation
+			Transform player = NewMovement.instance.transform;
+			player.transform.parent = firstRoomInst.transform;
 			firstRoomInst.transform.position = transform.position;
 			firstRoomInst.transform.rotation = transform.rotation;
+			player.transform.parent = null;
+			player.transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+			StatsManager.instance.spawnPos = player.transform.position;
 
 			try
 			{
