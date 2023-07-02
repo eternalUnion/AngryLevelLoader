@@ -15,8 +15,13 @@ namespace RudeLevelScript
 		public bool displayLevelTitle = true;
 		public bool startMusic = true;
 
-		private void Awake()
+		private bool spawned = false;
+
+		public void Spawn()
 		{
+			if (spawned)
+				return;
+
 			GameObject firstRoomRef = Utils.LoadObject<GameObject>(secretRoom ? "FirstRoom Secret" : "FirstRoom");
 			GameObject firstRoomInst = Instantiate(firstRoomRef, transform.parent);
 
@@ -58,8 +63,15 @@ namespace RudeLevelScript
 			}
 			finally
 			{
+				spawned = true;
 				Destroy(gameObject);
 			}
+		}
+		
+		// Compability for older levels
+		public void Awake()
+		{
+			Spawn();
 		}
 	}
 }

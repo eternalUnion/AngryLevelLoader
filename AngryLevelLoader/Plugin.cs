@@ -200,8 +200,9 @@ namespace AngryLevelLoader
 			}
 
 			foreach (string scriptPath in Directory.GetFiles(asmDir))
-			{ 
-				Debug.Log("Loaded " + Assembly.LoadFile(scriptPath).FullName);
+			{
+				Assembly asm = Assembly.LoadFile(scriptPath);
+				Debug.Log("Loaded " + asm.FullName);
 			}
 		}
 
@@ -336,7 +337,7 @@ namespace AngryLevelLoader
         }
     }
 
-    public static class RudeInterface
+    public static class RudeLevelInterface
     {
 		public static char INCOMPLETE_LEVEL_CHAR = '-';
 		public static char GetLevelRank(string levelId)
