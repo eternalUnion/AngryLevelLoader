@@ -6,71 +6,81 @@ using UnityEngine;
 
 namespace AngryLevelLoader.patches
 {
+	// Why I even need this witchcraft?
+
 	/*
-	 Fix the orientation problem later
+	 
+	It seems after mouse locking (which happens with GameStateManager.PopState("pit-falling"))
+	Player orientation is set to 0,0,0. This is normally not an issue for levels where the
+	first room's orientation is already 0,0,0 but for custom levels using a different first room orientation
+	player will instantly change direction as soon as the player hits the ground
+
+	This is my best attempt to detect and avoid the initial rotation change
+
 	 */
 
-	//[HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.EvaluateState))]
+	[HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.EvaluateState))]
 	public static class PlayerActivator_OnTriggerEnter_Patch
 	{
 		private class LateRotationSetter : MonoBehaviour
 		{
 			public Quaternion targetRot;
 
-			private void Start ()
+			public static int defaultFrameTime = 10;
+			public static int defaultRecoveryTime = 1;
+			public int framesTilDestruction = defaultFrameTime;
+			private void LateUpdate ()
 			{
-				Invoke("Activate", 0.01f);
-			}
+				// Debug.Log("Late update");
 
-			/*private void Update ()
-			{
-				if (transform.rotation == Quaternion.identity)
+				if (framesTilDestruction != 0)
+				{
+					if (transform.rotation == Quaternion.identity)
+						framesTilDestruction = defaultRecoveryTime;
+					else
+						framesTilDestruction -= 1;
+					
 					Activate();
-			}*/
+					return;
+				}
+
+				DestroyComp();
+			}
 
 			private void Activate()
 			{
+				// Debug.Log($"Late final rotation: {transform.eulerAngles}");
+
 				transform.rotation = targetRot;
-				DestroyComp();
 			}
 
 			private void DestroyComp()
 			{
-				Destroy(this);
+				DestroyImmediate(this);
 			}
 		}
 
 		[HarmonyPrefix]
-		static bool Prefix(PlayerActivator __instance, out Quaternion __state)
+		static bool Prefix(PlayerActivator __instance)
 		{
 			if (NewMovement.instance == null)
-			{
-				__state = Quaternion.identity;
 				return true;
+
+			if (NewMovement.instance.TryGetComponent(out LateRotationSetter rot))
+			{
+				rot.framesTilDestruction = 5;
+				// Debug.Log("Reset activasion");
+			}
+			else
+			{
+				if (NewMovement.instance.transform.rotation == Quaternion.identity)
+					return true;
+
+				NewMovement.instance.gameObject.AddComponent<LateRotationSetter>().targetRot = NewMovement.instance.transform.rotation;
+				// Debug.Log($"Rotation before: {NewMovement.instance.transform.eulerAngles}");
 			}
 
-			NewMovement.instance.gameObject.AddComponent<LateRotationSetter>().targetRot = NewMovement.instance.transform.rotation;
-			__state = NewMovement.instance.transform.rotation;
 			return true;
-
-			/*if (!Plugin.isInCustomScene)
-				return true;
-
-			if (!__0.gameObject.CompareTag("Player"))
-				return false;
-
-			if (__instance.activated)
-				return false;
-
-			//NewMovement.instance.gameObject.AddComponent<LateRotationSetter>().targetRot = NewMovement.instance.transform.rotation;
-			return true;*/
 		}
-
-		/*[HarmonyPostfix]
-		static void Postfix(Quaternion __state)
-		{
-			if (NewMovement.instance != null)
-				NewMovement.instance.transform.rotation = __state;
-		}*/
 	}
 }
