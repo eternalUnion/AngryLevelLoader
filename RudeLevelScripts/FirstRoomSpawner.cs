@@ -16,7 +16,61 @@ namespace RudeLevelScript
 
 	public class FirstRoomSpawner : MonoBehaviour, ISerializationCallbackReceiver
 	{
+		[HideInInspector]
+		private class PlayerForcedMovement : MonoBehaviour
+		{
+			public NewMovement player;
+			private Rigidbody rb;
+
+			public void Awake()
+			{
+				if (player == null)
+					player = NewMovement.Instance;
+			
+				rb = player.GetComponent<Rigidbody>();
+				rb.useGravity = false;
+			}
+
+			public static float moveForce = 78.5f;
+			public void LateUpdate()
+			{
+				rb.velocity = new Vector3(0, moveForce, 0);
+			}
+
+			public void DestroyComp()
+			{
+				rb.useGravity = true;
+				Destroy(this);
+			}
+		}
+
+		[HideInInspector]
+		private class LocalMoveTowards : MonoBehaviour
+		{
+			public Vector3 targetLocalPosition;
+
+			public bool active = false;
+			public float speed = 10;
+			public void Update()
+			{
+				if (!active)
+					return;
+
+				transform.localPosition = Vector3.MoveTowards(transform.localPosition, targetLocalPosition, Time.deltaTime * speed);
+				if (transform.localPosition == targetLocalPosition)
+					Destroy(this);
+			}
+
+			public void Activate()
+			{
+				active = true;
+			}
+		}
+
 		public bool secretRoom = false;
+		public bool convertToUpwardRoom = false;
+		public AudioClip upwardRoomDoorCloseClip;
+		public List<GameObject> upwardRoomOutOfBoundsToDisable;
 
 		[Header("Player Fields")]
 		public CameraClearFlags cameraFillMode = CameraClearFlags.SolidColor;
@@ -121,6 +175,116 @@ namespace RudeLevelScript
 			return rect;
 		}
 
+		public static float upDisablePos = 80;
+		public static float doorClosePos = 10;
+		public static float doorCloseSpeed = 10;
+		public static float actDelay = 0.5f;
+		public static void ConvertToAscendingFirstRoom(GameObject firstRoom, AudioClip doorCloseAud, List<GameObject> toEnable, List<GameObject> toDisable)
+		{
+			Transform room = firstRoom.transform.Find("Room");
+
+			Transform pit = room.Find("Pit (3)");
+			pit.transform.localPosition = new Vector3(0, 2, 41.72f);
+			pit.transform.localRotation = Quaternion.Euler(0, 0, 180);
+
+			Destroy(room.transform.Find("Room/Ceiling").gameObject);
+
+			Transform floor = room.transform.Find("Room/Floor");
+			GameObject refTile = floor.GetChild(0).gameObject;
+
+			GameObject t1 = GameObject.Instantiate(refTile, floor);
+			t1.transform.localPosition = new Vector3(-15, 9.7f, 20.28f);
+			t1.transform.localRotation = Quaternion.identity;
+
+			GameObject t2 = GameObject.Instantiate(refTile, floor);
+			t2.transform.localPosition = new Vector3(5, 9.7f, 20.28f);
+			t2.transform.localRotation = Quaternion.identity;
+
+			GameObject t3 = GameObject.Instantiate(refTile, floor);
+			t3.transform.localPosition = new Vector3(-5, 9.7f, 0.2f);
+			t3.transform.localRotation = Quaternion.Euler(0, -90, 0);
+
+			GameObject t4 = GameObject.Instantiate(refTile, floor);
+			t4.transform.localPosition = new Vector3(5, 9.7f, 10.28f);
+			t4.transform.localRotation = Quaternion.identity;
+			t4.GetComponent<MeshRenderer>().materials = new Material[2] { Utils.metalDec20, Utils.metalDec20 };
+
+			GameObject t5 = GameObject.Instantiate(refTile, floor);
+			t5.transform.localPosition = new Vector3(-15, 9.7f, 10.28f);
+			t5.transform.localRotation = Quaternion.identity;
+			t5.GetComponent<MeshRenderer>().materials = new Material[2] { Utils.metalDec20, Utils.metalDec20 };
+
+			GameObject t6 = GameObject.Instantiate(refTile, floor);
+			t6.transform.localPosition = new Vector3(-5, -0.3f, 20.28f);
+			t6.transform.localRotation = Quaternion.Euler(0, -90, -180);
+
+			Transform decorations = room.Find("Decorations");
+			Transform floorTile = decorations.GetChild(12);
+			floorTile.localPosition = new Vector3(-5, 2, 52);
+			LocalMoveTowards floorMover = floorTile.gameObject.AddComponent<LocalMoveTowards>();
+			floorMover.targetLocalPosition = new Vector3(-5, 2, 42);
+			floorMover.speed = doorCloseSpeed;
+			AudioSource floorTileAud = floorTile.gameObject.AddComponent<AudioSource>();
+			floorTileAud.playOnAwake = false;
+			floorTileAud.loop = false;
+			floorTileAud.clip = doorCloseAud;
+
+			PlayerActivator act = firstRoom.GetComponentsInChildren<PlayerActivator>().First();
+			act.gameObject.SetActive(false);
+
+			NewMovement player = NewMovement.instance;
+			player.transform.localPosition = new Vector3(player.transform.localPosition.x, -107, player.transform.localPosition.z);
+			PlayerForcedMovement focedMov = player.gameObject.AddComponent<PlayerForcedMovement>();
+			
+			// Upward disabler
+			GameObject upDisabler = new GameObject();
+			upDisabler.transform.SetParent(act.transform.parent);
+			upDisabler.transform.localPosition = new Vector3(0, upDisablePos, 0);
+			upDisabler.transform.localRotation = Quaternion.identity;
+			upDisabler.transform.localScale = new Vector3(80, 0.2f, 80);
+			upDisabler.layer = act.gameObject.layer;
+			BoxCollider upDisablerCol = upDisabler.AddComponent<BoxCollider>();
+			upDisablerCol.isTrigger = true;
+			ObjectActivator upDisablerA1 = upDisabler.AddComponent<ObjectActivator>();
+			upDisablerA1.dontActivateOnEnable = true;
+			upDisablerA1.oneTime = true;
+			upDisablerA1.events = new UltrakillEvent();
+			upDisablerA1.events.onActivate = new UnityEngine.Events.UnityEvent();
+			upDisablerA1.events.onActivate.AddListener(() => focedMov.DestroyComp());
+
+			// Door closer
+			GameObject closer = new GameObject();
+			closer.transform.SetParent(act.transform.parent);
+			closer.transform.localPosition = new Vector3(0, doorClosePos, 0);
+			closer.transform.localRotation = Quaternion.identity;
+			closer.transform.localScale = new Vector3(80, 0.2f, 80);
+			closer.layer = act.gameObject.layer;
+			BoxCollider closerCol = closer.AddComponent<BoxCollider>();
+			closerCol.isTrigger = true;
+			ObjectActivator closerA1 = closer.AddComponent<ObjectActivator>();
+			closerA1.dontActivateOnEnable = true;
+			closerA1.oneTime = true;
+			closerA1.events = new UltrakillEvent();
+			closerA1.events.onActivate = new UnityEngine.Events.UnityEvent();
+			closerA1.events.onActivate.AddListener(() => floorMover.Activate());
+			closerA1.events.onActivate.AddListener(() => floorTileAud.Play());
+			closerA1.events.onActivate.AddListener(() =>
+			{
+				foreach (GameObject o in toEnable)
+					o.SetActive(true);
+
+				foreach (GameObject o in toDisable)
+					o.SetActive(false);
+			});
+			ObjectActivator closerA2 = closer.AddComponent<ObjectActivator>();
+			closerA2.dontActivateOnEnable = true;
+			closerA2.oneTime = true;
+			closerA2.events = new UltrakillEvent();
+			closerA2.events.onActivate = new UnityEngine.Events.UnityEvent();
+			closerA2.events.onActivate.AddListener(() => act.gameObject.SetActive(true));
+			closerA2.delay = actDelay;
+		}
+
 		public void Spawn()
 		{
 			if (spawned)
@@ -161,83 +325,100 @@ namespace RudeLevelScript
 				FinalDoor door = firstRoomInst.transform.Find("Room/FinalDoor").GetComponent<FinalDoor>();
 				door.levelNameOnOpen = displayLevelTitle;
 
-				// Create hellmap
-				if (!enableHellMap)
-					return;
-
-				Deserialize();
-
-				Transform canvas = NewMovement.instance.transform.Find("Canvas") ?? SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
-				RectTransform hellmapContainer = MakeRect(canvas);
-				hellmapContainer.anchorMin = hellmapContainer.anchorMax = new Vector2(0.5f, 0.5f);
-				hellmapContainer.pivot = new Vector2(0.5f, 0.5f);
-				hellmapContainer.sizeDelta = new Vector2(250, 650);
-				hellmapContainer.anchoredPosition = Vector2.zero;
-				hellmapContainer.localScale = Vector3.one;
-				VerticalLayoutGroup vLayout = hellmapContainer.gameObject.AddComponent<VerticalLayoutGroup>();
-				vLayout.childAlignment = TextAnchor.UpperCenter;
-				vLayout.spacing = 5;
-				vLayout.childForceExpandHeight = false;
-				vLayout.childControlHeight = false;
-				vLayout.childControlWidth = false;
-
-				foreach (LayerInfo layer in layersAndLevels)
+				GameObject hellmap = null;
+				if (enableHellMap)
 				{
-					// Add the layer text
-					Text header = MakeText(hellmapContainer);
-					header.text = layer.layerName;
-					header.fontSize = 36;
-					header.font = Utils.gameFont;
-					header.alignment = TextAnchor.MiddleLeft;
-					header.color = Color.white;
-					RectTransform textRect = header.GetComponent<RectTransform>();
-					textRect.anchorMin = textRect.anchorMax = new Vector2(0, 1);
-					textRect.sizeDelta = new Vector2(250, 50);
-					textRect.pivot = new Vector2(0, 1);
-					textRect.localScale = Vector3.one;
+					Deserialize();
 
-					// Add all levels
-					foreach (string level in layer.layerLevels)
+					Transform canvas = NewMovement.instance.transform.Find("Canvas") ?? SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
+					RectTransform hellmapContainer = MakeRect(canvas);
+					hellmap = hellmapContainer.gameObject;
+					hellmapContainer.anchorMin = hellmapContainer.anchorMax = new Vector2(0.5f, 0.5f);
+					hellmapContainer.pivot = new Vector2(0.5f, 0.5f);
+					hellmapContainer.sizeDelta = new Vector2(250, 650);
+					hellmapContainer.anchoredPosition = Vector2.zero;
+					hellmapContainer.localScale = Vector3.one;
+					hellmapContainer.SetAsFirstSibling();
+					VerticalLayoutGroup vLayout = hellmapContainer.gameObject.AddComponent<VerticalLayoutGroup>();
+					vLayout.childAlignment = TextAnchor.UpperCenter;
+					vLayout.spacing = 5;
+					vLayout.childForceExpandHeight = false;
+					vLayout.childControlHeight = false;
+					vLayout.childControlWidth = false;
+
+					foreach (LayerInfo layer in layersAndLevels)
 					{
-						RectTransform levelContainer = MakeRect(hellmapContainer);
-						levelContainer.anchorMin = levelContainer.anchorMax = new Vector2(0, 1);
-						levelContainer.pivot = new Vector2(0.5f, 1);
-						levelContainer.localScale = Vector3.one;
+						// Add the layer text
+						Text header = MakeText(hellmapContainer);
+						header.text = layer.layerName;
+						header.fontSize = 36;
+						header.font = Utils.gameFont;
+						header.alignment = TextAnchor.MiddleLeft;
+						header.color = Color.white;
+						RectTransform textRect = header.GetComponent<RectTransform>();
+						textRect.anchorMin = textRect.anchorMax = new Vector2(0, 1);
+						textRect.sizeDelta = new Vector2(250, 50);
+						textRect.pivot = new Vector2(0, 1);
+						textRect.localScale = Vector3.one;
 
-						RectTransform levelPanel = MakeRect(levelContainer.transform);
-						levelPanel.anchorMin = levelPanel.anchorMax = new Vector2(0.5f, 0.5f);
-						levelPanel.sizeDelta = new Vector2(25, 9);
-						levelPanel.anchoredPosition = Vector2.zero;
-						levelPanel.localScale = new Vector3(5, 5, 1);
-						Image levelPanelImg = levelPanel.gameObject.AddComponent<Image>();
-						levelPanelImg.type = Image.Type.Sliced;
-						levelPanelImg.sprite = Utils.levelPanel;
-						levelPanelImg.pixelsPerUnitMultiplier = 1;
+						// Add all levels
+						foreach (string level in layer.layerLevels)
+						{
+							RectTransform levelContainer = MakeRect(hellmapContainer);
+							levelContainer.anchorMin = levelContainer.anchorMax = new Vector2(0, 1);
+							levelContainer.pivot = new Vector2(0.5f, 1);
+							levelContainer.localScale = Vector3.one;
 
-						Text levelTxt = MakeText(levelContainer.transform);
-						levelTxt.text = level;
-						levelTxt.font = Utils.gameFont;
-						levelTxt.fontSize = 32;
-						levelTxt.alignment = TextAnchor.MiddleCenter;
-						levelTxt.color = Color.black;
-						RectTransform levelTxtRect = levelTxt.gameObject.GetComponent<RectTransform>();
-						levelTxtRect.anchorMin = Vector2.zero;
-						levelTxtRect.anchorMax = Vector2.one;
-						levelTxtRect.pivot = new Vector2(0.5f, 0.5f);
-						levelTxtRect.sizeDelta = Vector2.zero;
-						levelTxtRect.anchoredPosition = new Vector2(0, 0);
-						levelTxtRect.localScale = Vector3.one;
+							RectTransform levelPanel = MakeRect(levelContainer.transform);
+							levelPanel.anchorMin = levelPanel.anchorMax = new Vector2(0.5f, 0.5f);
+							levelPanel.sizeDelta = new Vector2(25, 9);
+							levelPanel.anchoredPosition = Vector2.zero;
+							levelPanel.localScale = new Vector3(5, 5, 1);
+							Image levelPanelImg = levelPanel.gameObject.AddComponent<Image>();
+							levelPanelImg.type = Image.Type.Sliced;
+							levelPanelImg.sprite = Utils.levelPanel;
+							levelPanelImg.pixelsPerUnitMultiplier = 1;
 
-						levelContainer.sizeDelta = new Vector2(125, 45);
+							Text levelTxt = MakeText(levelContainer.transform);
+							levelTxt.text = level;
+							levelTxt.font = Utils.gameFont;
+							levelTxt.fontSize = 32;
+							levelTxt.alignment = TextAnchor.MiddleCenter;
+							levelTxt.color = Color.black;
+							RectTransform levelTxtRect = levelTxt.gameObject.GetComponent<RectTransform>();
+							levelTxtRect.anchorMin = Vector2.zero;
+							levelTxtRect.anchorMax = Vector2.one;
+							levelTxtRect.pivot = new Vector2(0.5f, 0.5f);
+							levelTxtRect.sizeDelta = Vector2.zero;
+							levelTxtRect.anchoredPosition = new Vector2(0, 0);
+							levelTxtRect.localScale = Vector3.one;
+
+							levelContainer.sizeDelta = new Vector2(125, 45);
+						}
 					}
+
+					// Add trigger to destroy the map
+					ObjectActivator act = UnityUtils.GetComponentInChildrenRecursive<PlayerActivator>(firstRoomInst.transform).gameObject.AddComponent<ObjectActivator>();
+					act.dontActivateOnEnable = true;
+					act.oneTime = true;
+					act.events = new UltrakillEvent();
+					act.events.toDisActivateObjects = new GameObject[1] { hellmapContainer.gameObject };
 				}
 
-				// Add trigger to destroy the map
-				ObjectActivator act = firstRoomInst.GetComponentsInChildren<PlayerActivator>().First().gameObject.AddComponent<ObjectActivator>();
-				act.dontActivateOnEnable = true;
-				act.oneTime = true;
-				act.events = new UltrakillEvent();
-				act.events.toDisActivateObjects = new GameObject[1] { hellmapContainer.gameObject };
+				if (convertToUpwardRoom)
+				{
+					foreach (GameObject outOfBounds in upwardRoomOutOfBoundsToDisable)
+						outOfBounds.SetActive(false);
+
+					List<GameObject> toDisable = new List<GameObject>();
+					if (hellmap != null)
+						toDisable.Add(hellmap);
+
+					List<GameObject> toEnable = new List<GameObject>();
+					toEnable.AddRange(upwardRoomOutOfBoundsToDisable);
+
+					ConvertToAscendingFirstRoom(firstRoomInst, upwardRoomDoorCloseClip, toEnable, toDisable);
+				}
 			}
 			catch (Exception e)
 			{

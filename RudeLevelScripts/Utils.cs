@@ -5,6 +5,7 @@ using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine;
+using System.Collections;
 
 namespace RudeLevelScript
 {
@@ -32,6 +33,17 @@ namespace RudeLevelScript
 			}
 		}
 
+		private static Material _metalDec20;
+		public static Material metalDec20
+		{
+			get
+			{
+				if (_metalDec20 == null)
+					_metalDec20 = LoadObject<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat");
+				return _metalDec20;
+			}
+		}
+
 		public static ResourceLocationMap resourceMap = null;
 		public static T LoadObject<T>(string path)
 		{
@@ -56,6 +68,36 @@ namespace RudeLevelScript
 			catch (Exception) { return default(T); }
 
 			return Addressables.LoadAsset<T>(obj.Value.First()).WaitForCompletion();
+		}
+	}
+
+	public static class UnityUtils
+	{
+		public static IEnumerable GetComponentsInChildrenRecursive<T>(Transform parent) where T : Component
+		{
+			foreach (Transform child in parent)
+			{
+				if (child.TryGetComponent(out T comp))
+					yield return comp;
+
+				foreach (T childComp in GetComponentsInChildrenRecursive<T>(child))
+					yield return childComp;
+			}
+		}
+
+		public static T GetComponentInChildrenRecursive<T>(Transform parent) where T : Component
+		{
+			foreach (Transform child in parent)
+			{
+				if (child.TryGetComponent(out T comp))
+					return comp;
+
+				T childComp = GetComponentInChildrenRecursive<T>(child);
+				if (childComp != null)
+					return childComp;
+			}
+
+			return null;
 		}
 	}
 }
