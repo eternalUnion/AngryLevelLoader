@@ -113,22 +113,31 @@ namespace RudeLevelScript
 			}
 		}
 
+		[Tooltip("Enabling this field causes room to be spawned as the secret variant")]
 		public bool secretRoom = false;
+		[Tooltip("Enabling this field causes the whole room to be converted into the ascending variant where the player is spawned at the bottom and ascends upwards instead of falling")]
 		public bool convertToUpwardRoom = false;
 		public AudioClip upwardRoomDoorCloseClip;
+		[Tooltip("Add out of bounds objects here if they collide with the player while the player is ascending")]
 		public List<GameObject> upwardRoomOutOfBoundsToDisable;
 
 		[Header("Player Fields")]
+		[Space(10)]
 		public CameraClearFlags cameraFillMode = CameraClearFlags.SolidColor;
 		public Color backgroundColor = Color.black;
 
 		[Header("Level Fields")]
+		[Space(10)]
 		public bool displayLevelTitle = true;
 		public bool startMusic = true;
 
 		[Header("Hellmap")]
+		[Tooltip("Show the map when the player spawns")]
+		[Space(10)]
 		public bool enableHellMap = false;
+		[Tooltip("Sound clip which is played for each beep while falling")]
 		public AudioClip hellmapBeepClip;
+		[Tooltip("Each layer has a layer name and number of levels. For limbo the header is LIMBO and levels are [1-1, 1-2, 1-3, 1-4]")]
 		public List<LayerInfo> layersAndLevels = new List<LayerInfo>();
 		// thank you serialization hell
 		[HideInInspector]
@@ -138,9 +147,13 @@ namespace RudeLevelScript
 		[HideInInspector]
 		public List<string> levelNames = new List<string>();
 
+		[Tooltip("Which layer the cursor starts from. First layer is 0 and at the top")]
 		public int layerIndexToStartFrom;
+		[Tooltip("Which level in the layer the cursor starts from. The first level is 0 and is just below the layer title")]
 		public int levelIndexToStartFrom;
+		[Tooltip("Which layer the cursor ends at. First layer is 0 and at the top")]
 		public int layerIndexToEndAt;
+		[Tooltip("Which level in the layer the cursor ends at. The first level is 0 and is just below the layer title")]
 		public int levelIndexToEndAt;
 
 		private bool spawned = false;
