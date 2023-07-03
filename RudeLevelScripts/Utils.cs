@@ -33,6 +33,17 @@ namespace RudeLevelScript
 			}
 		}
 
+		private static Sprite _hellmapArrow;
+		public static Sprite hellmapArrow
+		{
+			get
+			{
+				if (_hellmapArrow == null)
+					_hellmapArrow = LoadObject<Sprite>("Assets/Textures/UI/arrow.png");
+				return _hellmapArrow;
+			}
+		}
+
 		private static Material _metalDec20;
 		public static Material metalDec20
 		{

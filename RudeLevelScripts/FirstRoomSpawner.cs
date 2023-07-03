@@ -67,6 +67,51 @@ namespace RudeLevelScript
 			}
 		}
 
+		[HideInInspector]
+		private class CustomHellmapCursor : MonoBehaviour
+		{
+			public Vector2 targetPosition;
+			public Image targetImage;
+			public AudioSource aud;
+
+			bool white = true;
+			RectTransform rect;
+
+			private void Start()
+			{
+				rect = GetComponent<RectTransform>();
+				Invoke("FlashImage", 0.075f);
+			}
+
+			private void Update()
+			{
+				rect.anchoredPosition = Vector2.MoveTowards(rect.anchoredPosition, targetPosition, Time.deltaTime * 4f * Vector3.Distance(rect.anchoredPosition, targetPosition));
+			}
+
+			private void FlashImage()
+			{
+				if (white)
+				{
+					white = false;
+					targetImage.color = new Color(0f, 0f, 0f, 0f);
+					if (!base.gameObject.activeSelf)
+					{
+						return;
+					}
+					aud.Play();
+				}
+				else
+				{
+					white = true;
+					targetImage.color = Color.white;
+				}
+				if (gameObject.activeInHierarchy)
+				{
+					Invoke("FlashImage", 0.075f);
+				}
+			}
+		}
+
 		public bool secretRoom = false;
 		public bool convertToUpwardRoom = false;
 		public AudioClip upwardRoomDoorCloseClip;
@@ -82,6 +127,7 @@ namespace RudeLevelScript
 
 		[Header("Hellmap")]
 		public bool enableHellMap = false;
+		public AudioClip hellmapBeepClip;
 		public List<LayerInfo> layersAndLevels = new List<LayerInfo>();
 		// thank you serialization hell
 		[HideInInspector]
@@ -93,6 +139,8 @@ namespace RudeLevelScript
 
 		public int layerIndexToStartFrom;
 		public int levelIndexToStartFrom;
+		public int layerIndexToEndAt;
+		public int levelIndexToEndAt;
 
 		private bool spawned = false;
 
@@ -325,20 +373,29 @@ namespace RudeLevelScript
 				FinalDoor door = firstRoomInst.transform.Find("Room/FinalDoor").GetComponent<FinalDoor>();
 				door.levelNameOnOpen = displayLevelTitle;
 
-				GameObject hellmap = null;
+				GameObject hellmapObj = null;
 				if (enableHellMap)
 				{
 					Deserialize();
 
 					Transform canvas = NewMovement.instance.transform.Find("Canvas") ?? SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
-					RectTransform hellmapContainer = MakeRect(canvas);
-					hellmap = hellmapContainer.gameObject;
+
+					RectTransform hellmap = MakeRect(canvas);
+					hellmap.name = "Hellmap";
+					hellmapObj = hellmap.gameObject;
+					hellmap.anchorMin = hellmap.anchorMax = new Vector2(0.5f, 0.5f);
+					hellmap.pivot = new Vector2(0.5f, 0.5f);
+					hellmap.sizeDelta = new Vector2(250, 650);
+					hellmap.anchoredPosition = Vector2.zero;
+					hellmap.localScale = Vector3.one;
+					hellmap.SetAsFirstSibling();
+					RectTransform hellmapContainer = MakeRect(hellmap.transform);
+					hellmapContainer.name = "Hellmap Container";
 					hellmapContainer.anchorMin = hellmapContainer.anchorMax = new Vector2(0.5f, 0.5f);
 					hellmapContainer.pivot = new Vector2(0.5f, 0.5f);
 					hellmapContainer.sizeDelta = new Vector2(250, 650);
 					hellmapContainer.anchoredPosition = Vector2.zero;
 					hellmapContainer.localScale = Vector3.one;
-					hellmapContainer.SetAsFirstSibling();
 					VerticalLayoutGroup vLayout = hellmapContainer.gameObject.AddComponent<VerticalLayoutGroup>();
 					vLayout.childAlignment = TextAnchor.UpperCenter;
 					vLayout.spacing = 5;
@@ -397,6 +454,39 @@ namespace RudeLevelScript
 						}
 					}
 
+					LayoutRebuilder.ForceRebuildLayoutImmediate(hellmapContainer);
+
+					int GetChildIndexFromLayerAndLevel(int layer, int level)
+					{
+						int index = 0;
+						for (int i = 0; i < layer; i++)
+							index += 1 + levelSizes[i];
+						return index + 1 + level;
+					}
+
+					Vector2 startLevelPosition = hellmapContainer.GetChild(GetChildIndexFromLayerAndLevel(layerIndexToStartFrom, levelIndexToStartFrom)).GetComponent<RectTransform>().anchoredPosition;
+					startLevelPosition = new Vector2(35, startLevelPosition.y - 22.5f);
+					Vector2 endLevelPosition = hellmapContainer.GetChild(GetChildIndexFromLayerAndLevel(layerIndexToEndAt, levelIndexToEndAt)).GetComponent<RectTransform>().anchoredPosition;
+					endLevelPosition = new Vector2(35, endLevelPosition.y - 22.5f);
+
+					RectTransform cursor = MakeRect(hellmap);
+					cursor.anchorMin = cursor.anchorMax = new Vector2(0, 1);
+					cursor.pivot = new Vector2(0.5f, 0.5f);
+					cursor.sizeDelta = new Vector2(35, 35);
+					cursor.rotation = Quaternion.Euler(0, 0, -90);
+					cursor.localScale = Vector3.one;
+					cursor.anchoredPosition = startLevelPosition;
+					AudioSource aud = cursor.gameObject.AddComponent<AudioSource>();
+					aud.playOnAwake = false;
+					aud.loop = false;
+					aud.clip = hellmapBeepClip;
+					Image cursorImg = cursor.gameObject.AddComponent<Image>();
+					cursorImg.sprite = Utils.hellmapArrow;
+					CustomHellmapCursor cursorComp = cursor.gameObject.AddComponent<CustomHellmapCursor>();
+					cursorComp.targetPosition = endLevelPosition;
+					cursorComp.aud = aud;
+					cursorComp.targetImage = cursorImg;
+
 					// Add trigger to destroy the map
 					ObjectActivator act = UnityUtils.GetComponentInChildrenRecursive<PlayerActivator>(firstRoomInst.transform).gameObject.AddComponent<ObjectActivator>();
 					act.dontActivateOnEnable = true;
@@ -411,8 +501,8 @@ namespace RudeLevelScript
 						outOfBounds.SetActive(false);
 
 					List<GameObject> toDisable = new List<GameObject>();
-					if (hellmap != null)
-						toDisable.Add(hellmap);
+					if (hellmapObj != null)
+						toDisable.Add(hellmapObj);
 
 					List<GameObject> toEnable = new List<GameObject>();
 					toEnable.AddRange(upwardRoomOutOfBoundsToDisable);
