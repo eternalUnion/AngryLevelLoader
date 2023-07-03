@@ -17,7 +17,7 @@ namespace RudeLevelScript
 	public class FirstRoomSpawner : MonoBehaviour, ISerializationCallbackReceiver
 	{
 		[HideInInspector]
-		private class PlayerForcedMovement : MonoBehaviour
+		internal class PlayerForcedMovement : MonoBehaviour
 		{
 			public NewMovement player;
 			private Rigidbody rb;
@@ -31,10 +31,11 @@ namespace RudeLevelScript
 				rb.useGravity = false;
 			}
 
-			public static float moveForce = 78.5f;
+			public static float defaultMoveForce = 78.5f;
+			public float force = defaultMoveForce;
 			public void LateUpdate()
 			{
-				rb.velocity = new Vector3(0, moveForce, 0);
+				rb.velocity = new Vector3(0, force, 0);
 			}
 
 			public void DestroyComp()
