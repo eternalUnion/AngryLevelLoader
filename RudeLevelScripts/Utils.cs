@@ -10,6 +10,28 @@ namespace RudeLevelScript
 {
 	public static class Utils
 	{
+		private static Font _gameFont;
+		public static Font gameFont
+		{
+			get
+			{
+				if (_gameFont == null)
+					_gameFont = LoadObject<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
+				return _gameFont;
+			}
+		}
+
+		private static Sprite _levelPanel;
+		public static Sprite levelPanel
+		{
+			get
+			{
+				if (_levelPanel == null)
+					_levelPanel = LoadObject<Sprite>("Assets/Textures/UI/meter.png");
+				return _levelPanel;
+			}
+		}
+
 		public static ResourceLocationMap resourceMap = null;
 		public static T LoadObject<T>(string path)
 		{

@@ -8,6 +8,7 @@ namespace RudeLevelScripts.Essentials
 {
 	public class ExecuteOnSceneLoad : MonoBehaviour
 	{
+		public int relativeExecutionOrder = 0;
 		public UnityEvent onSceneLoad;
 
 		public void Execute()

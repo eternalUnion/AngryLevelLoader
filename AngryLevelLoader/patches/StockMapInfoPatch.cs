@@ -2,6 +2,7 @@
 using RudeLevelScripts.Essentials;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace AngryLevelLoader.patches
@@ -16,7 +17,7 @@ namespace AngryLevelLoader.patches
 		[HarmonyPostfix]
 		public static void Postfix()
 		{
-			foreach (ExecuteOnSceneLoad obj in UnityEngine.Object.FindObjectsOfType<ExecuteOnSceneLoad>())
+			foreach (ExecuteOnSceneLoad obj in UnityEngine.Object.FindObjectsOfType<ExecuteOnSceneLoad>().OrderBy(exe => exe.relativeExecutionOrder))
 				obj.Execute();
 		}
 	}
