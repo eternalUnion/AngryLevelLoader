@@ -31,7 +31,7 @@ namespace RudeLevelScript
 				rb.useGravity = false;
 			}
 
-			public static float defaultMoveForce = 78.5f;
+			public static float defaultMoveForce = 67f;
 			public float force = defaultMoveForce;
 			public void LateUpdate()
 			{
@@ -237,10 +237,11 @@ namespace RudeLevelScript
 			return rect;
 		}
 
-		public static float upDisablePos = 80;
+		public static float upDisablePos = 60;
 		public static float doorClosePos = 10;
 		public static float doorCloseSpeed = 10;
 		public static float actDelay = 0.5f;
+		public static float ascendingPlayerSpawnPos = -55;
 		public static void ConvertToAscendingFirstRoom(GameObject firstRoom, AudioClip doorCloseAud, List<GameObject> toEnable, List<GameObject> toDisable)
 		{
 			Transform room = firstRoom.transform.Find("Room");
@@ -295,7 +296,7 @@ namespace RudeLevelScript
 			act.gameObject.SetActive(false);
 
 			NewMovement player = NewMovement.instance;
-			player.transform.localPosition = new Vector3(player.transform.localPosition.x, -107, player.transform.localPosition.z);
+			player.transform.localPosition = new Vector3(player.transform.localPosition.x, ascendingPlayerSpawnPos, player.transform.localPosition.z);
 			PlayerForcedMovement focedMov = player.gameObject.AddComponent<PlayerForcedMovement>();
 			
 			// Upward disabler
