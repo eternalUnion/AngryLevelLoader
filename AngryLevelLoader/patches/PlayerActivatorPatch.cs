@@ -19,7 +19,7 @@ namespace AngryLevelLoader.patches
 
 	 */
 
-	[HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.EvaluateState))]
+	/*[HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.EvaluateState))]
 	public static class PlayerActivator_OnTriggerEnter_Patch
 	{
 		private class LateRotationSetter : MonoBehaviour
@@ -82,5 +82,5 @@ namespace AngryLevelLoader.patches
 
 			return true;
 		}
-	}
+	}*/
 }
