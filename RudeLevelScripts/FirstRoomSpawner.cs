@@ -345,6 +345,7 @@ namespace RudeLevelScript
 			closerA2.events = new UltrakillEvent();
 			closerA2.events.onActivate = new UnityEngine.Events.UnityEvent();
 			closerA2.events.onActivate.AddListener(() => act.gameObject.SetActive(true));
+			closerA2.events.onActivate.AddListener(() => StatsManager.instance.spawnPos = NewMovement.instance.transform.position);
 			closerA2.delay = actDelay;
 		}
 
@@ -507,7 +508,7 @@ namespace RudeLevelScript
 					act.dontActivateOnEnable = true;
 					act.oneTime = true;
 					act.events = new UltrakillEvent();
-					act.events.toDisActivateObjects = new GameObject[1] { hellmapContainer.gameObject };
+					act.events.toDisActivateObjects = new GameObject[1] { hellmap.gameObject };
 				}
 
 				if (convertToUpwardRoom)

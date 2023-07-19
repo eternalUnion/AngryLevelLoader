@@ -316,7 +316,7 @@ namespace AngryLevelLoader
 			}
 			catch (Exception) { return default(T); }
 
-			return Addressables.LoadAsset<T>(obj.Value.First()).WaitForCompletion();
+			return Addressables.LoadAssetAsync<T>(obj.Value.First()).WaitForCompletion();
 		}
 
 		public static Dictionary<string, Shader> shaderDictionary = new Dictionary<string, Shader>();
