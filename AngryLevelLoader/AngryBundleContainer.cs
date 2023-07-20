@@ -14,6 +14,7 @@ using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using System.IO.Compression;
 using Newtonsoft.Json;
+using Unity.Audio;
 
 namespace AngryLevelLoader
 {
@@ -59,7 +60,7 @@ namespace AngryLevelLoader
 			if (locator != null)
 			{
 				Addressables.RemoveResourceLocator(locator);
-				Addressables.ClearResourceLocators();
+				Addressables.CleanBundleCache(new string[] { locator.LocatorId });
 			}
 
 			// Open the angry zip archive
@@ -97,7 +98,7 @@ namespace AngryLevelLoader
 			}
 
 			// Load the catalog
-			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json")).WaitForCompletion();
+			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), true).WaitForCompletion();
 
 			// Load the level data
 			statusText.text = "";
@@ -145,8 +146,7 @@ namespace AngryLevelLoader
 		{
 			if (!File.Exists(pathToAngryBundle))
 			{
-				statusText.text = "Could not find the file";
-				sceneDiv.hidden = true;
+				statusText.text = "<color=red>Could not find the file</color>";
 				return;
 			}
 
@@ -206,10 +206,11 @@ namespace AngryLevelLoader
 		public AngryBundleContainer(string path)
 		{
 			this.pathToAngryBundle = path;
+
 			rootPanel = new ConfigPanel(Plugin.config.rootPanel, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path));
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
-			reloadButton.onClick += () => UpdateScenes(true);
+			reloadButton.onClick += () => UpdateScenes(false);
 
 			new SpaceField(rootPanel, 5);
 
@@ -217,6 +218,21 @@ namespace AngryLevelLoader
 			statusText = new ConfigHeader(rootPanel, "", 16, TextAnchor.MiddleLeft);
 			statusText.hidden = true;
 			sceneDiv = new ConfigDivision(rootPanel, "sceneDiv_" + rootPanel.guid);
+
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (GetAllScenePaths().Contains(scene.path))
+				{
+					reloadButton.interactable = false;
+					statusText.hidden = false;
+					statusText.text = "Cannot reload bundle while in scene";
+				}
+				else
+				{
+					reloadButton.interactable = true;
+					statusText.hidden = true;
+				}
+			};
 		}
 	}
 }

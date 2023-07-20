@@ -42,7 +42,7 @@ namespace AngryLevelLoader
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
 		public static Dictionary<string, AngryBundleContainer> failedBundles = new Dictionary<string, AngryBundleContainer>();
 
-		// Scan for levels. This does NOT reload the files, only
+		// This does NOT reload the files, only
 		// loads newly added angry levels
 		public static void ScanForLevels()
         {
