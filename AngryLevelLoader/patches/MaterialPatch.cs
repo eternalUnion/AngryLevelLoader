@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace AngryLevelLoader.patches
 {
-	[HarmonyPatch(typeof(Material), MethodType.Constructor, typeof(Shader))]
+	/*[HarmonyPatch(typeof(Material), MethodType.Constructor, typeof(Shader))]
 	public static class MaterialShaderPatch_Ctor0
 	{
 		[HarmonyPrefix]
@@ -42,5 +42,5 @@ namespace AngryLevelLoader.patches
 				__instance.shader = shader;
 			}
 		}
-	}
+	}*/
 }

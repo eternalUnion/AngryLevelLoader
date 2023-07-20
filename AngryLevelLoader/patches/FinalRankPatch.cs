@@ -92,7 +92,7 @@ namespace AngryLevelLoader.patches
 					{
 						if (data.uniqueIdentifier == idPath)
 						{
-							AngryBundleContainer.LoadLevel(data.scenePath);
+							AngrySceneManager.LoadLevel(data.scenePath, container.pathToTempFolder);
 							return false;
 						}
 					}

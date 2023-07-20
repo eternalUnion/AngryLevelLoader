@@ -18,7 +18,7 @@ namespace AngryLevelLoader.patches
 		}
 	}
 
-	[HarmonyPatch(typeof(SceneHelper), nameof(SceneHelper.RestartScene))]
+	/*[HarmonyPatch(typeof(SceneHelper), nameof(SceneHelper.RestartScene))]
 	public static class SceneHelperRestart_Patch
 	{
 		[HarmonyPrefix]
@@ -39,5 +39,5 @@ namespace AngryLevelLoader.patches
 
 			return false;
 		}
-	}
+	}*/
 }

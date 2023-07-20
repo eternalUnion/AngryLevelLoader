@@ -34,8 +34,11 @@ namespace AngryLevelLoader
     {
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "1.0.0";
+        public const string PLUGIN_VERSION = "2.0.0";
 
+		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
+
+		/*
         public static void ReplaceShaders()
         {
 			foreach (Renderer rnd in Resources.FindObjectsOfTypeAll(typeof(Renderer)))
@@ -52,7 +55,9 @@ namespace AngryLevelLoader
 				}
 			}
 		}
+		*/
 
+		/*
 		public static void LinkMixers()
         {
             if (AudioMixerController.instance == null)
@@ -90,21 +95,20 @@ namespace AngryLevelLoader
                 }
             }
         }
+		*/
+        
+		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
+		public static Dictionary<string, AngryBundleContainer> failedBundles = new Dictionary<string, AngryBundleContainer>();
 
-        public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
-        private static Dictionary<string, AngryBundleContainer> failedBundles = new Dictionary<string, AngryBundleContainer>();
-		public static List<RudeLevelData> currentDatas = new List<RudeLevelData>();
 		public static void ReloadBundles()
         {
             errorText.text = "";
-            foreach (KeyValuePair<string, AngryBundleContainer> pair in angryBundles)
-                pair.Value.rootPanel.interactable = false;
-
-            string bundlePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Levels");
+			string bundlePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Levels");
             if (!Directory.Exists(bundlePath))
             {
                 Debug.LogWarning("Could not find the Levels folder at " + bundlePath);
-                return;
+				errorText.text = "<color=red>Error: </color>Levels folder not found";
+				return;
             }
 
 			foreach (string path in Directory.GetFiles(bundlePath))
@@ -119,7 +123,7 @@ namespace AngryLevelLoader
 				{
 					try
 					{
-						failedBundle.UpdateScenes();
+						failedBundle.UpdateScenes(false);
 					}
 					catch (Exception e)
 					{
@@ -141,14 +145,14 @@ namespace AngryLevelLoader
 				try
 				{
 					level = new AngryBundleContainer(path);
-					level.UpdateScenes();
+					level.UpdateScenes(false);
 				}
 				catch (Exception e)
 				{
 					Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
 					if (!string.IsNullOrEmpty(errorText.text))
 						errorText.text += '\n';
-					errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>";
+					errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
 
 					if (level != null)
 					{
@@ -242,25 +246,33 @@ namespace AngryLevelLoader
         public static ConfigHeader errorText;
         private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
+		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Temp");
+
 		private void Awake()
         {
 			// Plugin startup logic
+			Addressables.InitializeAsync().WaitForCompletion();
+
+			if (Directory.Exists(tempFolderPath))
+				Directory.Delete(tempFolderPath, true);
+			Directory.CreateDirectory(tempFolderPath);
+
 			LoadScripts();
 
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
 			config.postConfigChange += UpdateAllUI;
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
-            InitShaderDictionary();
+            //InitShaderDictionary();
 
             SceneManager.activeSceneChanged += (before, after) =>
             {
                 CheckIsInCustomScene(after);
 			};
 
-            gameFont = LoadObject<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
-			notPlayedPreview = LoadObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png");
-			lockedPreview = LoadObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png");
+            gameFont = Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
+			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
+			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
 
             ButtonField openLevels = new ButtonField(config.rootPanel, "Open Levels Folder", "b_openLevelsFolder");
             openLevels.onClick += () =>
@@ -285,6 +297,9 @@ namespace AngryLevelLoader
 			new ConfigHeader(config.rootPanel, "Level Bundles");
             ReloadBundles();
 
+			// I don't have time to even explain why this is required here
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
+
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
 
@@ -298,28 +313,7 @@ namespace AngryLevelLoader
 			}
 		}
 
-		public static T LoadObject<T>(string path)
-		{
-            InitResourceMap();
-
-			Debug.Log($"Loading {path}");
-			KeyValuePair<object, IList<IResourceLocation>> obj;
-
-			try
-			{
-				obj = resourceMap.Locations.Where(
-					(KeyValuePair<object, IList<IResourceLocation>> pair) =>
-					{
-						return (pair.Key as string) == path;
-						//return (pair.Key as string).Equals(path, StringComparison.OrdinalIgnoreCase);
-					}).First();
-			}
-			catch (Exception) { return default(T); }
-
-			return Addressables.LoadAssetAsync<T>(obj.Value.First()).WaitForCompletion();
-		}
-
-		public static Dictionary<string, Shader> shaderDictionary = new Dictionary<string, Shader>();
+		/*public static Dictionary<string, Shader> shaderDictionary = new Dictionary<string, Shader>();
         private void InitShaderDictionary()
         {
             InitResourceMap();
@@ -334,7 +328,7 @@ namespace AngryLevelLoader
             }
 
             shaderDictionary.Remove("ULTRAKILL/PostProcessV2");
-        }
+        }*/
     }
 
     public static class RudeLevelInterface
@@ -369,6 +363,40 @@ namespace AngryLevelLoader
 			if (secretIndex >= level.field.data.secretCount)
 				return false;
 			return level.secrets.value[secretIndex] == 'T';
+		}
+	}
+
+
+	public static class AddressableTest
+	{
+		public static void TestAddressable()
+		{
+			Addressables.LoadContentCatalogAsync(Path.Combine(Application.dataPath, "Custom", "catalog.json"), true).WaitForCompletion();
+
+			SceneHelper.LoadScene("Assets/Custom/base.unity.unity", false);
+		}
+
+		public static void ForceLoadAddressables()
+		{
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Effects/Charge Effect.prefab").WaitForCompletion();
+			Addressables.LoadAssetAsync<AudioMixer>("AllAudio").WaitForCompletion();
+			Addressables.LoadAssetAsync<AudioMixer>("MusicAudio").WaitForCompletion();
+			Addressables.LoadAssetAsync<AudioMixer>("GoreAudio").WaitForCompletion();
+			Addressables.LoadAssetAsync<AudioMixer>("UnfreezableAudio").WaitForCompletion();
+			Addressables.LoadAssetAsync<AudioMixer>("DoorAudio").WaitForCompletion();
+			Addressables.LoadAssetAsync<AudioMixer>("DoorAudio").WaitForCompletion();
+		}
+
+		public static void TestBundles()
+		{
+			string bundlePath = Path.Combine(Application.dataPath, "Custom");
+
+			foreach (string bundle in Directory.GetFiles(bundlePath).Where(file => file.EndsWith(".bundle")))
+			{
+				AssetBundle.LoadFromFile(bundle);
+			}
+
+			SceneManager.LoadScene("Assets/Custom/base.unity");
 		}
 	}
 }
