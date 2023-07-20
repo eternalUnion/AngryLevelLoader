@@ -41,12 +41,13 @@ namespace AngryLevelLoader
 		public static PropertyInfo p_SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty("CurrentScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 		public static PropertyInfo p_SceneHelper_LastScene = typeof(SceneHelper).GetProperty("LastScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
-		// If force reload is set to false and the level was already previously
-		// unzipped (with the same build hash), do not unzip again and use the
-		// previously unzipped level (since it would be waste of time and would
-		// tear down the storage for larger or many small levels)
+		/// <summary>
+		/// Read .angry file and load the levels in memory
+		/// </summary>
+		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
 		private void ReloadBundle(bool forceReload)
 		{
+			// Release all data assets
 			foreach (AsyncOperationHandle<RudeLevelData> handle in dataDictionary.Values)
 			{
 				Plugin.idDictionary.Remove(handle.WaitForCompletion().uniqueIdentifier);
@@ -54,12 +55,14 @@ namespace AngryLevelLoader
 			}
 			dataDictionary.Clear();
 
+			// Unload the content catalog
 			if (locator != null)
 			{
 				Addressables.RemoveResourceLocator(locator);
 				Addressables.ClearResourceLocators();
 			}
 
+			// Open the angry zip archive
 			using(ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read), ZipArchiveMode.Read))
 			{
 				var dataEntry = zip.GetEntry("data.json");
@@ -71,6 +74,9 @@ namespace AngryLevelLoader
 					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
 					dataPaths = newData.levelDataPaths;
 					
+					// If force reload is set to false, check if the build hashes match
+					// between unzipped bundle and the current angry file.
+					// Build hash is generated randomly every build so avoiding unzipping
 					if (!forceReload && Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
 					{
 						BundleData previousData = JsonConvert.DeserializeObject<BundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
@@ -90,8 +96,10 @@ namespace AngryLevelLoader
 				}
 			}
 
+			// Load the catalog
 			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json")).WaitForCompletion();
 
+			// Load the level data
 			statusText.text = "";
 			statusText.hidden = true;
 			foreach (string path in dataPaths)
@@ -129,6 +137,10 @@ namespace AngryLevelLoader
 			return dataDictionary.Values.Select(data => data.WaitForCompletion().scenePath);
 		}
 
+		/// <summary>
+		/// Reloads the angry file and adds the new scenes
+		/// </summary>
+		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
 		public void UpdateScenes(bool forceReload)
 		{
 			if (!File.Exists(pathToAngryBundle))

@@ -35,72 +35,16 @@ namespace AngryLevelLoader
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.0.0";
+		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Temp");
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 
-		/*
-        public static void ReplaceShaders()
-        {
-			foreach (Renderer rnd in Resources.FindObjectsOfTypeAll(typeof(Renderer)))
-			{
-                if (rnd.transform.parent != null && rnd.transform.parent.name == "Virtual Camera")
-                    continue;
-
-				foreach (Material mat in rnd.materials)
-				{
-					if (shaderDictionary.TryGetValue(mat.shader.name, out Shader shader))
-					{
-						mat.shader = shader;
-					}
-				}
-			}
-		}
-		*/
-
-		/*
-		public static void LinkMixers()
-        {
-            if (AudioMixerController.instance == null)
-                return;
-
-            AudioMixer[] realMixers = new AudioMixer[5]
-            {
-				AudioMixerController.instance.allSound,
-				AudioMixerController.instance.musicSound,
-				AudioMixerController.instance.goreSound,
-				AudioMixerController.instance.doorSound,
-				AudioMixerController.instance.unfreezeableSound
-			};
-
-            AudioMixer[] allMixers = Resources.FindObjectsOfTypeAll<AudioMixer>();
-
-			Dictionary<AudioMixerGroup, AudioMixerGroup> groupConversionMap = new Dictionary<AudioMixerGroup, AudioMixerGroup>();
-			foreach (AudioMixer mixer in allMixers.Where(_mixer => _mixer.name.EndsWith("_rude")).AsEnumerable())
-			{
-                AudioMixerGroup rudeGroup = mixer.FindMatchingGroups("")[0];
-
-                string realMixerName = mixer.name.Substring(0, mixer.name.Length - 5);
-                AudioMixer realMixer = realMixers.Where(mixer => mixer.name == realMixerName).First();
-                AudioMixerGroup realGroup = realMixer.FindMatchingGroups("")[0];
-
-                groupConversionMap[rudeGroup] = realGroup;
-                Debug.Log($"{mixer.name} => {realMixer.name}");
-            }
-
-			foreach (AudioSource source in Resources.FindObjectsOfTypeAll<AudioSource>())
-            {
-                if (source.outputAudioMixerGroup != null && groupConversionMap.TryGetValue(source.outputAudioMixerGroup, out AudioMixerGroup realGroup))
-                {
-                    source.outputAudioMixerGroup = realGroup;
-                }
-            }
-        }
-		*/
-        
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
 		public static Dictionary<string, AngryBundleContainer> failedBundles = new Dictionary<string, AngryBundleContainer>();
 
-		public static void ReloadBundles()
+		// Scan for levels. This does NOT reload the files, only
+		// loads newly added angry levels
+		public static void ScanForLevels()
         {
             errorText.text = "";
 			string bundlePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Levels");
@@ -246,16 +190,13 @@ namespace AngryLevelLoader
         public static ConfigHeader errorText;
         private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
-		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Temp");
-
 		private void Awake()
         {
 			// Plugin startup logic
 			Addressables.InitializeAsync().WaitForCompletion();
 
-			if (Directory.Exists(tempFolderPath))
-				Directory.Delete(tempFolderPath, true);
-			Directory.CreateDirectory(tempFolderPath);
+			if (!Directory.Exists(tempFolderPath))
+				Directory.CreateDirectory(tempFolderPath);
 
 			LoadScripts();
 
@@ -263,7 +204,6 @@ namespace AngryLevelLoader
 			config.postConfigChange += UpdateAllUI;
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
-            //InitShaderDictionary();
 
             SceneManager.activeSceneChanged += (before, after) =>
             {
@@ -280,7 +220,7 @@ namespace AngryLevelLoader
                 Application.OpenURL(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Levels"));
             };
             ButtonField reloadButton = new ButtonField(config.rootPanel, "Scan For Levels", "refreshButton");
-            reloadButton.onClick += ReloadBundles;
+            reloadButton.onClick += ScanForLevels;
             StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
             difficultySelect.onValueChange += (e) =>
             {
@@ -295,41 +235,22 @@ namespace AngryLevelLoader
             errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
-            ReloadBundles();
+            ScanForLevels();
 
-			// I don't have time to even explain why this is required here
+			// TODO: Investigate further on this issue:
+			//
+			// if I don't do that, when I load an addressable scene (custom level)
+			// it results in whatever this is. I guess it doesn't load the dependencies
+			// but I am not too sure. Same thing happens when I load trough asset bundles
+			// instead and everything is white unless I load a prefab which creates a chain
+			// reaction of texture, material, shader dependency loads. Though it MIGHT be incorrect,
+			// and I am not sure of the actual origin of the issue (because when I check the loaded
+			// bundles every addressable bundle is already in the memory like what?)
 			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
-
-		public static ResourceLocationMap resourceMap = null;
-        private static void InitResourceMap()
-        {
-			if (resourceMap == null)
-			{
-				Addressables.InitializeAsync().WaitForCompletion();
-				resourceMap = Addressables.ResourceLocators.First() as ResourceLocationMap;
-			}
-		}
-
-		/*public static Dictionary<string, Shader> shaderDictionary = new Dictionary<string, Shader>();
-        private void InitShaderDictionary()
-        {
-            InitResourceMap();
-            foreach (KeyValuePair<object, IList<IResourceLocation>> pair in resourceMap.Locations)
-            {
-                string path = pair.Key as string;
-                if (!path.EndsWith(".shader"))
-                    continue;
-
-                Shader shader = LoadObject<Shader>(path);
-                shaderDictionary[shader.name] = shader;
-            }
-
-            shaderDictionary.Remove("ULTRAKILL/PostProcessV2");
-        }*/
-    }
+	}
 
     public static class RudeLevelInterface
     {
