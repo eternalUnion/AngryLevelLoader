@@ -35,6 +35,7 @@ namespace AngryLevelLoader
 
 		public ConfigPanel rootPanel;
 		public ButtonField reloadButton;
+		public ConfigHeader bundleReloadBlockText;
 		public ConfigHeader statusText;
 		public ConfigDivision sceneDiv;
 		public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
@@ -42,12 +43,79 @@ namespace AngryLevelLoader
 		public static PropertyInfo p_SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty("CurrentScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 		public static PropertyInfo p_SceneHelper_LastScene = typeof(SceneHelper).GetProperty("LastScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
+		// LEGACY
+		private bool CheckForLegacyFile()
+		{
+			using (FileStream fs = File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read))
+			{
+				try
+				{
+					BinaryReader reader = new BinaryReader(fs);
+					fs.Seek(0, SeekOrigin.Begin);
+					int bundleCount = reader.ReadInt32();
+					int totalSize = 4 + bundleCount * 4;
+					for (int i = 0; i < bundleCount && totalSize < fs.Length; i++)
+						totalSize += reader.ReadInt32();
+
+					if (totalSize == fs.Length)
+					{
+						return true;
+					}
+				}
+				catch (Exception)
+				{
+					return false;
+				}
+			}
+
+			return false;
+		}
+
+		// LEGACY
+		private void LoadLegacy(string path)
+		{
+			using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read))
+			using (BinaryReader br = new BinaryReader(fs))
+			{
+				int bundleCount = br.ReadInt32();
+				int currentOffset = 0;
+
+				for (int i = 0; i < bundleCount; i++)
+				{
+					fs.Seek(4 + i * 4, SeekOrigin.Begin);
+					int bundleLen = br.ReadInt32();
+
+					byte[] bundleData = new byte[bundleLen];
+					fs.Seek(4 + bundleCount * 4 + currentOffset, SeekOrigin.Begin);
+					fs.Read(bundleData, 0, bundleLen);
+					AssetBundle bundle = AssetBundle.LoadFromMemory(bundleData);
+					if (bundle != null)
+						allBundles.Add(bundle);
+					else
+					{
+						statusText.hidden = false;
+						if (!string.IsNullOrEmpty(statusText.text))
+							statusText.text += '\n';
+						statusText.text += "<color=red>Error: </color>Could not load some of the bundles. Possible confliction with another angry file.";
+					}
+
+					currentOffset += bundleLen;
+				}
+			}
+		}
+
+		// LEGACY
+		private List<AssetBundle> allBundles = new List<AssetBundle>();
+		public bool legacy = false;
+
 		/// <summary>
 		/// Read .angry file and load the levels in memory
 		/// </summary>
 		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
 		private void ReloadBundle(bool forceReload)
 		{
+			legacy = false;
+
 			// Release all data assets
 			foreach (AsyncOperationHandle<RudeLevelData> handle in dataDictionary.Values)
 			{
@@ -61,6 +129,30 @@ namespace AngryLevelLoader
 			{
 				Addressables.RemoveResourceLocator(locator);
 				Addressables.CleanBundleCache(new string[] { locator.LocatorId });
+			}
+
+			// LEGACY
+			foreach (AssetBundle bundle in allBundles)
+			{
+				try
+				{
+					bundle.Unload(false);
+				}
+				catch (Exception) { }
+			}
+			allBundles.Clear();
+
+			// LEGACY
+			if (CheckForLegacyFile())
+			{
+				legacy = true;
+				statusText.hidden = false;
+				if (!string.IsNullOrEmpty(statusText.text))
+					statusText.text += '\n';
+				statusText.text += "<color=yellow>Warning: Legacy angry file detected! Support for this format will be dropped on future updates!</color>";
+
+				LoadLegacy(pathToAngryBundle);
+				return;
 			}
 
 			// Open the angry zip archive
@@ -130,12 +222,23 @@ namespace AngryLevelLoader
 
 		public IEnumerable<RudeLevelData> GetAllLevelData()
 		{
-			return dataDictionary.Values.Select(data => data.WaitForCompletion());
+			// LEGACY
+			if (legacy)
+			{
+				foreach (var dataArr in allBundles.Where(bundle => !bundle.isStreamedSceneAssetBundle).Select(bundle => bundle.LoadAllAssets<RudeLevelData>()))
+					foreach (var data in dataArr)
+						yield return data;
+
+				yield break;
+			}
+
+			foreach (var data in dataDictionary.Values.Select(data => data.WaitForCompletion()))
+				yield return data;
 		}
 
 		public IEnumerable<string> GetAllScenePaths()
 		{
-			return dataDictionary.Values.Select(data => data.WaitForCompletion().scenePath);
+			return GetAllLevelData().Select(data => data.scenePath);
 		}
 
 		/// <summary>
@@ -150,11 +253,11 @@ namespace AngryLevelLoader
 				return;
 			}
 
-			ReloadBundle(forceReload);
 			sceneDiv.interactable = false;
 			sceneDiv.hidden = false;
 			statusText.hidden = true;
 			statusText.text = "";
+			ReloadBundle(forceReload);
 
 			// Disable all level interfaces
 			foreach (KeyValuePair<string, LevelContainer> pair in levels)
@@ -170,7 +273,18 @@ namespace AngryLevelLoader
 				else
 				{
 					LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
-					levelContainer.onLevelButtonPress += () => AngrySceneManager.LoadLevel(data.scenePath, pathToTempFolder);
+					levelContainer.onLevelButtonPress += () =>
+					{
+						// LEGACY
+						if (legacy)
+						{
+							AngrySceneManager.LoadLegacyLevel(data.scenePath);
+						}
+						else
+						{
+							AngrySceneManager.LoadLevel(data.scenePath, pathToTempFolder);
+						}
+					};
 
 					SceneManager.sceneLoaded += (scene, mode) =>
 					{
@@ -202,7 +316,7 @@ namespace AngryLevelLoader
 
 			sceneDiv.interactable = true;
 		}
-
+		
 		public AngryBundleContainer(string path)
 		{
 			this.pathToAngryBundle = path;
@@ -211,6 +325,8 @@ namespace AngryLevelLoader
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
 			reloadButton.onClick += () => UpdateScenes(false);
+			bundleReloadBlockText = new ConfigHeader(rootPanel, "Bundle cannot be reloaded while in a scene");
+			bundleReloadBlockText.hidden = true;
 
 			new SpaceField(rootPanel, 5);
 
@@ -224,13 +340,12 @@ namespace AngryLevelLoader
 				if (GetAllScenePaths().Contains(scene.path))
 				{
 					reloadButton.interactable = false;
-					statusText.hidden = false;
-					statusText.text = "Cannot reload bundle while in scene";
+					bundleReloadBlockText.hidden = false;
 				}
 				else
 				{
 					reloadButton.interactable = true;
-					statusText.hidden = true;
+					bundleReloadBlockText.hidden = true;
 				}
 			};
 		}
