@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace RudeLevelScripts.Essentials
 {
+	[CreateAssetMenu]
 	public class RudeBundleData : ScriptableObject
 	{
 		[Tooltip("Will be shown on the angry bundle list")]

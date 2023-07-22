@@ -16,16 +16,15 @@ using System.IO.Compression;
 using Newtonsoft.Json;
 using Unity.Audio;
 using System.Collections;
+using RudeLevelScripts.Essentials;
 
 namespace AngryLevelLoader
 {
 	public class BundleData
 	{
-		public string bundleName { get; set; }
-		public string author { get; set; }
-
 		public string bundleGuid { get; set; }
 		public string buildHash { get; set; }
+		public string bundleDataPath { get; set; }
 		public List<string> levelDataPaths;
 	}
 
@@ -52,7 +51,6 @@ namespace AngryLevelLoader
 		public IResourceLocator locator;
 		public string pathToTempFolder;
 		public string pathToAngryBundle;
-		public BundleData bundleData;
 		public List<string> dataPaths = new List<string>();
 		public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
@@ -138,6 +136,7 @@ namespace AngryLevelLoader
 		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
 		private void ReloadBundle(bool forceReload)
 		{
+			// Release data handle
 			foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
 			{
 				Plugin.idDictionary.Remove(data.Result.uniqueIdentifier);
@@ -177,6 +176,7 @@ namespace AngryLevelLoader
 			}
 
 			// Open the angry zip archive
+			string bundleDataAddress = "";
 			using(ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read), ZipArchiveMode.Read))
 			{
 				var dataEntry = zip.GetEntry("data.json");
@@ -187,7 +187,8 @@ namespace AngryLevelLoader
 					BundleData newData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
 					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
 					dataPaths = newData.levelDataPaths;
-					
+					bundleDataAddress = newData.bundleDataPath;
+
 					// If force reload is set to false, check if the build hashes match
 					// between unzipped bundle and the current angry file.
 					// Build hash is generated randomly every build so avoiding unzipping
@@ -207,11 +208,33 @@ namespace AngryLevelLoader
 						Directory.Delete(pathToTempFolder, true);
 					Directory.CreateDirectory(pathToTempFolder);
 					zip.ExtractToDirectory(pathToTempFolder);
+
+					rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
 				}
+				else if (rootPanel.icon == null)
+					rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
 			}
 
 			// Load the catalog
 			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), true).WaitForCompletion();
+
+			// Load the bundle name
+			if (bundleDataAddress != null && !string.IsNullOrEmpty(bundleDataAddress))
+			{
+				AsyncOperationHandle<RudeBundleData> bundleHandle = Addressables.LoadAssetAsync<RudeBundleData>(bundleDataAddress);
+				bundleHandle.WaitForCompletion();
+				RudeBundleData bundleData = bundleHandle.Result;
+
+				if (bundleData != null)
+				{
+					rootPanel.displayName = bundleData.bundleName;
+					if (!string.IsNullOrEmpty(bundleData.author))
+						rootPanel.displayName += $"\n<color=#909090>by {bundleData.author}</color>";
+				}
+
+				bundleData = null;
+				Addressables.Release(bundleHandle);
+			}
 
 			// Load the level data
 			statusText.text = "";
@@ -350,7 +373,9 @@ namespace AngryLevelLoader
 			sceneDiv.hidden = false;
 
 			if (e != null)
-				throw e;
+			{
+				Debug.LogError($"Error while loading bundle {e}\n{e.StackTrace}");
+			}
 		}
 
 		/// <summary>
@@ -366,7 +391,7 @@ namespace AngryLevelLoader
 		{
 			this.pathToAngryBundle = path;
 
-			rootPanel = new ConfigPanel(Plugin.config.rootPanel, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path));
+			rootPanel = new ConfigPanel(Plugin.config.rootPanel, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path), ConfigPanel.PanelFieldType.StandardWithBigIcon);
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
 			reloadButton.onClick += () => UpdateScenes(false);
@@ -377,20 +402,6 @@ namespace AngryLevelLoader
 			statusText = new ConfigHeader(rootPanel, "", 16, TextAnchor.MiddleLeft);
 			statusText.hidden = true;
 			sceneDiv = new ConfigDivision(rootPanel, "sceneDiv_" + rootPanel.guid);
-
-			SceneManager.sceneLoaded += (scene, mode) =>
-			{
-				/*if (GetAllScenePaths().Contains(scene.path))
-				{
-					reloadButton.interactable = false;
-					bundleReloadBlockText.hidden = false;
-				}
-				else
-				{
-					reloadButton.interactable = true;
-					bundleReloadBlockText.hidden = true;
-				}*/
-			};
 		}
 	}
 }
