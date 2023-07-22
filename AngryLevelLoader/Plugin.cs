@@ -29,13 +29,14 @@ namespace AngryLevelLoader
     }
 
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-    [BepInDependency(PluginConfig.PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency(PluginConfig.PluginConfiguratorController.PLUGIN_GUID, "1.6.0")]
     public class Plugin : BaseUnityPlugin
     {
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.0.0";
-		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Temp");
+		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelUnpacked");
+		public static Plugin instance;
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 
@@ -162,7 +163,8 @@ namespace AngryLevelLoader
         public static bool isInCustomScene = false;
         public static RudeLevelData currentLevelData;
         public static LevelContainer currentLevelContainer;
-        public static int selectedDifficulty;
+		public static AngryBundleContainer currentBundleContainer;
+		public static int selectedDifficulty;
 
         public static void CheckIsInCustomScene(Scene current)
         {
@@ -172,27 +174,37 @@ namespace AngryLevelLoader
 				{
 					isInCustomScene = true;
 					currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == current.path).First();
+					currentBundleContainer = container;
 					currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == current.path).First().uniqueIdentifier];
 					currentLevelContainer.discovered.value = true;
 					currentLevelContainer.UpdateUI();
+					config.presetButtonInteractable = false;
 
 					return;
 				}
 			}
 
 			isInCustomScene = false;
+			currentBundleContainer = null;
 			currentLevelData = null;
 			currentLevelContainer = null;
+			config.presetButtonInteractable = true;
 		}
 
         public static Harmony harmony;
         public static PluginConfigurator config;
         public static ConfigHeader errorText;
+		public static KeyCodeField reloadFileKeybind;
         private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
+		public static string workingDir;
+
 		private void Awake()
-        {
+		{
 			// Plugin startup logic
+			instance = this;
+			workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			OnlineLevelsManager.Init();
 			Addressables.InitializeAsync().WaitForCompletion();
 
 			if (!Directory.Exists(tempFolderPath))
@@ -202,6 +214,7 @@ namespace AngryLevelLoader
 
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
 			config.postConfigChange += UpdateAllUI;
+			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
 
@@ -214,14 +227,13 @@ namespace AngryLevelLoader
 			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
 			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
 
-            ButtonField openLevels = new ButtonField(config.rootPanel, "Open Levels Folder", "b_openLevelsFolder");
-            openLevels.onClick += () =>
-            {
-                Application.OpenURL(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Levels"));
-            };
-            ButtonField reloadButton = new ButtonField(config.rootPanel, "Scan For Levels", "refreshButton");
+			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
+			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL(Path.Combine(workingDir, "online-icon.png"));
+			
+			ButtonField reloadButton = new ButtonField(config.rootPanel, "Scan For Levels", "b_refreshButton");
             reloadButton.onClick += ScanForLevels;
-            StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
+            
+			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
             difficultySelect.onValueChange += (e) =>
             {
                 selectedDifficulty = Array.IndexOf(difficultyArr, e.value);
@@ -232,7 +244,11 @@ namespace AngryLevelLoader
                 }
             };
             difficultySelect.TriggerValueChangeEvent();
-            errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
+
+			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
+			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
+
+			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
             ScanForLevels();
@@ -250,6 +266,75 @@ namespace AngryLevelLoader
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
+
+		float lastPress = 0;
+		private void OnGUI()
+		{
+			if (reloadFileKeybind.value == KeyCode.None)
+				return;
+
+			if (!isInCustomScene)
+				return;
+
+			Event current = Event.current;
+			KeyCode keyCode = KeyCode.None;
+			if (current.keyCode == KeyCode.Escape)
+			{
+				return;
+			}
+			if (current.isKey || current.isMouse || current.button > 2 || current.shift)
+			{
+				if (current.isKey)
+				{
+					keyCode = current.keyCode;
+				}
+				else if (Input.GetKey(KeyCode.LeftShift))
+				{
+					keyCode = KeyCode.LeftShift;
+				}
+				else if (Input.GetKey(KeyCode.RightShift))
+				{
+					keyCode = KeyCode.RightShift;
+				}
+				else if (current.button <= 6)
+				{
+					keyCode = KeyCode.Mouse0 + current.button;
+				}
+			}
+			else if (Input.GetKey(KeyCode.Mouse3) || Input.GetKey(KeyCode.Mouse4) || Input.GetKey(KeyCode.Mouse5) || Input.GetKey(KeyCode.Mouse6))
+			{
+				keyCode = KeyCode.Mouse3;
+				if (Input.GetKey(KeyCode.Mouse4))
+				{
+					keyCode = KeyCode.Mouse4;
+				}
+				else if (Input.GetKey(KeyCode.Mouse5))
+				{
+					keyCode = KeyCode.Mouse5;
+				}
+				else if (Input.GetKey(KeyCode.Mouse6))
+				{
+					keyCode = KeyCode.Mouse6;
+				}
+			}
+			else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+			{
+				keyCode = KeyCode.LeftShift;
+				if (Input.GetKey(KeyCode.RightShift))
+				{
+					keyCode = KeyCode.RightShift;
+				}
+			}
+			
+			if (keyCode == reloadFileKeybind.value)
+			{
+				if (Time.time - lastPress < 3)
+					return;
+
+				lastPress = Time.time;
+				currentBundleContainer.UpdateScenes(false);
+			}
+		}
 	}
 
     public static class RudeLevelInterface

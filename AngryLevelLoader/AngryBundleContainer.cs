@@ -15,6 +15,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using System.IO.Compression;
 using Newtonsoft.Json;
 using Unity.Audio;
+using System.Collections;
 
 namespace AngryLevelLoader
 {
@@ -27,6 +28,24 @@ namespace AngryLevelLoader
 
 	public class AngryBundleContainer
 	{
+		private class BundleManager : MonoBehaviour
+		{
+			private static BundleManager _instance;
+			public static BundleManager instance
+			{
+				get
+				{
+					if (_instance == null)
+					{
+						_instance = new GameObject().AddComponent<BundleManager>();
+						UnityEngine.Object.DontDestroyOnLoad(_instance);
+					}
+
+					return _instance;
+				}
+			}
+		}
+
 		public IResourceLocator locator;
 		public string pathToTempFolder;
 		public string pathToAngryBundle;
@@ -241,80 +260,121 @@ namespace AngryLevelLoader
 			return GetAllLevelData().Select(data => data.scenePath);
 		}
 
+		private IEnumerator UpdateScenesInternal(bool forceReload)
+		{
+			bool inTempScene = false;
+			Scene tempScene = new Scene();
+			string previousPath = SceneManager.GetActiveScene().path;
+			string previousName = SceneManager.GetActiveScene().name;
+			if (GetAllScenePaths().Contains(previousPath) && !legacy)
+			{
+				tempScene = SceneManager.CreateScene("temp");
+				inTempScene = true;
+				yield return SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene().name);
+			}
+
+			Exception e = null;
+			try
+			{
+				if (!File.Exists(pathToAngryBundle))
+				{
+					statusText.text = "<color=red>Could not find the file</color>";
+					yield break;
+				}
+
+				sceneDiv.interactable = false;
+				sceneDiv.hidden = false;
+				statusText.hidden = true;
+				statusText.text = "";
+				ReloadBundle(forceReload);
+
+				// Disable all level interfaces
+				foreach (KeyValuePair<string, LevelContainer> pair in levels)
+					pair.Value.field.forceHidden = true;
+
+				foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+				{
+					if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
+					{
+						container.field.forceHidden = false;
+						container.UpdateData(data);
+					}
+					else
+					{
+						LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
+						levelContainer.onLevelButtonPress += () =>
+						{
+							// LEGACY
+							if (legacy)
+							{
+								AngrySceneManager.LoadLegacyLevel(data.scenePath);
+							}
+							else
+							{
+								AngrySceneManager.LoadLevel(data.scenePath, pathToTempFolder);
+							}
+						};
+
+						SceneManager.sceneLoaded += (scene, mode) =>
+						{
+							if (levelContainer.hidden)
+								return;
+
+							if (scene.path == data.scenePath)
+							{
+								levelContainer.AssureSecretsSize();
+
+								string secretString = levelContainer.secrets.value;
+								foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>())
+								{
+									if (bonus.gameObject.scene.path != data.scenePath)
+										continue;
+
+									if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')
+									{
+										bonus.beenFound = true;
+										bonus.BeenFound();
+									}
+								}
+							}
+						};
+
+						levels[data.uniqueIdentifier] = levelContainer;
+					}
+				}
+				sceneDiv.interactable = true;
+			}
+			catch (Exception err)
+			{
+				e = err;
+			}
+
+			if (inTempScene)
+			{
+				if (GetAllScenePaths().Contains(previousPath))
+				{
+					if (legacy)
+						yield return SceneManager.LoadSceneAsync(previousName);
+					else
+						yield return Addressables.LoadSceneAsync(previousName);
+				}
+				else
+					yield return Addressables.LoadSceneAsync("Main Menu");
+
+				// yield return SceneManager.UnloadSceneAsync(tempScene);
+			}
+
+			if (e != null)
+				throw e;
+		}
+
 		/// <summary>
 		/// Reloads the angry file and adds the new scenes
 		/// </summary>
 		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
 		public void UpdateScenes(bool forceReload)
 		{
-			if (!File.Exists(pathToAngryBundle))
-			{
-				statusText.text = "<color=red>Could not find the file</color>";
-				return;
-			}
-
-			sceneDiv.interactable = false;
-			sceneDiv.hidden = false;
-			statusText.hidden = true;
-			statusText.text = "";
-			ReloadBundle(forceReload);
-
-			// Disable all level interfaces
-			foreach (KeyValuePair<string, LevelContainer> pair in levels)
-				pair.Value.field.forceHidden = true;
-
-			foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
-			{
-				if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
-				{
-					container.field.forceHidden = false;
-					container.UpdateData(data);
-				}
-				else
-				{
-					LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
-					levelContainer.onLevelButtonPress += () =>
-					{
-						// LEGACY
-						if (legacy)
-						{
-							AngrySceneManager.LoadLegacyLevel(data.scenePath);
-						}
-						else
-						{
-							AngrySceneManager.LoadLevel(data.scenePath, pathToTempFolder);
-						}
-					};
-
-					SceneManager.sceneLoaded += (scene, mode) =>
-					{
-						if (levelContainer.hidden)
-							return;
-
-						if (scene.path == data.scenePath)
-						{
-							levelContainer.AssureSecretsSize();
-
-							string secretString = levelContainer.secrets.value;
-							foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>())
-							{
-								if (bonus.gameObject.scene.path != data.scenePath)
-									continue;
-
-								if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')
-								{
-									bonus.beenFound = true;
-									bonus.BeenFound();
-								}
-							}
-						}
-					};
-
-					levels[data.uniqueIdentifier] = levelContainer;
-				}
-			}
-
-			sceneDiv.interactable = true;
+			BundleManager.instance.StartCoroutine(UpdateScenesInternal(forceReload));
 		}
 		
 		public AngryBundleContainer(string path)
@@ -337,7 +397,7 @@ namespace AngryLevelLoader
 
 			SceneManager.sceneLoaded += (scene, mode) =>
 			{
-				if (GetAllScenePaths().Contains(scene.path))
+				/*if (GetAllScenePaths().Contains(scene.path))
 				{
 					reloadButton.interactable = false;
 					bundleReloadBlockText.hidden = false;
@@ -346,7 +406,7 @@ namespace AngryLevelLoader
 				{
 					reloadButton.interactable = true;
 					bundleReloadBlockText.hidden = true;
-				}
+				}*/
 			};
 		}
 	}

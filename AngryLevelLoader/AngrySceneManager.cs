@@ -15,6 +15,7 @@ namespace AngryLevelLoader
 			// LEGACY
 			LegacyPatchController.enablePatches = false;
 
+			Plugin.config.presetButtonInteractable = false;
 			CurrentTempLoadPath = tempFolder;
 			CurrentScenePath = levelPath;
 
