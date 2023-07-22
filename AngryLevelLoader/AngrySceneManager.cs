@@ -1,25 +1,48 @@
-﻿using System;
+﻿using RudeLevelScript;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader
 {
 	public static class AngrySceneManager
 	{
-		public static string CurrentTempLoadPath = "";
-		public static string CurrentScenePath = "";
+		public static string CurrentSceneName = "";
 
-		public static void LoadLevel(string levelPath, string tempFolder)
+		public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
 		{
 			// LEGACY
 			LegacyPatchController.enablePatches = false;
 
 			Plugin.config.presetButtonInteractable = false;
-			CurrentTempLoadPath = tempFolder;
-			CurrentScenePath = levelPath;
+			CurrentSceneName = levelName;
 
-			SceneHelper.LoadScene(levelPath);
+			Plugin.currentBundleContainer = bundleContainer;
+			Plugin.currentLevelContainer = levelContainer;
+			Plugin.currentLevelData = levelData;
+
+			SceneHelper.LoadScene(levelName);
+		}
+
+		public static void PostSceneLoad()
+		{
+			Plugin.currentLevelContainer.AssureSecretsSize();
+
+			string secretString = Plugin.currentLevelContainer.secrets.value;
+			foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == Plugin.currentLevelData.scenePath))
+			{
+				if (bonus.gameObject.scene.path != Plugin.currentLevelData.scenePath)
+					continue;
+
+				if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')
+				{
+					bonus.beenFound = true;
+					bonus.BeenFound();
+				}
+			}
 		}
 
 		// LEGACY
@@ -27,7 +50,7 @@ namespace AngryLevelLoader
 		{
 			LegacyPatchController.enablePatches = true;
 			LegacyPatchController.Patch();
-			CurrentScenePath = levelPath;
+			CurrentSceneName = levelPath;
 			SceneManager.LoadScene(levelPath);
 
 			LegacyPatchController.LinkMixers();

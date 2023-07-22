@@ -39,10 +39,8 @@ namespace AngryLevelLoader
 		public static Plugin instance;
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
-
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
-		public static Dictionary<string, AngryBundleContainer> failedBundles = new Dictionary<string, AngryBundleContainer>();
-
+		
 		// This does NOT reload the files, only
 		// loads newly added angry levels
 		public static void ScanForLevels()
@@ -64,29 +62,8 @@ namespace AngryLevelLoader
 					levelAsset.rootPanel.hidden = false;
 					continue;
 				}
-				else if (failedBundles.TryGetValue(path, out AngryBundleContainer failedBundle))
-				{
-					try
-					{
-						failedBundle.UpdateScenes(false);
-					}
-					catch (Exception e)
-					{
-						Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
-						failedBundle.statusText.text = "Error: " + e;
-                        errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>\n";
-						continue;
-					}
-
-					failedBundle.rootPanel.interactable = true;
-					failedBundle.rootPanel.hidden = false;
-					failedBundles.Remove(path);
-					angryBundles[path] = failedBundle;
-					continue;
-				}
 
 				AngryBundleContainer level = null;
-
 				try
 				{
 					level = new AngryBundleContainer(path);
@@ -98,14 +75,6 @@ namespace AngryLevelLoader
 					if (!string.IsNullOrEmpty(errorText.text))
 						errorText.text += '\n';
 					errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
-
-					if (level != null)
-					{
-						level.rootPanel.hidden = true;
-                        level.statusText.text = "Error: " + e;
-						failedBundles[path] = level;
-					}
-					continue;
 				}
 
 				angryBundles[path] = level;
@@ -212,27 +181,27 @@ namespace AngryLevelLoader
 
 			LoadScripts();
 
-			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
-			config.postConfigChange += UpdateAllUI;
-			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
 
             SceneManager.activeSceneChanged += (before, after) =>
             {
                 CheckIsInCustomScene(after);
+				if (isInCustomScene)
+					AngrySceneManager.PostSceneLoad();
 			};
 
             gameFont = Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
 			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
 			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
 
+			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
+			config.postConfigChange += UpdateAllUI;
+			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
+
 			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
 			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL(Path.Combine(workingDir, "online-icon.png"));
-			
-			ButtonField reloadButton = new ButtonField(config.rootPanel, "Scan For Levels", "b_refreshButton");
-            reloadButton.onClick += ScanForLevels;
-            
+
 			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
             difficultySelect.onValueChange += (e) =>
             {
@@ -247,6 +216,17 @@ namespace AngryLevelLoader
 
 			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
+			settingsPanel.hidden = true;
+
+			ButtonArrayField settingsAndReload = new ButtonArrayField(config.rootPanel, "settingsAndReload", 2, new float[] { 0.5f, 0.5f }, new string[] { "Settings", "Scan For Levels" });
+			settingsAndReload.OnClickEventHandler(0).onClick += () =>
+			{
+				settingsPanel.OpenPanel();
+			};
+			settingsAndReload.OnClickEventHandler(1).onClick += () =>
+			{
+				ScanForLevels();
+			};
 
 			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 

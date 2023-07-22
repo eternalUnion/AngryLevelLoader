@@ -21,6 +21,9 @@ namespace AngryLevelLoader
 {
 	public class BundleData
 	{
+		public string bundleName { get; set; }
+		public string author { get; set; }
+
 		public string bundleGuid { get; set; }
 		public string buildHash { get; set; }
 		public List<string> levelDataPaths;
@@ -49,18 +52,22 @@ namespace AngryLevelLoader
 		public IResourceLocator locator;
 		public string pathToTempFolder;
 		public string pathToAngryBundle;
+		public BundleData bundleData;
 		public List<string> dataPaths = new List<string>();
 		public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
 		public ConfigPanel rootPanel;
 		public ButtonField reloadButton;
-		public ConfigHeader bundleReloadBlockText;
 		public ConfigHeader statusText;
 		public ConfigDivision sceneDiv;
 		public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
 		public static PropertyInfo p_SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty("CurrentScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 		public static PropertyInfo p_SceneHelper_LastScene = typeof(SceneHelper).GetProperty("LastScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+		// LEGACY
+		private List<AssetBundle> allBundles = new List<AssetBundle>();
+		public bool legacy = false;
 
 		// LEGACY
 		private bool CheckForLegacyFile()
@@ -72,6 +79,8 @@ namespace AngryLevelLoader
 					BinaryReader reader = new BinaryReader(fs);
 					fs.Seek(0, SeekOrigin.Begin);
 					int bundleCount = reader.ReadInt32();
+					if (bundleCount * 4 + 4 >= fs.Length)
+						return false;
 					int totalSize = 4 + bundleCount * 4;
 					for (int i = 0; i < bundleCount && totalSize < fs.Length; i++)
 						totalSize += reader.ReadInt32();
@@ -123,23 +132,16 @@ namespace AngryLevelLoader
 			}
 		}
 
-		// LEGACY
-		private List<AssetBundle> allBundles = new List<AssetBundle>();
-		public bool legacy = false;
-
 		/// <summary>
 		/// Read .angry file and load the levels in memory
 		/// </summary>
 		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
 		private void ReloadBundle(bool forceReload)
 		{
-			legacy = false;
-
-			// Release all data assets
-			foreach (AsyncOperationHandle<RudeLevelData> handle in dataDictionary.Values)
+			foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
 			{
-				Plugin.idDictionary.Remove(handle.WaitForCompletion().uniqueIdentifier);
-				Addressables.Release(handle);
+				Plugin.idDictionary.Remove(data.Result.uniqueIdentifier);
+				Addressables.Release(data);
 			}
 			dataDictionary.Clear();
 
@@ -216,10 +218,11 @@ namespace AngryLevelLoader
 			statusText.hidden = true;
 			foreach (string path in dataPaths)
 			{
-				var handle = Addressables.LoadAssetAsync<RudeLevelData>(path);
-				RudeLevelData data = handle.WaitForCompletion();
+				AsyncOperationHandle<RudeLevelData> handle = Addressables.LoadAssetAsync<RudeLevelData>(path);
+				handle.WaitForCompletion();
+				RudeLevelData data = handle.Result;
 
-				if (handle.Status != AsyncOperationStatus.Succeeded)
+				if (data == null)
 					continue;
 
 				if (Plugin.idDictionary.ContainsKey(data.uniqueIdentifier))
@@ -230,11 +233,10 @@ namespace AngryLevelLoader
 						statusText.text += '\n';
 					statusText.text += $"<color=red>Error: </color>Duplicate or invalid id {data.scenePath}";
 
-					Addressables.Release(handle);
 					continue;
 				}
 
-				dataDictionary[path] = handle;
+				dataDictionary[data.uniqueIdentifier] = handle;
 				Plugin.idDictionary[data.uniqueIdentifier] = data;
 			}
 		}
@@ -251,8 +253,8 @@ namespace AngryLevelLoader
 				yield break;
 			}
 
-			foreach (var data in dataDictionary.Values.Select(data => data.WaitForCompletion()))
-				yield return data;
+			foreach (var data in dataDictionary.Values)
+				yield return data.Result;
 		}
 
 		public IEnumerable<string> GetAllScenePaths()
@@ -279,69 +281,51 @@ namespace AngryLevelLoader
 				if (!File.Exists(pathToAngryBundle))
 				{
 					statusText.text = "<color=red>Could not find the file</color>";
-					yield break;
 				}
-
-				sceneDiv.interactable = false;
-				sceneDiv.hidden = false;
-				statusText.hidden = true;
-				statusText.text = "";
-				ReloadBundle(forceReload);
-
-				// Disable all level interfaces
-				foreach (KeyValuePair<string, LevelContainer> pair in levels)
-					pair.Value.field.forceHidden = true;
-
-				foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+				else
 				{
-					if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
+					// Disable all level interfaces
+					foreach (KeyValuePair<string, LevelContainer> pair in levels)
+						pair.Value.field.forceHidden = true;
+
+					sceneDiv.interactable = false;
+					sceneDiv.hidden = true;
+					statusText.hidden = true;
+					statusText.text = "";
+					ReloadBundle(forceReload);
+
+					foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
 					{
-						container.field.forceHidden = false;
-						container.UpdateData(data);
-					}
-					else
-					{
-						LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
-						levelContainer.onLevelButtonPress += () =>
+						if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
 						{
-							// LEGACY
-							if (legacy)
-							{
-								AngrySceneManager.LoadLegacyLevel(data.scenePath);
-							}
-							else
-							{
-								AngrySceneManager.LoadLevel(data.scenePath, pathToTempFolder);
-							}
-						};
-
-						SceneManager.sceneLoaded += (scene, mode) =>
+							container.field.forceHidden = false;
+							container.UpdateData(data);
+						}
+						else
 						{
-							if (levelContainer.hidden)
-								return;
-
-							if (scene.path == data.scenePath)
+							LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
+							levelContainer.onLevelButtonPress += () =>
 							{
-								levelContainer.AssureSecretsSize();
+								Plugin.currentBundleContainer = this;
+								Plugin.currentLevelContainer = levelContainer;
+								Plugin.currentLevelData = data;
 
-								string secretString = levelContainer.secrets.value;
-								foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>())
+								// LEGACY
+								if (legacy)
 								{
-									if (bonus.gameObject.scene.path != data.scenePath)
-										continue;
-
-									if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')
-									{
-										bonus.beenFound = true;
-										bonus.BeenFound();
-									}
+									AngrySceneManager.LoadLegacyLevel(data.scenePath);
 								}
-							}
-						};
+								else
+								{
+									AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
+								}
+							};
 
-						levels[data.uniqueIdentifier] = levelContainer;
+							levels[data.uniqueIdentifier] = levelContainer;
+						}
 					}
 				}
+
 				sceneDiv.interactable = true;
 			}
 			catch (Exception err)
@@ -360,9 +344,10 @@ namespace AngryLevelLoader
 				}
 				else
 					yield return Addressables.LoadSceneAsync("Main Menu");
-
-				// yield return SceneManager.UnloadSceneAsync(tempScene);
 			}
+
+			sceneDiv.interactable = true;
+			sceneDiv.hidden = false;
 
 			if (e != null)
 				throw e;
@@ -385,9 +370,7 @@ namespace AngryLevelLoader
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
 			reloadButton.onClick += () => UpdateScenes(false);
-			bundleReloadBlockText = new ConfigHeader(rootPanel, "Bundle cannot be reloaded while in a scene");
-			bundleReloadBlockText.hidden = true;
-
+			
 			new SpaceField(rootPanel, 5);
 
 			new ConfigHeader(rootPanel, "Levels");

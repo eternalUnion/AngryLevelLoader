@@ -75,7 +75,8 @@ namespace AngryLevelLoader.patches
 		[HarmonyPrefix]
 		static bool Prefix(StatsManager __instance)
 		{
-			if (!Plugin.isInCustomScene || Plugin.currentLevelData.isSecretLevel)
+			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
+			if (!Plugin.isInCustomScene || secretLevel)
 				return true;
 
 			if (!Plugin.currentLevelData.levelChallengeEnabled)
@@ -142,7 +143,8 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return;
 
-			if (Plugin.currentLevelData.isSecretLevel)
+			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
+			if (secretLevel)
 			{
 				char prevRank = Plugin.currentLevelContainer.finalRank.value[0];
 				if (prevRank != 'P')

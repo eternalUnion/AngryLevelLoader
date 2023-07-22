@@ -14,7 +14,9 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return true;
 
-			if (Plugin.currentLevelData.isSecretLevel)
+			bool secretLevel = __instance.transform.Find("Challenge") == null;
+
+			if (secretLevel)
 			{
 				Transform titleTrans = __instance.transform.Find("Title/Text");
 				if (titleTrans != null)
@@ -88,11 +90,11 @@ namespace AngryLevelLoader.patches
 
 				foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
 				{
-					foreach (RudeLevelData data in container.GetAllLevelData())
+					foreach (LevelContainer level in container.levels.Values)
 					{
-						if (data.uniqueIdentifier == idPath)
+						if (level.data.uniqueIdentifier == idPath)
 						{
-							AngrySceneManager.LoadLevel(data.scenePath, container.pathToTempFolder);
+							AngrySceneManager.LoadLevel(container, level, level.data, level.data.scenePath);
 							return false;
 						}
 					}

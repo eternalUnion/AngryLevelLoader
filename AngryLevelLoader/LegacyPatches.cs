@@ -168,7 +168,7 @@ namespace AngryLevelLoader
 			if (!LegacyPatchController.enablePatches)
 				return true;
 
-			if (SceneManager.GetActiveScene().path != AngrySceneManager.CurrentScenePath)
+			if (SceneManager.GetActiveScene().path != AngrySceneManager.CurrentSceneName)
 				return true;
 
 			foreach (MonoBehaviour monoBehaviour in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>())
@@ -179,7 +179,7 @@ namespace AngryLevelLoader
 				}
 			}
 
-			SceneManager.LoadScene(AngrySceneManager.CurrentScenePath);
+			SceneManager.LoadScene(AngrySceneManager.CurrentSceneName);
 
 			return false;
 		}
