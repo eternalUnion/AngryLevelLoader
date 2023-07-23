@@ -35,7 +35,7 @@ namespace AngryLevelLoader
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.0.0";
-		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelUnpacked");
+		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelsUnpacked");
 		public static Plugin instance;
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
@@ -173,7 +173,6 @@ namespace AngryLevelLoader
 			// Plugin startup logic
 			instance = this;
 			workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			OnlineLevelsManager.Init();
 			Addressables.InitializeAsync().WaitForCompletion();
 
 			if (!Directory.Exists(tempFolderPath))
@@ -201,6 +200,7 @@ namespace AngryLevelLoader
 
 			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
 			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL(Path.Combine(workingDir, "online-icon.png"));
+			OnlineLevelsManager.Init();
 
 			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
             difficultySelect.onValueChange += (e) =>

@@ -11,7 +11,7 @@ namespace AngryLevelLoader
 	public class LevelField : CustomConfigField
 	{
 		private bool inited = false;
-		private static Sprite bgSprite;
+		internal static Sprite bgSprite;
 		public RudeLevelData data;
 
 		public float time = 0;
@@ -176,7 +176,7 @@ namespace AngryLevelLoader
 			hidden = !discovered && data.hideIfNotPlayed;
 		}
 
-		private static Text MakeText(Transform parent)
+		internal static Text MakeText(Transform parent)
 		{
 			GameObject obj = new GameObject();
 			RectTransform rect = obj.AddComponent<RectTransform>();
@@ -187,7 +187,7 @@ namespace AngryLevelLoader
 			return obj.AddComponent<Text>();
 		}
 
-		private static RectTransform MakeRect(Transform parent)
+		internal static RectTransform MakeRect(Transform parent)
 		{
 			GameObject obj = new GameObject();
 			RectTransform rect = obj.AddComponent<RectTransform>();

@@ -60,9 +60,6 @@ namespace AngryLevelLoader
 		public ConfigDivision sceneDiv;
 		public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
-		public static PropertyInfo p_SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty("CurrentScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-		public static PropertyInfo p_SceneHelper_LastScene = typeof(SceneHelper).GetProperty("LastScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-
 		// LEGACY
 		private List<AssetBundle> allBundles = new List<AssetBundle>();
 		public bool legacy = false;
@@ -134,7 +131,8 @@ namespace AngryLevelLoader
 		/// Read .angry file and load the levels in memory
 		/// </summary>
 		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
-		private void ReloadBundle(bool forceReload)
+		/// <returns>Success</returns>
+		private bool ReloadBundle(bool forceReload)
 		{
 			// Release data handle
 			foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
@@ -172,7 +170,7 @@ namespace AngryLevelLoader
 				statusText.text += "<color=yellow>Warning: Legacy angry file detected! Support for this format will be dropped on future updates!</color>";
 
 				LoadLegacy(pathToAngryBundle);
-				return;
+				return true;
 			}
 
 			// Open the angry zip archive
@@ -182,9 +180,13 @@ namespace AngryLevelLoader
 				var dataEntry = zip.GetEntry("data.json");
 				bool unzip = true;
 
+				if (dataEntry == null)
+					return false;
+
 				using (TextReader dataReader = new StreamReader(dataEntry.Open()))
 				{
 					BundleData newData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
+					
 					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
 					dataPaths = newData.levelDataPaths;
 					bundleDataAddress = newData.bundleDataPath;
@@ -211,8 +213,11 @@ namespace AngryLevelLoader
 
 					rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
 				}
-				else if (rootPanel.icon == null)
-					rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
+				else
+				{
+					if (rootPanel.icon == null)
+						rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
+				}
 			}
 
 			// Load the catalog
@@ -262,6 +267,8 @@ namespace AngryLevelLoader
 				dataDictionary[data.uniqueIdentifier] = handle;
 				Plugin.idDictionary[data.uniqueIdentifier] = data;
 			}
+
+			return true;
 		}
 
 		public IEnumerable<RudeLevelData> GetAllLevelData()
@@ -285,8 +292,13 @@ namespace AngryLevelLoader
 			return GetAllLevelData().Select(data => data.scenePath);
 		}
 
+		private bool updating = false;
 		private IEnumerator UpdateScenesInternal(bool forceReload)
 		{
+			updating = true;
+			sceneDiv.interactable = false;
+			sceneDiv.hidden = true;
+
 			bool inTempScene = false;
 			Scene tempScene = new Scene();
 			string previousPath = SceneManager.GetActiveScene().path;
@@ -317,16 +329,19 @@ namespace AngryLevelLoader
 					statusText.text = "";
 					ReloadBundle(forceReload);
 
+					int currentIndex = 0;
 					foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
 					{
 						if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
 						{
+							container.field.siblingIndex = currentIndex++;
 							container.field.forceHidden = false;
 							container.UpdateData(data);
 						}
 						else
 						{
 							LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
+							levelContainer.field.siblingIndex = currentIndex++;
 							levelContainer.onLevelButtonPress += () =>
 							{
 								Plugin.currentBundleContainer = this;
@@ -369,6 +384,7 @@ namespace AngryLevelLoader
 					yield return Addressables.LoadSceneAsync("Main Menu");
 			}
 
+			updating = false;
 			sceneDiv.interactable = true;
 			sceneDiv.hidden = false;
 
@@ -384,6 +400,8 @@ namespace AngryLevelLoader
 		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
 		public void UpdateScenes(bool forceReload)
 		{
+			if (updating)
+				return;
 			BundleManager.instance.StartCoroutine(UpdateScenesInternal(forceReload));
 		}
 		
