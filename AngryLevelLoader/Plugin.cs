@@ -41,6 +41,11 @@ namespace AngryLevelLoader
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
 		
+		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
+		{
+			return angryBundles.Values.Where(bundle => bundle.guid == guid).FirstOrDefault();
+		}
+
 		// This does NOT reload the files, only
 		// loads newly added angry levels
 		public static void ScanForLevels()

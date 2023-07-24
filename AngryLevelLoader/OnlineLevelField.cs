@@ -1,4 +1,5 @@
-﻿using PluginConfig.API;
+﻿using PluginConfig;
+using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
 using System.Collections.Generic;
@@ -6,7 +7,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace AngryLevelLoader
@@ -32,8 +35,11 @@ namespace AngryLevelLoader
 			}
 		}
 
-		public void DownloadPreviewImage(string URL)
+		public void DownloadPreviewImage(string URL, bool force)
 		{
+			if (_previewImage != null && !force)
+				return;
+
 			UnityWebRequest req = UnityWebRequestTexture.GetTexture(URL);
 			var handle = req.SendWebRequest();
 			handle.completed += (e) =>
@@ -94,11 +100,86 @@ namespace AngryLevelLoader
 				return $"{((float)_bundleFileSize / kilobyteSize).ToString("0.00")} KB";
 			return $"{_bundleFileSize} B";
 		}
+		public enum OnlineLevelStatus
+		{
+			installed,
+			notInstalled,
+			updateAvailable
+		}
+		private OnlineLevelStatus _status = OnlineLevelStatus.notInstalled;
+		public OnlineLevelStatus status
+		{
+			get => _status;
+			set
+			{
+				_status = value;
+				UpdateInfo();
+			}
+		}
+		private string GetStatusString()
+		{
+			if (_status == OnlineLevelStatus.notInstalled)
+				return $"<color=red>Not installed</color>";
+			else if (_status == OnlineLevelStatus.installed)
+				return $"<color=cyan>Update available</color>";
+			else
+				return $"<color=lime>Installed</color>";
+		}
 		private void UpdateInfo()
 		{
 			if (currentBundleInfo == null)
 				return;
-			currentBundleInfo.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>";
+			currentBundleInfo.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
+		}
+
+		private bool installActive = false;
+		private Button installButton;
+		private Button updateButton;
+		private Button cancelButton;
+		private RectTransform loadingCircle;
+		private RectTransform progressBarBase;
+		private RectTransform progressBar;
+
+		internal class DisableWhenHidden : MonoBehaviour
+		{
+			void OnDisable()
+			{
+				gameObject.SetActive(false);
+			}
+		}
+
+		private static GameObject sampleMenuButton;
+		private static RectTransform CreateButton(Transform parent, string text, bool hideWhenUnfocused, GameObject field, Action<BaseEventData> onHover)
+		{
+			if (sampleMenuButton == null)
+			{
+				GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
+				sampleMenuButton = canvas.transform.Find("OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Controller Rumble").gameObject;
+			}
+
+			GameObject resetButton = GameObject.Instantiate(sampleMenuButton.transform.Find("Select").gameObject, parent);
+			GameObject.Destroy(resetButton.GetComponent<HudOpenEffect>());
+			resetButton.transform.Find("Text").GetComponent<Text>().text = text;
+			RectTransform resetRect = resetButton.GetComponent<RectTransform>();
+			Button resetComp = resetButton.GetComponent<Button>();
+			resetComp.onClick = new Button.ButtonClickedEvent();
+
+			if (hideWhenUnfocused)
+			{
+				resetButton.SetActive(false);
+				resetButton.AddComponent<DisableWhenHidden>();
+				EventTrigger trigger = field.AddComponent<EventTrigger>();
+				EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
+				mouseOn.callback.AddListener((BaseEventData e) => { resetButton.SetActive(true); });
+				EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
+				mouseOff.callback.AddListener((e) => onHover(e));
+				trigger.triggers.Add(mouseOn);
+				trigger.triggers.Add(mouseOff);
+				Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
+			}
+
+			resetRect.transform.localScale = Vector3.one;
+			return resetRect;
 		}
 
 		private bool inited = false;
@@ -129,7 +210,7 @@ namespace AngryLevelLoader
 			RectTransform imgRect = LevelField.MakeRect(fieldUI);
 			imgRect.anchorMin = new Vector2(0, 0.5f);
 			imgRect.anchorMax = new Vector2(0, 0.5f);
-			imgRect.pivot = new Vector2(0, 1);
+			imgRect.pivot = new Vector2(0, 0.5f);
 			imgRect.sizeDelta = new Vector2(160, 120);
 			imgRect.anchoredPosition = new Vector2(10, 0);
 			imgRect.localScale = Vector3.one;
@@ -137,12 +218,58 @@ namespace AngryLevelLoader
 			img.texture = _previewImage;
 
 			Text bundleInfo = currentBundleInfo = LevelField.MakeText(fieldUI);
+			bundleInfo.font = Plugin.gameFont;
+			bundleInfo.fontSize = 18;
+			bundleInfo.alignment = TextAnchor.UpperLeft;
 			RectTransform infoRect = bundleInfo.GetComponent<RectTransform>();
-			infoRect.anchorMin = new Vector2(180f / 600f, 0);
-			infoRect.anchorMax = new Vector2(1, 1);
-			infoRect.anchoredPosition = new Vector2(0, 0);
-			infoRect.pivot = Vector2.zero;
-			infoRect.sizeDelta = new Vector2(0, 0);
+			infoRect.anchorMin = new Vector2(0, 0.5f);
+			infoRect.anchorMax = new Vector2(0, 0.5f);
+			infoRect.anchoredPosition = new Vector2(180, 60);
+			infoRect.pivot = new Vector2(0, 1);
+			infoRect.sizeDelta = new Vector2(300, 160);
+			UpdateInfo();
+
+			RectTransform install = CreateButton(fieldUI, "Install", true, fieldUI.gameObject, e => installButton.gameObject.SetActive(installActive));
+			installButton = install.GetComponent<Button>();
+			install.anchorMin = install.anchorMax = new Vector2(1, 0.5f);
+			install.pivot = new Vector2(1, 0.5f);
+			install.anchoredPosition = new Vector2(-10, 0);
+			install.sizeDelta = new Vector2(100, 100);
+
+			RectTransform update = CreateButton(fieldUI, "Install", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
+			updateButton = update.GetComponent<Button>();
+			update.anchorMin = update.anchorMax = new Vector2(1, 0.5f);
+			update.pivot = new Vector2(1, 0.5f);
+			update.anchoredPosition = new Vector2(-10, 0);
+			update.sizeDelta = new Vector2(100, 100);
+
+			RectTransform cancel = CreateButton(fieldUI, "Cancel", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
+			cancelButton = cancel.GetComponent<Button>();
+			cancel.anchorMin = cancel.anchorMax = new Vector2(1, 0f);
+			cancel.pivot = new Vector2(1, 0f);
+			cancel.anchoredPosition = new Vector2(-10, 10);
+			cancel.sizeDelta = new Vector2(100, 40);
+
+			GameObject loading = new GameObject();
+			loadingCircle = loading.AddComponent<RectTransform>();
+			loadingCircle.SetParent(fieldUI);
+			loadingCircle.anchorMax = loadingCircle.anchorMin = new Vector2(1, 0);
+			loadingCircle.pivot = new Vector2(0.5f, 0.5f);
+			loadingCircle.sizeDelta = new Vector2(90, 90);
+			loadingCircle.anchoredPosition = new Vector2(-10 - 90 / 2, 60 + 90 / 2);
+			loadingCircle.localScale = Vector3.one;
+			Image loadingImg = loading.AddComponent<Image>();
+			loadingImg.sprite = LoadingCircleField.loadingIcon;
+			loading.AddComponent<LoadingCircleField.LoadingBarSpin>();
+
+			if (hierarchyHidden)
+				currentUI.gameObject.SetActive(false);
+		}
+
+		public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
+		{
+			if (currentUI != null)
+				currentUI.gameObject.SetActive(!hierarchyHidden);
 		}
 	}
 }

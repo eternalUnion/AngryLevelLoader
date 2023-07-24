@@ -51,6 +51,8 @@ namespace AngryLevelLoader
 		public IResourceLocator locator;
 		public string pathToTempFolder;
 		public string pathToAngryBundle;
+		public string hash;
+		public string guid;
 		public List<string> dataPaths = new List<string>();
 		public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
@@ -186,7 +188,10 @@ namespace AngryLevelLoader
 				using (TextReader dataReader = new StreamReader(dataEntry.Open()))
 				{
 					BundleData newData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
-					
+
+					hash = newData.buildHash;
+					guid = newData.bundleGuid;
+
 					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
 					dataPaths = newData.levelDataPaths;
 					bundleDataAddress = newData.bundleDataPath;
