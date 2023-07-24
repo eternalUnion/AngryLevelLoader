@@ -236,7 +236,7 @@ namespace AngryLevelLoader
 			install.anchoredPosition = new Vector2(-10, 0);
 			install.sizeDelta = new Vector2(100, 100);
 
-			RectTransform update = CreateButton(fieldUI, "Install", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
+			RectTransform update = CreateButton(fieldUI, "Update", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
 			updateButton = update.GetComponent<Button>();
 			update.anchorMin = update.anchorMax = new Vector2(1, 0.5f);
 			update.pivot = new Vector2(1, 0.5f);
@@ -250,17 +250,42 @@ namespace AngryLevelLoader
 			cancel.anchoredPosition = new Vector2(-10, 10);
 			cancel.sizeDelta = new Vector2(100, 40);
 
-			GameObject loading = new GameObject();
-			loadingCircle = loading.AddComponent<RectTransform>();
-			loadingCircle.SetParent(fieldUI);
-			loadingCircle.anchorMax = loadingCircle.anchorMin = new Vector2(1, 0);
-			loadingCircle.pivot = new Vector2(0.5f, 0.5f);
-			loadingCircle.sizeDelta = new Vector2(90, 90);
-			loadingCircle.anchoredPosition = new Vector2(-10 - 90 / 2, 60 + 90 / 2);
-			loadingCircle.localScale = Vector3.one;
-			Image loadingImg = loading.AddComponent<Image>();
-			loadingImg.sprite = LoadingCircleField.loadingIcon;
-			loading.AddComponent<LoadingCircleField.LoadingBarSpin>();
+			progressBarBase = new GameObject().AddComponent<RectTransform>();
+			progressBarBase.SetParent(fieldUI);
+			progressBarBase.anchorMin = progressBarBase.anchorMax = new Vector2(1, 0);
+			progressBarBase.pivot = new Vector2(0, 0);
+			progressBarBase.anchoredPosition = new Vector2(-110, 60);
+			progressBarBase.sizeDelta = new Vector2(100, 40);
+			progressBarBase.localScale = Vector3.one;
+			Image progressBarBaseImg = progressBarBase.gameObject.AddComponent<Image>();
+			progressBarBaseImg.sprite = cancel.GetComponent<Image>().sprite;
+			progressBarBaseImg.type = Image.Type.Sliced;
+			progressBarBaseImg.fillCenter = false;
+
+			progressBar = new GameObject().AddComponent<RectTransform>();
+			progressBar.SetParent(fieldUI);
+			progressBar.anchorMin = progressBar.anchorMax = new Vector2(1, 0);
+			progressBar.pivot = new Vector2(0, 0);
+			progressBar.anchoredPosition = new Vector2(-110, 60);
+			progressBar.sizeDelta = new Vector2(100, 40);
+			progressBar.localScale = Vector3.one;
+			float boundThickness = 2.5f;
+			progressBar.anchoredPosition += new Vector2(boundThickness, boundThickness);
+			progressBar.sizeDelta -= new Vector2(boundThickness, boundThickness) * 2;
+			Image progressBarImg = progressBar.gameObject.AddComponent<Image>();
+			progressBarImg.type = Image.Type.Filled;
+			progressBarImg.fillMethod = Image.FillMethod.Horizontal;
+
+			Text progressText = LevelField.MakeText(fieldUI);
+			progressText.font = Plugin.gameFont;
+			progressText.text = "0/0 MB";
+			progressText.alignment = TextAnchor.MiddleCenter;
+			RectTransform progressRect = progressText.GetComponent<RectTransform>();
+			progressRect.anchorMin = progressRect.anchorMax = new Vector2(1, 0);
+			progressRect.sizeDelta = new Vector2(100, 50);
+			progressRect.anchoredPosition = new Vector2(-10, 110);
+			progressRect.pivot = new Vector2(1, 0);
+			progressRect.localScale = Vector3.one;
 
 			if (hierarchyHidden)
 				currentUI.gameObject.SetActive(false);
