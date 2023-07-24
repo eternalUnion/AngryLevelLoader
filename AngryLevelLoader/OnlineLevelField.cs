@@ -2,8 +2,10 @@
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -20,7 +22,6 @@ namespace AngryLevelLoader
 		public string bundleBuildHash;
 
 		private RectTransform currentUI = null;
-		private Image uiImage;
 		private RawImage currentPreview;
 
 		private Texture2D _previewImage;
@@ -120,7 +121,7 @@ namespace AngryLevelLoader
 		{
 			if (_status == OnlineLevelStatus.notInstalled)
 				return $"<color=red>Not installed</color>";
-			else if (_status == OnlineLevelStatus.installed)
+			else if (_status == OnlineLevelStatus.updateAvailable)
 				return $"<color=cyan>Update available</color>";
 			else
 				return $"<color=lime>Installed</color>";
@@ -136,9 +137,9 @@ namespace AngryLevelLoader
 		private Button installButton;
 		private Button updateButton;
 		private Button cancelButton;
-		private RectTransform loadingCircle;
 		private RectTransform progressBarBase;
 		private RectTransform progressBar;
+		private Text downloadProgressText;
 
 		internal class DisableWhenHidden : MonoBehaviour
 		{
@@ -170,9 +171,9 @@ namespace AngryLevelLoader
 				resetButton.AddComponent<DisableWhenHidden>();
 				EventTrigger trigger = field.AddComponent<EventTrigger>();
 				EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-				mouseOn.callback.AddListener((BaseEventData e) => { resetButton.SetActive(true); });
+				mouseOn.callback.AddListener((e) => onHover(e));
 				EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-				mouseOff.callback.AddListener((e) => onHover(e));
+				mouseOff.callback.AddListener((BaseEventData e) => { resetButton.SetActive(false); });
 				trigger.triggers.Add(mouseOn);
 				trigger.triggers.Add(mouseOff);
 				Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
@@ -190,6 +191,7 @@ namespace AngryLevelLoader
 				OnCreateUI(currentUI);
 		}
 
+		private static float progressBarThickness = 2.5f;
 		protected override void OnCreateUI(RectTransform fieldUI)
 		{
 			currentUI = fieldUI;
@@ -197,7 +199,6 @@ namespace AngryLevelLoader
 				return;
 
 			Image bgImage = fieldUI.gameObject.AddComponent<Image>();
-			uiImage = bgImage;
 			if (LevelField.bgSprite == null)
 			{
 				LevelField.bgSprite = Resources.FindObjectsOfTypeAll<Image>().Where(i => i.sprite != null && i.sprite.name == "Background").First().sprite;
@@ -229,8 +230,9 @@ namespace AngryLevelLoader
 			infoRect.sizeDelta = new Vector2(300, 160);
 			UpdateInfo();
 
-			RectTransform install = CreateButton(fieldUI, "Install", true, fieldUI.gameObject, e => installButton.gameObject.SetActive(installActive));
+			RectTransform install = CreateButton(fieldUI, "Install", true, fieldUI.gameObject, e => { if (installActive) installButton.gameObject.SetActive(true); });
 			installButton = install.GetComponent<Button>();
+			installButton.onClick.AddListener(StartDownload);
 			install.anchorMin = install.anchorMax = new Vector2(1, 0.5f);
 			install.pivot = new Vector2(1, 0.5f);
 			install.anchoredPosition = new Vector2(-10, 0);
@@ -238,6 +240,7 @@ namespace AngryLevelLoader
 
 			RectTransform update = CreateButton(fieldUI, "Update", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
 			updateButton = update.GetComponent<Button>();
+			updateButton.onClick.AddListener(StartDownload);
 			update.anchorMin = update.anchorMax = new Vector2(1, 0.5f);
 			update.pivot = new Vector2(1, 0.5f);
 			update.anchoredPosition = new Vector2(-10, 0);
@@ -249,6 +252,16 @@ namespace AngryLevelLoader
 			cancel.pivot = new Vector2(1, 0f);
 			cancel.anchoredPosition = new Vector2(-10, 10);
 			cancel.sizeDelta = new Vector2(100, 40);
+			cancelButton = cancel.GetComponent<Button>();
+			cancelButton.onClick.AddListener(() =>
+			{
+				if (!downloading || currentRequest == null)
+					return;
+
+				currentRequest.Abort();
+				downloading = false;
+				UpdateUI();
+			});
 
 			progressBarBase = new GameObject().AddComponent<RectTransform>();
 			progressBarBase.SetParent(fieldUI);
@@ -269,17 +282,18 @@ namespace AngryLevelLoader
 			progressBar.anchoredPosition = new Vector2(-110, 60);
 			progressBar.sizeDelta = new Vector2(100, 40);
 			progressBar.localScale = Vector3.one;
-			float boundThickness = 2.5f;
-			progressBar.anchoredPosition += new Vector2(boundThickness, boundThickness);
-			progressBar.sizeDelta -= new Vector2(boundThickness, boundThickness) * 2;
+			progressBar.anchoredPosition += new Vector2(progressBarThickness, progressBarThickness);
+			progressBar.sizeDelta -= new Vector2(progressBarThickness, progressBarThickness) * 2;
 			Image progressBarImg = progressBar.gameObject.AddComponent<Image>();
 			progressBarImg.type = Image.Type.Filled;
 			progressBarImg.fillMethod = Image.FillMethod.Horizontal;
 
-			Text progressText = LevelField.MakeText(fieldUI);
+			Text progressText = downloadProgressText = LevelField.MakeText(fieldUI);
 			progressText.font = Plugin.gameFont;
 			progressText.text = "0/0 MB";
 			progressText.alignment = TextAnchor.MiddleCenter;
+			progressText.resizeTextForBestFit = true;
+			progressText.resizeTextMaxSize = 25;
 			RectTransform progressRect = progressText.GetComponent<RectTransform>();
 			progressRect.anchorMin = progressRect.anchorMax = new Vector2(1, 0);
 			progressRect.sizeDelta = new Vector2(100, 50);
@@ -289,12 +303,149 @@ namespace AngryLevelLoader
 
 			if (hierarchyHidden)
 				currentUI.gameObject.SetActive(false);
+
+			UpdateUI();
+		}
+
+		public void UpdateUI()
+		{
+			if (currentUI == null)
+				return;
+
+			progressBarBase.gameObject.SetActive(downloading);
+			progressBar.gameObject.SetActive(downloading);
+			cancelButton.gameObject.SetActive(downloading);
+			downloadProgressText.gameObject.SetActive(downloading);
+
+			if (!downloading)
+			{
+				AngryBundleContainer bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+				if (bundle == null)
+				{
+					status = OnlineLevelStatus.notInstalled;
+					installActive = true;
+					installButton.gameObject.SetActive(true);
+					updateButton.gameObject.SetActive(false);
+				}
+				else if (bundle.hash != bundleBuildHash)
+				{
+					status = OnlineLevelStatus.updateAvailable;
+					installActive = false;
+					installButton.gameObject.SetActive(false);
+					updateButton.gameObject.SetActive(true);
+				}
+				else
+				{
+					status = OnlineLevelStatus.installed;
+					installActive = false;
+					installButton.gameObject.SetActive(false);
+					updateButton.gameObject.SetActive(false);
+				}
+			}
+			else
+			{
+				installActive = false;
+				installButton.gameObject.SetActive(false);
+				updateButton.gameObject.SetActive(false);
+			}
 		}
 
 		public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
 		{
 			if (currentUI != null)
 				currentUI.gameObject.SetActive(!hierarchyHidden);
+		}
+		
+		public void StartDownload()
+		{
+			if (downloading || currentRequest != null)
+				return;
+
+			OnlineLevelsManager.instance.StartCoroutine(DownloadCoroutine());
+		}
+
+		public bool downloading = false;
+		public UnityWebRequest currentRequest;
+		public IEnumerator DownloadCoroutine()
+		{
+			if (downloading || currentRequest != null)
+				yield break;
+
+			downloading = true;
+			try
+			{
+				string bundleUrl = $"https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/Levels/{bundleGuid}/level.angry";
+				string tempDownloadDir = Path.Combine(Plugin.workingDir, "TempDownloads");
+				if (!Directory.Exists(tempDownloadDir))
+					Directory.CreateDirectory(tempDownloadDir);
+				string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundleGuid}.angry");
+
+				UnityWebRequest req = currentRequest = new UnityWebRequest(bundleUrl);
+				req.downloadHandler = new DownloadHandlerFile(tempDownloadPath);
+				var handle = req.SendWebRequest();
+
+				installActive = false;
+				if (currentUI != null)
+				{
+					installButton.gameObject.SetActive(false);
+					updateButton.gameObject.SetActive(false);
+					cancelButton.gameObject.SetActive(true);
+					progressBar.gameObject.SetActive(true);
+					progressBarBase.gameObject.SetActive(true);
+					downloadProgressText.gameObject.SetActive(true);
+				}
+
+				string fileMegabytes = (bundleFileSize / (float)(1024 * 1024)).ToString("0.0");
+				float progressBarWidth = 100 - 2 * progressBarThickness;
+
+				try
+				{
+					while (!handle.isDone)
+					{
+						if (currentUI != null)
+						{
+							progressBar.sizeDelta = new Vector2(progressBarWidth * handle.progress, progressBar.sizeDelta.y);
+							string downloadedFileMegabytes = ((bundleFileSize * handle.progress) / (float)(1024 * 1024)).ToString("0.0");
+							downloadProgressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB";
+						}
+
+						yield return new WaitForSeconds(0.5f);
+					}
+
+					if (!req.isNetworkError && !req.isHttpError)
+					{
+						AngryBundleContainer bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+						if (bundle == null)
+						{
+							string destinationFolder = Path.Combine(Plugin.workingDir, "Levels");
+							if (!Directory.Exists(destinationFolder))
+								Directory.CreateDirectory(destinationFolder);
+							string destinationPath = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, bundleName + ".angry"));
+							File.Copy(tempDownloadPath, destinationPath, true);
+
+							Plugin.ScanForLevels();
+						}
+						else
+						{
+							File.Copy(tempDownloadPath, bundle.pathToAngryBundle, true);
+							bundle.UpdateScenes(false);
+						}
+					}
+
+					if (File.Exists(tempDownloadPath))
+						File.Delete(tempDownloadPath);
+				}
+				finally
+				{
+					req.Dispose();
+				}
+			}
+			finally
+			{
+				downloading = false;
+				currentRequest = null;
+				UpdateUI();
+			}
 		}
 	}
 }

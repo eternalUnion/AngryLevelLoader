@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace AngryLevelLoader
@@ -44,6 +45,22 @@ namespace AngryLevelLoader
 				textColor = Color.gray;
 
 			return $"<color=#{ColorUtility.ToHtmlStringRGB(textColor)}>{rank}</color>";
+		}
+	}
+
+	public static class IOUtils
+	{
+		public static string GetUniqueFileName(string folder, string name)
+		{
+			string nameExtensionless = Path.GetFileNameWithoutExtension(name);
+			string newName = nameExtensionless;
+			string ext = Path.GetExtension(name);
+
+			int i = 0;
+			while (File.Exists(Path.Combine(folder, newName)))
+				newName = $"{nameExtensionless}_{i++}";
+
+			return $"{newName}{ext}";
 		}
 	}
 }

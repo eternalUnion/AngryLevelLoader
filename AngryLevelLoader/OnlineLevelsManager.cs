@@ -112,7 +112,7 @@ namespace AngryLevelLoader
 
 	public class OnlineLevelsManager : MonoBehaviour
 	{
-		private static OnlineLevelsManager instance;
+		public static OnlineLevelsManager instance;
 		public static ConfigPanel onlineLevelsPanel;
 		public static ConfigDivision onlineLevelContainer;
 		public static LoadingCircleField loadingCircle;
@@ -304,21 +304,15 @@ namespace AngryLevelLoader
 					onlineLevels[info.Guid] = field;
 				}
 
-				// Update status
-				AngryBundleContainer container = Plugin.GetAngryBundleByGuid(info.Guid);
-				if (container == null)
-					field.status = OnlineLevelField.OnlineLevelStatus.notInstalled;
-				else if (container.hash == info.Hash)
-					field.status = OnlineLevelField.OnlineLevelStatus.installed;
-				else
-					field.status = OnlineLevelField.OnlineLevelStatus.updateAvailable;
-
 				// Update info text
 				field.bundleName = info.Name;
 				field.author = info.Author;
 				field.bundleFileSize = info.Size;
 				field.bundleGuid = info.Guid;
 				field.bundleBuildHash = info.Hash;
+
+				// Update ui
+				field.UpdateUI();
 
 				// Update thumbnail if not cahced or out of date
 				string imageCacheDir = Path.Combine(Plugin.workingDir, "OnlineCache", "ThumbnailCache");
