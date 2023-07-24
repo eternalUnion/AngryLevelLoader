@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using PluginConfig.API;
+using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
 using PluginConfig.API.Functionals;
 using System;
@@ -117,6 +118,11 @@ namespace AngryLevelLoader
 		public static ConfigDivision onlineLevelContainer;
 		public static LoadingCircleField loadingCircle;
 
+		// Filters
+		public static BoolField showInstalledLevels;
+		public static BoolField showUpdateAvailableLevels;
+		public static BoolField showNotInstalledLevels;
+
 		public static void Init()
 		{
 			if (instance == null)
@@ -125,8 +131,18 @@ namespace AngryLevelLoader
 				UnityEngine.Object.DontDestroyOnLoad(instance);
 			}
 
-			var refreshButton = new ButtonField(onlineLevelsPanel, "Refresh", "b_onlineLevelsRefresh");
-			refreshButton.onClick += RefreshAsync;
+			var filterPanel = new ConfigPanel(onlineLevelsPanel, "Filters", "online_filters");
+			filterPanel.hidden = true;
+
+			new ConfigHeader(filterPanel, "State Filters");
+			showInstalledLevels = new BoolField(filterPanel, "Installed", "online_installedLevels", true);
+			showNotInstalledLevels = new BoolField(filterPanel, "Not installed", "online_notInstalledLevels", true);
+			showUpdateAvailableLevels = new BoolField(filterPanel, "Update available", "online_updateAvailableLevels", true);
+
+			var toolbar = new ButtonArrayField(onlineLevelsPanel, "online_toolbar", 2, new float[] { 0.5f, 0.5f }, new string[] { "Refresh", "Filters" });
+			toolbar.OnClickEventHandler(0).onClick += RefreshAsync;
+			toolbar.OnClickEventHandler(1).onClick += () => filterPanel.OpenPanel();
+
 			loadingCircle = new LoadingCircleField(onlineLevelsPanel);
 			loadingCircle.hidden = true;
 			onlineLevelContainer = new ConfigDivision(onlineLevelsPanel, "p_onlineLevelsDiv");
@@ -367,8 +383,22 @@ namespace AngryLevelLoader
 					field.DownloadPreviewImage(imageCachePath, false);
 				}
 
-				// Show the field
-				field.hidden = false;
+				// Show the field if matches the field
+				if (field.status == OnlineLevelField.OnlineLevelStatus.notInstalled)
+				{
+					if (showNotInstalledLevels.value)
+						field.hidden = false;
+				}
+				else if (field.status == OnlineLevelField.OnlineLevelStatus.installed)
+				{
+					if (showInstalledLevels.value)
+						field.hidden = false;
+				}
+				else if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
+				{
+					if (showUpdateAvailableLevels.value)
+						field.hidden = false;
+				}
 			}
 
 			if (dirtyThumbnailCacheHashFile)
