@@ -40,7 +40,64 @@ namespace AngryLevelLoader
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
-		
+		public static Dictionary<string, long> lastPlayed = new Dictionary<string, long>();
+
+		public static void LoadLastPlayedMap()
+		{
+			lastPlayed.Clear();
+
+			string path = Path.Combine(workingDir, "lastPlayedMap.txt");
+			if (!File.Exists(path))
+				return;
+
+			using (StreamReader reader = new StreamReader(File.Open(path, FileMode.Open, FileAccess.Read)))
+			{
+				while (!reader.EndOfStream)
+				{
+					string key = reader.ReadLine();
+					if (reader.EndOfStream)
+					{
+						Debug.LogWarning("Invalid end of last played map file");
+						break;
+					}
+
+					string value = reader.ReadLine();
+					if (long.TryParse(value, out long seconds))
+					{
+						lastPlayed[key] = seconds;
+					}
+					else
+					{
+						Debug.Log($"Invalid last played time '{value}'");
+					}
+				}
+			}
+		}
+
+		public static void UpdateLastPlayed(AngryBundleContainer bundle)
+		{
+			string guid = bundle.guid;
+			if (guid.Length != 32)
+				return;
+
+			if (bundleSortingMode.value == BundleSorting.LastPlayed)
+				bundle.rootPanel.siblingIndex = 0;
+			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
+			lastPlayed[guid] = secondsNow;
+
+			string path = Path.Combine(workingDir, "lastPlayedMap.txt");
+			using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
+			{
+				writer.BaseStream.Seek(0, SeekOrigin.Begin);
+				writer.BaseStream.SetLength(0);
+				foreach (var pair in lastPlayed)
+				{
+					writer.WriteLine(pair.Key);
+					writer.WriteLine(pair.Value.ToString());
+				}
+			}
+		}
+
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
 			return angryBundles.Values.Where(bundle => bundle.guid == guid).FirstOrDefault();
@@ -69,6 +126,7 @@ namespace AngryLevelLoader
 				}
 
 				AngryBundleContainer level = new AngryBundleContainer(path);
+				angryBundles[path] = level;
 				try
 				{
 					level.UpdateScenes(false);
@@ -80,8 +138,32 @@ namespace AngryLevelLoader
 						errorText.text += '\n';
 					errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
 				}
+			}
+		}
 
-				angryBundles[path] = level;
+		public static void SortBundles()
+		{
+			int i = 0;
+			if (bundleSortingMode.value == BundleSorting.Alphabetically)
+			{
+				foreach (var bundle in angryBundles.Values.OrderBy(b => b.name))
+					bundle.rootPanel.siblingIndex = i++;
+			}
+			else if (bundleSortingMode.value == BundleSorting.Author)
+			{
+				foreach (var bundle in angryBundles.Values.OrderBy(b => b.author))
+					bundle.rootPanel.siblingIndex = i++;
+			}
+			else if (bundleSortingMode.value == BundleSorting.LastPlayed)
+			{
+				foreach (var bundle in angryBundles.Values.OrderBy((b) => {
+					if (lastPlayed.TryGetValue(b.guid, out long time))
+						return time;
+					return 0;
+				}))
+				{
+					bundle.rootPanel.siblingIndex = i++;
+				}
 			}
 		}
 
@@ -167,11 +249,21 @@ namespace AngryLevelLoader
         public static Harmony harmony;
         
 		public static PluginConfigurator config;
+		public static ConfigHeader levelUpdateNotifier;
         public static ConfigHeader errorText;
+		public static ConfigDivision bundleDivision;
+
 		public static KeyCodeField reloadFileKeybind;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField levelUpdateNotifierToggle;
-		public static ConfigHeader levelUpdateNotifier;
+		public enum BundleSorting
+		{
+			Alphabetically,
+			Author,
+			LastPlayed
+		}
+		public static EnumField<BundleSorting> bundleSortingMode;
+
 		private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
 		public static string workingDir;
@@ -186,6 +278,7 @@ namespace AngryLevelLoader
 			if (!Directory.Exists(tempFolderPath))
 				Directory.CreateDirectory(tempFolderPath);
 
+			LoadLastPlayedMap();
 			LoadScripts();
 
 			harmony = new Harmony(PLUGIN_GUID);
@@ -225,8 +318,11 @@ namespace AngryLevelLoader
             difficultySelect.TriggerValueChangeEvent();
 
 			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
+			
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			settingsPanel.hidden = true;
+			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.Alphabetically);
+			bundleSortingMode.onValueChange += (e) => SortBundles();
 
 			new ConfigHeader(settingsPanel, "Online");
 			new ConfigHeader(settingsPanel, "Online level catalog and thumbnails are cached, if there are no updates only 64 bytes of data is downloaded per refresh", 12, TextAnchor.UpperLeft);
@@ -250,7 +346,8 @@ namespace AngryLevelLoader
 			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
-            ScanForLevels();
+			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
+			ScanForLevels();
 
 			// TODO: Investigate further on this issue:
 			//

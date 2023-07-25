@@ -25,6 +25,7 @@ namespace AngryLevelLoader
 			Plugin.currentLevelData = levelData;
 
 			SceneHelper.LoadScene(levelName);
+			Plugin.UpdateLastPlayed(bundleContainer);
 		}
 
 		public static void PostSceneLoad()

@@ -53,6 +53,8 @@ namespace AngryLevelLoader
 		public string pathToAngryBundle;
 		public string hash;
 		public string guid;
+		public string name;
+		public string author;
 		public List<string> dataPaths = new List<string>();
 		public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
@@ -237,9 +239,14 @@ namespace AngryLevelLoader
 
 				if (bundleData != null)
 				{
-					rootPanel.displayName = bundleData.bundleName;
+					rootPanel.displayName = name = bundleData.bundleName;
 					if (!string.IsNullOrEmpty(bundleData.author))
+					{
 						rootPanel.displayName += $"\n<color=#909090>by {bundleData.author}</color>";
+						author = bundleData.author;
+					}
+
+					rootPanel.headerText = $"--{bundleData.bundleName}--";
 				}
 
 				bundleData = null;
@@ -414,6 +421,78 @@ namespace AngryLevelLoader
 
 				field.UpdateUI();
 			}
+
+			UpdateOrder();
+		}
+
+		// Faster ordering since not all fields are moved, only this one
+		private void UpdateOrder()
+		{
+			int order = 0;
+			AngryBundleContainer[] allBundles = Plugin.angryBundles.Values.OrderBy(b => b.rootPanel.siblingIndex).ToArray();
+			
+			if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.Alphabetically)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(name, allBundles[order].name) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.Author)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(author, allBundles[order].author) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.LastPlayed)
+			{
+				long lastTime = 0;
+				Plugin.lastPlayed.TryGetValue(guid, out lastTime);
+
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					long otherPlayime = 0;
+					Plugin.lastPlayed.TryGetValue(allBundles[order].guid, out otherPlayime);
+
+					if (lastTime > otherPlayime)
+						break;
+
+					order += 1;
+				}
+			}
+			
+			order -= 1;
+			if (order < 0)
+				order = 0;
+			else if (order >= allBundles.Length)
+				order = allBundles.Length - 1;
+
+			rootPanel.siblingIndex = order;
 		}
 
 		/// <summary>
@@ -429,9 +508,14 @@ namespace AngryLevelLoader
 		
 		public AngryBundleContainer(string path)
 		{
+			Debug.Log($"Creating bundle container for {path}");
 			this.pathToAngryBundle = path;
 
-			rootPanel = new ConfigPanel(Plugin.config.rootPanel, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path), ConfigPanel.PanelFieldType.StandardWithBigIcon);
+			rootPanel = new ConfigPanel(Plugin.bundleDivision, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path), ConfigPanel.PanelFieldType.StandardWithBigIcon);
+			guid = "";
+			hash = "";
+			name = rootPanel.displayName;
+			author = "";
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
 			reloadButton.onClick += () => UpdateScenes(false);
