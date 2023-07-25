@@ -397,6 +397,23 @@ namespace AngryLevelLoader
 			{
 				Debug.LogError($"Error while loading bundle {e}\n{e.StackTrace}");
 			}
+
+			// Update online field if there are any
+			if (OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
+			{
+				if (field.bundleBuildHash == hash)
+				{
+					field.status = OnlineLevelField.OnlineLevelStatus.installed;
+				}
+				else
+				{
+					field.status = OnlineLevelField.OnlineLevelStatus.updateAvailable;
+					if (Plugin.levelUpdateNotifierToggle.value)
+						Plugin.levelUpdateNotifier.hidden = false;
+				}
+
+				field.UpdateUI();
+			}
 		}
 
 		/// <summary>

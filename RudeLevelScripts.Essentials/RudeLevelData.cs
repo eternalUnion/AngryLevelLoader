@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace RudeLevelScript
 {
@@ -41,6 +42,9 @@ namespace RudeLevelScript
 		[SerializeField]
 		[Tooltip("Scene which belongs to the data")]
 		public Object targetScene = null;
+		[SerializeField]
+		[HideInInspector]
+		public string[] requiredDllNames;
 		[HideInInspector]
 		public string scenePath = "";
 		[Header("Level Locator")]

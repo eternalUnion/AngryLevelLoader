@@ -403,6 +403,28 @@ namespace AngryLevelLoader
 
 			if (dirtyThumbnailCacheHashFile)
 				SaveThumbnailHashes();
+
+			CheckLevelUpdateText();
+		}
+	
+		public static void CheckLevelUpdateText()
+		{
+			if (!Plugin.levelUpdateNotifierToggle.value)
+			{
+				Plugin.levelUpdateNotifier.hidden = true;
+				return;
+			}
+
+			foreach (OnlineLevelField field in onlineLevels.Values)
+			{
+				if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
+				{
+					Plugin.levelUpdateNotifier.hidden = false;
+					return;
+				}
+			}
+
+			Plugin.levelUpdateNotifier.hidden = true;
 		}
 	}
 }

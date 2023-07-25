@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using UnityEngine;
@@ -65,7 +66,7 @@ namespace AngryLevelLoader
 		}
 	}
 
-	public static class CryptologyUtils
+	public static class CryptographyUtils
 	{
 		public static bool VerifyFileCertificate(string filePath, string certificatePath)
 		{
@@ -74,6 +75,19 @@ namespace AngryLevelLoader
 			publicKey.FromXmlString(angryPublicKey);
 			char[] cert = File.ReadAllText(certificatePath).ToCharArray();
 			return publicKey.VerifyData(File.ReadAllBytes(filePath), System.Convert.FromBase64CharArray(cert, 0, cert.Length), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+		}
+
+		// Why don't you exist Convert.ToHexString(byte[])? Why nothing exists in this framework?
+		private static string ByteArrayToString(byte[] ba)
+		{
+			return BitConverter.ToString(ba).Replace("-", "");
+		}
+
+		public static string GetSHA256Hash(string filePath)
+		{
+			SHA256 hash = SHA256.Create();
+			hash.Initialize();
+			return ByteArrayToString(hash.ComputeHash(File.ReadAllBytes(filePath))).ToLower();
 		}
 	}
 }

@@ -68,10 +68,9 @@ namespace AngryLevelLoader
 					continue;
 				}
 
-				AngryBundleContainer level = null;
+				AngryBundleContainer level = new AngryBundleContainer(path);
 				try
 				{
-					level = new AngryBundleContainer(path);
 					level.UpdateScenes(false);
 				}
 				catch (Exception e)
@@ -166,10 +165,14 @@ namespace AngryLevelLoader
 		}
 
         public static Harmony harmony;
-        public static PluginConfigurator config;
+        
+		public static PluginConfigurator config;
         public static ConfigHeader errorText;
 		public static KeyCodeField reloadFileKeybind;
-        private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+		public static BoolField refreshCatalogOnBoot;
+		public static BoolField levelUpdateNotifierToggle;
+		public static ConfigHeader levelUpdateNotifier;
+		private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
 		public static string workingDir;
 
@@ -203,6 +206,8 @@ namespace AngryLevelLoader
 			config.postConfigChange += UpdateAllUI;
 			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
 
+			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=lime>Level updates available!</color>", 16);
+			levelUpdateNotifier.hidden = true;
 			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
 			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL(Path.Combine(workingDir, "online-icon.png"));
 			OnlineLevelsManager.Init();
@@ -222,6 +227,15 @@ namespace AngryLevelLoader
 			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			settingsPanel.hidden = true;
+
+			new ConfigHeader(settingsPanel, "Online");
+			new ConfigHeader(settingsPanel, "Online level catalog and thumbnails are cached, if there are no updates only 64 bytes of data is downloaded per refresh", 12, TextAnchor.UpperLeft);
+			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
+			levelUpdateNotifierToggle = new BoolField(settingsPanel, "Notify on level updates", "s_levelUpdateNofify", true);
+			levelUpdateNotifierToggle.onValueChange += (e) =>
+			{
+				OnlineLevelsManager.CheckLevelUpdateText();
+			};
 
 			ButtonArrayField settingsAndReload = new ButtonArrayField(config.rootPanel, "settingsAndReload", 2, new float[] { 0.5f, 0.5f }, new string[] { "Settings", "Scan For Levels" });
 			settingsAndReload.OnClickEventHandler(0).onClick += () =>
@@ -248,6 +262,9 @@ namespace AngryLevelLoader
 			// and I am not sure of the actual origin of the issue (because when I check the loaded
 			// bundles every addressable bundle is already in the memory like what?)
 			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
+
+			if (refreshCatalogOnBoot.value)
+				OnlineLevelsManager.RefreshAsync();
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
@@ -354,40 +371,6 @@ namespace AngryLevelLoader
 			if (secretIndex >= level.field.data.secretCount)
 				return false;
 			return level.secrets.value[secretIndex] == 'T';
-		}
-	}
-
-
-	public static class AddressableTest
-	{
-		public static void TestAddressable()
-		{
-			Addressables.LoadContentCatalogAsync(Path.Combine(Application.dataPath, "Custom", "catalog.json"), true).WaitForCompletion();
-
-			SceneHelper.LoadScene("Assets/Custom/base.unity.unity", false);
-		}
-
-		public static void ForceLoadAddressables()
-		{
-			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Effects/Charge Effect.prefab").WaitForCompletion();
-			Addressables.LoadAssetAsync<AudioMixer>("AllAudio").WaitForCompletion();
-			Addressables.LoadAssetAsync<AudioMixer>("MusicAudio").WaitForCompletion();
-			Addressables.LoadAssetAsync<AudioMixer>("GoreAudio").WaitForCompletion();
-			Addressables.LoadAssetAsync<AudioMixer>("UnfreezableAudio").WaitForCompletion();
-			Addressables.LoadAssetAsync<AudioMixer>("DoorAudio").WaitForCompletion();
-			Addressables.LoadAssetAsync<AudioMixer>("DoorAudio").WaitForCompletion();
-		}
-
-		public static void TestBundles()
-		{
-			string bundlePath = Path.Combine(Application.dataPath, "Custom");
-
-			foreach (string bundle in Directory.GetFiles(bundlePath).Where(file => file.EndsWith(".bundle")))
-			{
-				AssetBundle.LoadFromFile(bundle);
-			}
-
-			SceneManager.LoadScene("Assets/Custom/base.unity");
 		}
 	}
 }

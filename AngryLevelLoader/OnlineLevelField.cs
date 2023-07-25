@@ -307,8 +307,29 @@ namespace AngryLevelLoader
 			UpdateUI();
 		}
 
+		public AngryBundleContainer bundle = null;
+		public void UpdateState()
+		{
+			if (bundle == null)
+				bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+
+			if (bundle == null)
+			{
+				status = OnlineLevelStatus.notInstalled;
+			}
+			else if (bundle.hash != bundleBuildHash)
+			{
+				status = OnlineLevelStatus.updateAvailable;
+			}
+			else
+			{
+				status = OnlineLevelStatus.installed;
+			}
+		}
+
 		public void UpdateUI()
 		{
+			UpdateState();
 			if (currentUI == null)
 				return;
 
@@ -319,24 +340,20 @@ namespace AngryLevelLoader
 
 			if (!downloading)
 			{
-				AngryBundleContainer bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
-				if (bundle == null)
+				if (status == OnlineLevelStatus.notInstalled)
 				{
-					status = OnlineLevelStatus.notInstalled;
 					installActive = true;
 					installButton.gameObject.SetActive(true);
 					updateButton.gameObject.SetActive(false);
 				}
-				else if (bundle.hash != bundleBuildHash)
+				else if (status == OnlineLevelStatus.updateAvailable)
 				{
-					status = OnlineLevelStatus.updateAvailable;
 					installActive = false;
 					installButton.gameObject.SetActive(false);
 					updateButton.gameObject.SetActive(true);
 				}
 				else
 				{
-					status = OnlineLevelStatus.installed;
 					installActive = false;
 					installButton.gameObject.SetActive(false);
 					updateButton.gameObject.SetActive(false);
@@ -414,7 +431,9 @@ namespace AngryLevelLoader
 
 					if (!req.isNetworkError && !req.isHttpError)
 					{
-						AngryBundleContainer bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+						if (bundle == null)
+							bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+
 						if (bundle == null)
 						{
 							string destinationFolder = Path.Combine(Plugin.workingDir, "Levels");
