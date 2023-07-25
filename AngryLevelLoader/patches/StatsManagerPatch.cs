@@ -12,12 +12,21 @@ namespace AngryLevelLoader.patches
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.Awake))]
 	class StatsManager_Awake_Patch
 	{
+		public static bool Prefix(StatsManager __instance)
+		{
+			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
+			if (!Plugin.isInCustomScene)
+				return true;
+
+			__instance.levelNumber = -1;
+			return true;
+		}
+
 		// Load previously found secrets manually
 		// as well as challenge complete status
 		[HarmonyPostfix]
 		public static void Postfix(StatsManager __instance)
 		{
-			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
 			if (!Plugin.isInCustomScene)
 				return;
 

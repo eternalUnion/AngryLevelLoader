@@ -73,8 +73,8 @@ namespace AngryLevelLoader
 			const string angryPublicKey = "<RSAKeyValue><Modulus>+/ueeOpso05dA+5GjKbjQ0VpM+JAHmRRgYRw36G4dXqmpCGfVDNVdjjBBkVWO+6lJoSNaaG4Yprn4uQVslUQ7OYWAw6Y+9E0Ezvr1quWE7i0KGxG6weplRTsu9aO0/9gJgP/gWQxC0Cf83NwyvMPsThtCruAQFT+cW0LGghtFgrBr++aknI06SJI5ydrbZgEtU5i4FfjrV1ms4CRRojhydJglfGQfG8W3pTDge4jVdND+RGB6F01QGi0+Bnq5DfKdjvb3/Zh1ko7WocWgavDaIgLYj88AgbGdC0lidLMIgzdnGxkLyxbTzsgi/mvUpB2foy4uHoV22EaWMj+6H+oXQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
 			RSA publicKey = RSA.Create();
 			publicKey.FromXmlString(angryPublicKey);
-			char[] cert = File.ReadAllText(certificatePath).ToCharArray();
-			return publicKey.VerifyData(File.ReadAllBytes(filePath), System.Convert.FromBase64CharArray(cert, 0, cert.Length), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+			byte[] cert = File.ReadAllBytes(certificatePath);
+			return publicKey.VerifyData(File.ReadAllBytes(filePath), cert, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 		}
 
 		// Why don't you exist Convert.ToHexString(byte[])? Why nothing exists in this framework?

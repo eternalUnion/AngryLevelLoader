@@ -19,6 +19,14 @@ namespace AngryLevelLoader.patches
 		[HarmonyPostfix]
 		public static void Postfix()
 		{
+			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
+			if (!Plugin.isInCustomScene)
+				return;
+
+			StatsManager sman = GameObject.FindObjectOfType<StatsManager>();
+			if (sman != null)
+				sman.levelNumber = -1;
+
 			string currentPath = SceneManager.GetActiveScene().path;
 			foreach (ExecuteOnSceneLoad obj in Resources.FindObjectsOfTypeAll<ExecuteOnSceneLoad>().Where(o => o.gameObject.scene.path == currentPath).OrderBy(exe => exe.relativeExecutionOrder))
 			{
