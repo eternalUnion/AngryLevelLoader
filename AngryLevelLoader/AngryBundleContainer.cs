@@ -9,15 +9,54 @@ using System.Linq;
 using UnityEngine.SceneManagement;
 using UnityEngine;
 using System.Reflection;
+using UnityEngine.AddressableAssets;
+using UnityEngine.AddressableAssets.ResourceLocators;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using System.IO.Compression;
+using Newtonsoft.Json;
+using Unity.Audio;
+using System.Collections;
+using RudeLevelScripts.Essentials;
 
 namespace AngryLevelLoader
 {
+	public class BundleData
+	{
+		public string bundleGuid { get; set; }
+		public string buildHash { get; set; }
+		public string bundleDataPath { get; set; }
+		public List<string> levelDataPaths;
+	}
+
 	public class AngryBundleContainer
 	{
-		public List<AssetBundle> bundles = new List<AssetBundle>();
-		public string pathToAngryBundle;
+		private class BundleManager : MonoBehaviour
+		{
+			private static BundleManager _instance;
+			public static BundleManager instance
+			{
+				get
+				{
+					if (_instance == null)
+					{
+						_instance = new GameObject().AddComponent<BundleManager>();
+						UnityEngine.Object.DontDestroyOnLoad(_instance);
+					}
 
-		public static string lastLoadedScenePath = "";
+					return _instance;
+				}
+			}
+		}
+
+		public IResourceLocator locator;
+		public string pathToTempFolder;
+		public string pathToAngryBundle;
+		public string hash;
+		public string guid;
+		public string name;
+		public string author;
+		public List<string> dataPaths = new List<string>();
+		public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
 		public ConfigPanel rootPanel;
 		public ButtonField reloadButton;
@@ -25,31 +64,42 @@ namespace AngryLevelLoader
 		public ConfigDivision sceneDiv;
 		public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
-		public static PropertyInfo p_SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty("CurrentScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-		public static PropertyInfo p_SceneHelper_LastScene = typeof(SceneHelper).GetProperty("LastScene", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+		// LEGACY
+		private List<AssetBundle> allBundles = new List<AssetBundle>();
+		public bool legacy = false;
 
-		public IEnumerable<string> GetAllScenePaths()
+		// LEGACY
+		private bool CheckForLegacyFile()
 		{
-			foreach (AssetBundle bundle in bundles)
+			using (FileStream fs = File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read))
 			{
-				foreach (string path in bundle.GetAllScenePaths())
-					yield return path;
+				try
+				{
+					BinaryReader reader = new BinaryReader(fs);
+					fs.Seek(0, SeekOrigin.Begin);
+					int bundleCount = reader.ReadInt32();
+					if (bundleCount * 4 + 4 >= fs.Length)
+						return false;
+					int totalSize = 4 + bundleCount * 4;
+					for (int i = 0; i < bundleCount && totalSize < fs.Length; i++)
+						totalSize += reader.ReadInt32();
+
+					if (totalSize == fs.Length)
+					{
+						return true;
+					}
+				}
+				catch (Exception)
+				{
+					return false;
+				}
 			}
+
+			return false;
 		}
 
-		public IEnumerable<RudeLevelData> GetAllLevelData()
-		{
-			foreach (AssetBundle bundle in bundles)
-			{
-				if (bundle.GetAllScenePaths().Length != 0)
-					continue;
-
-				foreach (RudeLevelData data in bundle.LoadAllAssets<RudeLevelData>())
-					yield return data;
-			}
-		}
-
-		private void LoadBundle(string path)
+		// LEGACY
+		private void LoadLegacy(string path)
 		{
 			using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read))
 			using (BinaryReader br = new BinaryReader(fs))
@@ -67,7 +117,7 @@ namespace AngryLevelLoader
 					fs.Read(bundleData, 0, bundleLen);
 					AssetBundle bundle = AssetBundle.LoadFromMemory(bundleData);
 					if (bundle != null)
-						bundles.Add(bundle);
+						allBundles.Add(bundle);
 					else
 					{
 						statusText.hidden = false;
@@ -81,25 +131,30 @@ namespace AngryLevelLoader
 			}
 		}
 
-		public static void LoadLevel(string path)
+		/// <summary>
+		/// Read .angry file and load the levels in memory
+		/// </summary>
+		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
+		/// <returns>Success</returns>
+		private bool ReloadBundle(bool forceReload)
 		{
-			SceneManager.LoadScene(path, LoadSceneMode.Single);
-			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
-			p_SceneHelper_LastScene.SetValue(null, p_SceneHelper_CurrentScene.GetValue(null) as string);
-			p_SceneHelper_CurrentScene.SetValue(null, path);
-		}
+			// Release data handle
+			foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
+			{
+				Plugin.idDictionary.Remove(data.Result.uniqueIdentifier);
+				Addressables.Release(data);
+			}
+			dataDictionary.Clear();
 
-		public void UpdateScenes()
-		{
-			sceneDiv.interactable = false;
-			sceneDiv.hidden = false;
-			statusText.hidden = true;
-			statusText.text = "";
+			// Unload the content catalog
+			if (locator != null)
+			{
+				Addressables.RemoveResourceLocator(locator);
+				Addressables.CleanBundleCache(new string[] { locator.LocatorId });
+			}
 
-			foreach (RudeLevelData data in GetAllLevelData())
-				Plugin.currentDatas.Remove(data);
-
-			foreach (AssetBundle bundle in bundles)
+			// LEGACY
+			foreach (AssetBundle bundle in allBundles)
 			{
 				try
 				{
@@ -107,89 +162,366 @@ namespace AngryLevelLoader
 				}
 				catch (Exception) { }
 			}
-			bundles.Clear();
+			allBundles.Clear();
 
-			if (!File.Exists(pathToAngryBundle))
+			// LEGACY
+			if (CheckForLegacyFile())
 			{
-				statusText.text = "Could not find the file";
-				sceneDiv.hidden = true;
-				return;
+				legacy = true;
+				statusText.hidden = false;
+				if (!string.IsNullOrEmpty(statusText.text))
+					statusText.text += '\n';
+				statusText.text += "<color=yellow>Warning: Legacy angry file detected! Support for this format will be dropped on future updates!</color>";
+
+				LoadLegacy(pathToAngryBundle);
+				return true;
 			}
 
-			LoadBundle(pathToAngryBundle);
-
-			// Disable all level interfaces
-			foreach (KeyValuePair<string, LevelContainer> pair in levels)
-				pair.Value.field.forceHidden = true;
-
-			foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+			// Open the angry zip archive
+			string bundleDataAddress = "";
+			using(ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read), ZipArchiveMode.Read))
 			{
-				if (string.IsNullOrEmpty(data.uniqueIdentifier) || Plugin.currentDatas.FirstOrDefault(otherData => otherData.uniqueIdentifier == data.uniqueIdentifier) != null)
+				var dataEntry = zip.GetEntry("data.json");
+				bool unzip = true;
+
+				if (dataEntry == null)
+					return false;
+
+				using (TextReader dataReader = new StreamReader(dataEntry.Open()))
+				{
+					BundleData newData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
+
+					hash = newData.buildHash;
+					guid = newData.bundleGuid;
+
+					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
+					dataPaths = newData.levelDataPaths;
+					bundleDataAddress = newData.bundleDataPath;
+
+					// If force reload is set to false, check if the build hashes match
+					// between unzipped bundle and the current angry file.
+					// Build hash is generated randomly every build so avoiding unzipping
+					if (!forceReload && Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
+					{
+						BundleData previousData = JsonConvert.DeserializeObject<BundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
+						if (previousData.buildHash == newData.buildHash)
+						{
+							unzip = false;
+						}
+					}
+				}
+
+				if (unzip)
+				{
+					if (Directory.Exists(pathToTempFolder))
+						Directory.Delete(pathToTempFolder, true);
+					Directory.CreateDirectory(pathToTempFolder);
+					zip.ExtractToDirectory(pathToTempFolder);
+
+					rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
+				}
+				else
+				{
+					if (rootPanel.icon == null)
+						rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
+				}
+			}
+
+			// Load the catalog
+			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), true).WaitForCompletion();
+
+			// Load the bundle name
+			if (bundleDataAddress != null && !string.IsNullOrEmpty(bundleDataAddress))
+			{
+				AsyncOperationHandle<RudeBundleData> bundleHandle = Addressables.LoadAssetAsync<RudeBundleData>(bundleDataAddress);
+				bundleHandle.WaitForCompletion();
+				RudeBundleData bundleData = bundleHandle.Result;
+
+				if (bundleData != null)
+				{
+					rootPanel.displayName = name = bundleData.bundleName;
+					if (!string.IsNullOrEmpty(bundleData.author))
+					{
+						rootPanel.displayName += $"\n<color=#909090>by {bundleData.author}</color>";
+						author = bundleData.author;
+					}
+
+					rootPanel.headerText = $"--{bundleData.bundleName}--";
+				}
+
+				bundleData = null;
+				Addressables.Release(bundleHandle);
+			}
+
+			// Load the level data
+			statusText.text = "";
+			statusText.hidden = true;
+			foreach (string path in dataPaths)
+			{
+				AsyncOperationHandle<RudeLevelData> handle = Addressables.LoadAssetAsync<RudeLevelData>(path);
+				handle.WaitForCompletion();
+				RudeLevelData data = handle.Result;
+
+				if (data == null)
+					continue;
+
+				if (Plugin.idDictionary.ContainsKey(data.uniqueIdentifier))
 				{
 					Debug.LogWarning($"Duplicate or invalid unique id {data.scenePath}");
 					statusText.hidden = false;
 					if (!string.IsNullOrEmpty(statusText.text))
 						statusText.text += '\n';
 					statusText.text += $"<color=red>Error: </color>Duplicate or invalid id {data.scenePath}";
+
 					continue;
 				}
 
-				Plugin.currentDatas.Add(data);
+				dataDictionary[data.uniqueIdentifier] = handle;
+				Plugin.idDictionary[data.uniqueIdentifier] = data;
+			}
 
-				if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
+			return true;
+		}
+
+		public IEnumerable<RudeLevelData> GetAllLevelData()
+		{
+			// LEGACY
+			if (legacy)
+			{
+				foreach (var dataArr in allBundles.Where(bundle => !bundle.isStreamedSceneAssetBundle).Select(bundle => bundle.LoadAllAssets<RudeLevelData>()))
+					foreach (var data in dataArr)
+						yield return data;
+
+				yield break;
+			}
+
+			foreach (var data in dataDictionary.Values)
+				yield return data.Result;
+		}
+
+		public IEnumerable<string> GetAllScenePaths()
+		{
+			return GetAllLevelData().Select(data => data.scenePath);
+		}
+
+		private bool updating = false;
+		private IEnumerator UpdateScenesInternal(bool forceReload)
+		{
+			updating = true;
+			sceneDiv.interactable = false;
+			sceneDiv.hidden = true;
+
+			bool inTempScene = false;
+			Scene tempScene = new Scene();
+			string previousPath = SceneManager.GetActiveScene().path;
+			string previousName = SceneManager.GetActiveScene().name;
+			if (GetAllScenePaths().Contains(previousPath) && !legacy)
+			{
+				tempScene = SceneManager.CreateScene("temp");
+				inTempScene = true;
+				yield return SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene().name);
+			}
+
+			Exception e = null;
+			try
+			{
+				if (!File.Exists(pathToAngryBundle))
 				{
-					container.field.forceHidden = false;
-					container.UpdateData(data);
+					statusText.text = "<color=red>Could not find the file</color>";
 				}
 				else
 				{
-					LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
-					levelContainer.onLevelButtonPress += () => LoadLevel(data.scenePath);
+					// Disable all level interfaces
+					foreach (KeyValuePair<string, LevelContainer> pair in levels)
+						pair.Value.field.forceHidden = true;
 
-					SceneManager.sceneLoaded += (scene, mode) =>
+					sceneDiv.interactable = false;
+					sceneDiv.hidden = true;
+					statusText.hidden = true;
+					statusText.text = "";
+					ReloadBundle(forceReload);
+
+					int currentIndex = 0;
+					foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
 					{
-						if (levelContainer.hidden)
-							return;
-
-						if (scene.path == data.scenePath)
+						if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
 						{
-							Plugin.ReplaceShaders();
-							Plugin.LinkMixers();
-							lastLoadedScenePath = data.scenePath;
-
-							levelContainer.AssureSecretsSize();
-
-							string secretString = levelContainer.secrets.value;
-							foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>())
-							{
-								if (bonus.gameObject.scene.path != data.scenePath)
-									continue;
-
-								if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')
-								{
-									bonus.beenFound = true;
-									bonus.BeenFound();
-								}
-							}
+							container.field.siblingIndex = currentIndex++;
+							container.field.forceHidden = false;
+							container.UpdateData(data);
 						}
-					};
+						else
+						{
+							LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
+							levelContainer.field.siblingIndex = currentIndex++;
+							levelContainer.onLevelButtonPress += () =>
+							{
+								Plugin.currentBundleContainer = this;
+								Plugin.currentLevelContainer = levelContainer;
+								Plugin.currentLevelData = data;
 
-					levels[data.uniqueIdentifier] = levelContainer;
+								// LEGACY
+								if (legacy)
+								{
+									AngrySceneManager.LoadLegacyLevel(data.scenePath);
+								}
+								else
+								{
+									// AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
+									AngrySceneManager.LevelButtonPressed(this, levelContainer, data, data.scenePath);
+								}
+							};
+
+							levels[data.uniqueIdentifier] = levelContainer;
+						}
+					}
 				}
+			}
+			catch (Exception err)
+			{
+				e = err;
+			}
+
+			if (inTempScene)
+			{
+				if (GetAllScenePaths().Contains(previousPath))
+				{
+					if (legacy)
+						yield return SceneManager.LoadSceneAsync(previousName);
+					else
+					{
+						yield return Addressables.LoadSceneAsync(previousName);
+						AngrySceneManager.PostSceneLoad();
+					}
+				}
+				else
+					yield return Addressables.LoadSceneAsync("Main Menu");
+			}
+
+			updating = false;
+
+			if (e != null)
+			{
+				Debug.LogError($"Error while loading bundle {e}\n{e.StackTrace}");
 			}
 
 			sceneDiv.interactable = true;
+			sceneDiv.hidden = false;
+
+			// Update online field if there are any
+			if (author != Plugin.levelUpdateAuthorIgnore.value && OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
+			{
+				if (field.bundleBuildHash == hash)
+				{
+					field.status = OnlineLevelField.OnlineLevelStatus.installed;
+				}
+				else
+				{
+					field.status = OnlineLevelField.OnlineLevelStatus.updateAvailable;
+					if (Plugin.levelUpdateNotifierToggle.value)
+						Plugin.levelUpdateNotifier.hidden = false;
+				}
+
+				field.UpdateUI();
+			}
+
+			UpdateOrder();
 		}
 
+		// Faster ordering since not all fields are moved, only this one
+		private void UpdateOrder()
+		{
+			int order = 0;
+			AngryBundleContainer[] allBundles = Plugin.angryBundles.Values.OrderBy(b => b.rootPanel.siblingIndex).ToArray();
+			
+			if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.Alphabetically)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(name, allBundles[order].name) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.Author)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(author, allBundles[order].author) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.LastPlayed)
+			{
+				long lastTime = 0;
+				Plugin.lastPlayed.TryGetValue(guid, out lastTime);
+
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					long otherPlayime = 0;
+					Plugin.lastPlayed.TryGetValue(allBundles[order].guid, out otherPlayime);
+
+					if (lastTime > otherPlayime)
+						break;
+
+					order += 1;
+				}
+			}
+			
+			if (order < 0)
+				order = 0;
+			else if (order >= allBundles.Length)
+				order = allBundles.Length - 1;
+
+			rootPanel.siblingIndex = order;
+		}
+
+		/// <summary>
+		/// Reloads the angry file and adds the new scenes
+		/// </summary>
+		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
+		public void UpdateScenes(bool forceReload)
+		{
+			if (updating)
+				return;
+			BundleManager.instance.StartCoroutine(UpdateScenesInternal(forceReload));
+		}
+		
 		public AngryBundleContainer(string path)
 		{
+			Debug.Log($"Creating bundle container for {path}");
 			this.pathToAngryBundle = path;
 
-			rootPanel = new ConfigPanel(Plugin.config.rootPanel, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path));
+			rootPanel = new ConfigPanel(Plugin.bundleDivision, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path), ConfigPanel.PanelFieldType.StandardWithBigIcon);
+			guid = "";
+			hash = "";
+			name = rootPanel.displayName;
+			author = "";
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
-			reloadButton.onClick += UpdateScenes;
-
+			reloadButton.onClick += () => UpdateScenes(false);
+			
 			new SpaceField(rootPanel, 5);
 
 			new ConfigHeader(rootPanel, "Levels");

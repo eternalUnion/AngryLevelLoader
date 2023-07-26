@@ -12,12 +12,21 @@ namespace AngryLevelLoader.patches
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.Awake))]
 	class StatsManager_Awake_Patch
 	{
+		public static bool Prefix(StatsManager __instance)
+		{
+			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
+			if (!Plugin.isInCustomScene)
+				return true;
+
+			__instance.levelNumber = -1;
+			return true;
+		}
+
 		// Load previously found secrets manually
 		// as well as challenge complete status
 		[HarmonyPostfix]
 		public static void Postfix(StatsManager __instance)
 		{
-			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
 			if (!Plugin.isInCustomScene)
 				return;
 
@@ -75,7 +84,8 @@ namespace AngryLevelLoader.patches
 		[HarmonyPrefix]
 		static bool Prefix(StatsManager __instance)
 		{
-			if (!Plugin.isInCustomScene || Plugin.currentLevelData.isSecretLevel)
+			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
+			if (!Plugin.isInCustomScene || secretLevel)
 				return true;
 
 			if (!Plugin.currentLevelData.levelChallengeEnabled)
@@ -142,7 +152,8 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return;
 
-			if (Plugin.currentLevelData.isSecretLevel)
+			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
+			if (secretLevel)
 			{
 				char prevRank = Plugin.currentLevelContainer.finalRank.value[0];
 				if (prevRank != 'P')

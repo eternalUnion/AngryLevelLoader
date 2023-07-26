@@ -17,27 +17,4 @@ namespace AngryLevelLoader.patches
 			return true;
 		}
 	}
-
-	[HarmonyPatch(typeof(SceneHelper), nameof(SceneHelper.RestartScene))]
-	public static class SceneHelperRestart_Patch
-	{
-		[HarmonyPrefix]
-		public static bool Prefix()
-		{
-			if (SceneManager.GetActiveScene().path != AngryBundleContainer.lastLoadedScenePath)
-				return true;
-
-			foreach (MonoBehaviour monoBehaviour in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>())
-			{
-				if (!(monoBehaviour == null) && !(monoBehaviour.gameObject.scene.name == "DontDestroyOnLoad"))
-				{
-					monoBehaviour.enabled = false;
-				}
-			}
-
-			SceneManager.LoadScene(AngryBundleContainer.lastLoadedScenePath);
-
-			return false;
-		}
-	}
 }

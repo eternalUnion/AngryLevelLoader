@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -113,12 +114,21 @@ namespace RudeLevelScript
 			}
 		}
 
+		[Tooltip("Player will be moved to this position if the room is not ascending variant. If null, default position is used")]
+		public Transform playerSpawnPos;
+		[Tooltip("If set to true, room will not be deleted. Else, it will be replaced in game")]
+		public bool doNotReplace = false;
+
+		[Header("Replace Settings")]
 		[Tooltip("Enabling this field causes room to be spawned as the secret variant")]
 		public bool secretRoom = false;
+		[Tooltip("Enabling this field causes room to be spawned as the prime variant")]
+		public bool primeRoom = false;
 		[Tooltip("Enabling this field causes the whole room to be converted into the ascending variant where the player is spawned at the bottom and ascends upwards instead of falling")]
 		public bool convertToUpwardRoom = false;
+		[Tooltip("This clip will be played when the trap door closes beneath the player for ascending rooms")]
 		public AudioClip upwardRoomDoorCloseClip;
-		[Tooltip("Add out of bounds objects here if they collide with the player while the player is ascending")]
+		[Tooltip("If bottom part of the ascending room collides with out of bounds triggers, this list can temporarely disable them while the player is ascending")]
 		public List<GameObject> upwardRoomOutOfBoundsToDisable;
 
 		[Header("Player Fields")]
@@ -128,11 +138,13 @@ namespace RudeLevelScript
 
 		[Header("Level Fields")]
 		[Space(10)]
+		[Tooltip("If set to true, level title will be displayed when the door is opened")]
 		public bool displayLevelTitle = true;
+		[Tooltip("If set to true, music will start when the door is opened")]
 		public bool startMusic = true;
 
 		[Header("Hellmap")]
-		[Tooltip("Show the map when the player spawns")]
+		[Tooltip("Enable the layer and level map when the player spawn")]
 		[Space(10)]
 		public bool enableHellMap = false;
 		[Tooltip("Sound clip which is played for each beep while falling")]
@@ -149,11 +161,11 @@ namespace RudeLevelScript
 
 		[Tooltip("Which layer the cursor starts from. First layer is 0 and at the top")]
 		public int layerIndexToStartFrom;
-		[Tooltip("Which level in the layer the cursor starts from. The first level is 0 and is just below the layer title")]
+		[Tooltip("Which level in the layer the cursor starts from. The first level is 0 and is just below the layer title (the uppermost level)")]
 		public int levelIndexToStartFrom;
 		[Tooltip("Which layer the cursor ends at. First layer is 0 and at the top")]
 		public int layerIndexToEndAt;
-		[Tooltip("Which level in the layer the cursor ends at. The first level is 0 and is just below the layer title")]
+		[Tooltip("Which level in the layer the cursor ends at. The first level is 0 and is just below the layer title (the uppermost level)")]
 		public int levelIndexToEndAt;
 
 		private bool spawned = false;
@@ -242,44 +254,47 @@ namespace RudeLevelScript
 		public static float doorCloseSpeed = 10;
 		public static float actDelay = 0.5f;
 		public static float ascendingPlayerSpawnPos = -55;
-		public static void ConvertToAscendingFirstRoom(GameObject firstRoom, AudioClip doorCloseAud, List<GameObject> toEnable, List<GameObject> toDisable)
+		public static void ConvertToAscendingFirstRoom(GameObject firstRoom, AudioClip doorCloseAud, List<GameObject> toEnable, List<GameObject> toDisable, bool doNotReplace)
 		{
 			Transform room = firstRoom.transform.Find("Room");
 
-			Transform pit = room.Find("Pit (3)");
-			pit.transform.localPosition = new Vector3(0, 2, 41.72f);
-			pit.transform.localRotation = Quaternion.Euler(0, 0, 180);
+			if (!doNotReplace)
+			{
+				Transform pit = room.Find("Pit (3)");
+				pit.transform.localPosition = new Vector3(0, 2, 41.72f);
+				pit.transform.localRotation = Quaternion.Euler(0, 0, 180);
 
-			Destroy(room.transform.Find("Room/Ceiling").gameObject);
+				Destroy(room.transform.Find("Room/Ceiling").gameObject);
 
-			Transform floor = room.transform.Find("Room/Floor");
-			GameObject refTile = floor.GetChild(0).gameObject;
+				Transform floor = room.transform.Find("Room/Floor");
+				GameObject refTile = floor.GetChild(0).gameObject;
 
-			GameObject t1 = GameObject.Instantiate(refTile, floor);
-			t1.transform.localPosition = new Vector3(-15, 9.7f, 20.28f);
-			t1.transform.localRotation = Quaternion.identity;
+				GameObject t1 = GameObject.Instantiate(refTile, floor);
+				t1.transform.localPosition = new Vector3(-15, 9.7f, 20.28f);
+				t1.transform.localRotation = Quaternion.identity;
 
-			GameObject t2 = GameObject.Instantiate(refTile, floor);
-			t2.transform.localPosition = new Vector3(5, 9.7f, 20.28f);
-			t2.transform.localRotation = Quaternion.identity;
+				GameObject t2 = GameObject.Instantiate(refTile, floor);
+				t2.transform.localPosition = new Vector3(5, 9.7f, 20.28f);
+				t2.transform.localRotation = Quaternion.identity;
 
-			GameObject t3 = GameObject.Instantiate(refTile, floor);
-			t3.transform.localPosition = new Vector3(-5, 9.7f, 0.2f);
-			t3.transform.localRotation = Quaternion.Euler(0, -90, 0);
+				GameObject t3 = GameObject.Instantiate(refTile, floor);
+				t3.transform.localPosition = new Vector3(-5, 9.7f, 0.2f);
+				t3.transform.localRotation = Quaternion.Euler(0, -90, 0);
 
-			GameObject t4 = GameObject.Instantiate(refTile, floor);
-			t4.transform.localPosition = new Vector3(5, 9.7f, 10.28f);
-			t4.transform.localRotation = Quaternion.identity;
-			t4.GetComponent<MeshRenderer>().materials = new Material[2] { Utils.metalDec20, Utils.metalDec20 };
+				GameObject t4 = GameObject.Instantiate(refTile, floor);
+				t4.transform.localPosition = new Vector3(5, 9.7f, 10.28f);
+				t4.transform.localRotation = Quaternion.identity;
+				t4.GetComponent<MeshRenderer>().materials = new Material[2] { Utils.metalDec20, Utils.metalDec20 };
 
-			GameObject t5 = GameObject.Instantiate(refTile, floor);
-			t5.transform.localPosition = new Vector3(-15, 9.7f, 10.28f);
-			t5.transform.localRotation = Quaternion.identity;
-			t5.GetComponent<MeshRenderer>().materials = new Material[2] { Utils.metalDec20, Utils.metalDec20 };
+				GameObject t5 = GameObject.Instantiate(refTile, floor);
+				t5.transform.localPosition = new Vector3(-15, 9.7f, 10.28f);
+				t5.transform.localRotation = Quaternion.identity;
+				t5.GetComponent<MeshRenderer>().materials = new Material[2] { Utils.metalDec20, Utils.metalDec20 };
 
-			GameObject t6 = GameObject.Instantiate(refTile, floor);
-			t6.transform.localPosition = new Vector3(-5, -0.3f, 20.28f);
-			t6.transform.localRotation = Quaternion.Euler(0, -90, -180);
+				GameObject t6 = GameObject.Instantiate(refTile, floor);
+				t6.transform.localPosition = new Vector3(-5, -0.3f, 20.28f);
+				t6.transform.localRotation = Quaternion.Euler(0, -90, -180);
+			}
 
 			Transform decorations = room.Find("Decorations");
 			Transform floorTile = decorations.GetChild(12);
@@ -354,8 +369,17 @@ namespace RudeLevelScript
 			if (spawned)
 				return;
 
-			GameObject firstRoomRef = Utils.LoadObject<GameObject>(secretRoom ? "FirstRoom Secret" : "FirstRoom");
-			GameObject firstRoomInst = Instantiate(firstRoomRef, transform.parent);
+			GameObject firstRoomInst = gameObject;
+			GameObject firstRoomRef = Utils.LoadObject<GameObject>(secretRoom ? "FirstRoom Secret" : primeRoom ? "FirstRoom Prime" : "FirstRoom");
+			if (!doNotReplace)
+			{
+				firstRoomInst = Instantiate(firstRoomRef, transform.parent);
+			}
+			else
+			{
+				GameObject dummyRoom = Instantiate(firstRoomRef, transform.position, transform.rotation, transform.parent);
+				Destroy(dummyRoom.transform.Find("Room").gameObject);
+			}
 
 			// Reverse combined mesh
 			foreach (MeshCollider col in firstRoomInst.GetComponentsInChildren<MeshCollider>())
@@ -372,6 +396,14 @@ namespace RudeLevelScript
 			firstRoomInst.transform.rotation = transform.rotation;
 			player.transform.parent = null;
 			player.transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+			
+			if (playerSpawnPos != null)
+			{
+				player.transform.parent = playerSpawnPos.transform.parent;
+				player.transform.localPosition = playerSpawnPos.localPosition;
+				player.transform.localRotation = Quaternion.Euler(0, playerSpawnPos.localRotation.eulerAngles.y, 0);
+				player.transform.SetParent(null);
+			}
 			StatsManager.instance.spawnPos = player.transform.position;
 
 			try
@@ -496,6 +528,7 @@ namespace RudeLevelScript
 					aud.playOnAwake = false;
 					aud.loop = false;
 					aud.clip = hellmapBeepClip;
+					aud.volume = 0.1f;
 					Image cursorImg = cursor.gameObject.AddComponent<Image>();
 					cursorImg.sprite = Utils.hellmapArrow;
 					CustomHellmapCursor cursorComp = cursor.gameObject.AddComponent<CustomHellmapCursor>();
@@ -523,7 +556,7 @@ namespace RudeLevelScript
 					List<GameObject> toEnable = new List<GameObject>();
 					toEnable.AddRange(upwardRoomOutOfBoundsToDisable);
 
-					ConvertToAscendingFirstRoom(firstRoomInst, upwardRoomDoorCloseClip, toEnable, toDisable);
+					ConvertToAscendingFirstRoom(firstRoomInst, upwardRoomDoorCloseClip, toEnable, toDisable, doNotReplace);
 				}
 			}
 			catch (Exception e)
@@ -533,7 +566,8 @@ namespace RudeLevelScript
 			finally
 			{
 				spawned = true;
-				Destroy(gameObject);
+				if (!doNotReplace)
+					Destroy(gameObject);
 			}
 		}
 		

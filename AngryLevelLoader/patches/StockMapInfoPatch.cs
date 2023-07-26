@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.patches
 {
@@ -18,7 +19,16 @@ namespace AngryLevelLoader.patches
 		[HarmonyPostfix]
 		public static void Postfix()
 		{
-			foreach (ExecuteOnSceneLoad obj in UnityEngine.Object.FindObjectsOfType<ExecuteOnSceneLoad>().OrderBy(exe => exe.relativeExecutionOrder))
+			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
+			if (!Plugin.isInCustomScene)
+				return;
+
+			StatsManager sman = GameObject.FindObjectOfType<StatsManager>();
+			if (sman != null)
+				sman.levelNumber = -1;
+
+			string currentPath = SceneManager.GetActiveScene().path;
+			foreach (ExecuteOnSceneLoad obj in Resources.FindObjectsOfTypeAll<ExecuteOnSceneLoad>().Where(o => o.gameObject.scene.path == currentPath).OrderBy(exe => exe.relativeExecutionOrder))
 			{
 				try
 				{
