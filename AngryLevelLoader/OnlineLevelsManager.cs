@@ -32,6 +32,18 @@ namespace AngryLevelLoader
 		public List<LevelInfo> Levels;
 	}
 
+	public class ScriptInfo
+	{
+		public string FileName { get; set; }
+		public string Hash { get; set; }
+		public int Size { get; set; }
+	}
+
+	public class ScriptCatalog
+	{
+		public List<ScriptInfo> Scripts;
+	}
+
 	public class LoadingCircleField : CustomConfigField
 	{
 		public static Sprite loadingIcon;
@@ -114,6 +126,106 @@ namespace AngryLevelLoader
 		}
 	}
 
+	public static class ScriptCatalogLoader
+	{
+		public static ScriptCatalog scriptCatalog;
+
+		public static bool downloading { get; private set; }
+		private static IEnumerator StartDownloadInternal()
+		{
+			if (downloading)
+				yield break;
+			downloading = true;
+
+			try
+			{
+				string newHash = "";
+				UnityWebRequest hashReq = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/ScriptCatalogHash.txt");
+				try
+				{
+					hashReq.downloadHandler = new DownloadHandlerBuffer();
+					yield return hashReq.SendWebRequest();
+
+					if (hashReq.isHttpError || hashReq.isNetworkError)
+					{
+						Debug.LogError("Could not download the script catalog hash");
+						yield break;
+					}
+
+					newHash = hashReq.downloadHandler.text;
+				}
+				finally
+				{
+					hashReq.Dispose();
+				}
+
+				string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "ScriptCatalog.json");
+				if (File.Exists(cachedCatalogPath))
+				{
+					string catalog = File.ReadAllText(cachedCatalogPath);
+					string hash = CryptographyUtils.GetMD5String(catalog);
+					if (hash == newHash)
+					{
+						Debug.Log("Cached script catalog up to date");
+						scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
+						yield break;
+					}
+				}
+
+				UnityWebRequest updatedCatalogRequest = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/ScriptCatalog.json");
+				try
+				{
+					updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();
+					yield return updatedCatalogRequest.SendWebRequest();
+
+					if (updatedCatalogRequest.isHttpError || updatedCatalogRequest.isNetworkError)
+					{
+						Debug.LogError("Could not download the script catalog");
+						yield break;
+					}
+
+					scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(updatedCatalogRequest.downloadHandler.text);
+					File.WriteAllText(cachedCatalogPath, updatedCatalogRequest.downloadHandler.text);
+					string currentHash = CryptographyUtils.GetMD5String(updatedCatalogRequest.downloadHandler.text);
+
+					if (currentHash != newHash)
+					{
+						Debug.LogWarning("New script catalog hash value does not match online catalog hash value, github page not cached yet");
+					}
+				}
+				finally
+				{
+					updatedCatalogRequest.Dispose();
+				}
+			}
+			finally
+			{
+				downloading = false;
+			}
+		}
+
+		public static void StartDownload()
+		{
+			if (downloading)
+				return;
+			OnlineLevelsManager.instance.StartCoroutine(StartDownloadInternal());
+		}
+	
+		public static bool ScriptExistsInCatalog(string script)
+		{
+			if (scriptCatalog == null)
+				return false;
+			return scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault() != null;
+		}
+
+		public static bool TryGetScriptInfo(string script, out ScriptInfo info)
+		{
+			info = scriptCatalog == null ? null : scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
+			return info != null;
+		}
+
+	}
+
 	public class OnlineLevelsManager : MonoBehaviour
 	{
 		public static OnlineLevelsManager instance;
@@ -168,6 +280,7 @@ namespace AngryLevelLoader
 			onlineLevelContainer = new ConfigDivision(onlineLevelsPanel, "p_onlineLevelsDiv");
 
 			LoadThumbnailHashes();
+			ScriptCatalogLoader.StartDownload();
 		}
 
 		public static void SortAll()

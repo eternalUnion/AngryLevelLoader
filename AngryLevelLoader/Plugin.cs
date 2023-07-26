@@ -17,6 +17,7 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 using UnityEngine.Audio;
 using RudeLevelScript;
+using PluginConfig;
 
 namespace AngryLevelLoader
 {
@@ -192,22 +193,45 @@ namespace AngryLevelLoader
 			}
 		}
 
-        public static void LoadScripts()
+        public static bool LoadEssentialScripts()
         {
-			string asmLocation = Assembly.GetExecutingAssembly().Location;
-			string asmDir = Path.Combine(Path.GetDirectoryName(asmLocation), "Scripts");
+			bool loaded = true;
 
-			if (!Directory.Exists(asmDir))
+			var res = AttemptLoadScriptWithCertificate("AngryLoaderAPI.dll");
+			if (res == LoadScriptResult.NotFound)
 			{
-				Debug.LogWarning("Scripts folder does not exists at " + asmDir);
-				return;
+				Debug.LogError("Required script AngryLoaderAPI.dll not found");
+				loaded = false;
+			}
+			else if (res == LoadScriptResult.NoCertificate)
+			{
+				Debug.LogError("Required script AngryLoaderAPI.dll has a missing certificate");
+				loaded = false;
+			}
+			else if (res == LoadScriptResult.InvalidCertificate)
+			{
+				Debug.LogError("Required script AngryLoaderAPI.dll has an invalid certificate");
+				loaded = false;
 			}
 
-			foreach (string scriptPath in Directory.GetFiles(asmDir))
+			res = AttemptLoadScriptWithCertificate("RudeLevelScripts.dll");
+			if (res == LoadScriptResult.NotFound)
 			{
-				Assembly asm = Assembly.LoadFile(scriptPath);
-				Debug.Log("Loaded " + asm.FullName);
+				Debug.LogError("Required script RudeLevelScripts.dll not found");
+				loaded = false;
 			}
+			else if (res == LoadScriptResult.NoCertificate)
+			{
+				Debug.LogError("Required script RudeLevelScripts.dll has a missing certificate");
+				loaded = false;
+			}
+			else if (res == LoadScriptResult.InvalidCertificate)
+			{
+				Debug.LogError("Required script RudeLevelScripts.dll has an invalid certificate");
+				loaded = false;
+			}
+
+			return loaded;
 		}
 
         // Game assets
@@ -269,6 +293,39 @@ namespace AngryLevelLoader
 
 		public static string workingDir;
 
+		private static List<string> loadedScripts = new List<string>();
+		public enum LoadScriptResult
+		{
+			Loaded,
+			NotFound,
+			NoCertificate,
+			InvalidCertificate,
+		}
+		
+		public static LoadScriptResult AttemptLoadScriptWithCertificate(string scriptName)
+		{
+			if (loadedScripts.Contains(scriptName))
+				return LoadScriptResult.Loaded;
+			
+			string scriptPath = Path.Combine(workingDir, "Scripts", scriptName);
+			if (!File.Exists(scriptPath))
+				return LoadScriptResult.NotFound;
+			if (!File.Exists(scriptPath + ".cert"))
+				return LoadScriptResult.NoCertificate;
+
+			if (!CryptographyUtils.VerifyFileCertificate(scriptPath, scriptPath + ".cert"))
+				return LoadScriptResult.InvalidCertificate;
+
+			Assembly a = Assembly.Load(File.ReadAllBytes(scriptPath));
+			loadedScripts.Add(scriptName);
+			return LoadScriptResult.Loaded;
+		}
+
+		public static bool ScriptLoaded(string scriptName)
+		{
+			return loadedScripts.Contains(scriptName);
+		}
+
 		private void Awake()
 		{
 			// Plugin startup logic
@@ -279,8 +336,14 @@ namespace AngryLevelLoader
 			if (!Directory.Exists(tempFolderPath))
 				Directory.CreateDirectory(tempFolderPath);
 
+			if (!LoadEssentialScripts())
+			{
+				Debug.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
+				enabled = false;
+				return;
+			}
+
 			LoadLastPlayedMap();
-			LoadScripts();
 
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
@@ -444,13 +507,16 @@ namespace AngryLevelLoader
 					return;
 
 				lastPress = Time.time;
-				ReloadFileKeyPressed();
+
+				if (NotificationPanel.CurrentNotificationCount() == 0)
+					ReloadFileKeyPressed();
 			}
 		}
 	
 		private void ReloadFileKeyPressed()
 		{
-			currentBundleContainer.UpdateScenes(false);
+			if (currentBundleContainer != null)
+				currentBundleContainer.UpdateScenes(false);
 		}
 	}
 

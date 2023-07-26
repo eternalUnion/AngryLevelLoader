@@ -1,6 +1,7 @@
 ﻿using RudeLevelScript;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -11,6 +12,40 @@ namespace AngryLevelLoader
 	public static class AngrySceneManager
 	{
 		public static string CurrentSceneName = "";
+
+		public static void LevelButtonPressed(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+		{
+			List<string> requiredScripts = new List<string>();
+			foreach (var data in bundleContainer.GetAllLevelData())
+				foreach (string script in data.requiredDllNames)
+					if (!requiredScripts.Contains(script))
+						requiredScripts.Add(script);
+
+			List<string> scriptsToLoad = new List<string>();
+			List<string> scriptsToUpdate= new List<string>();
+			foreach (string script in requiredScripts)
+			{
+				if (Plugin.ScriptLoaded(script))
+				{
+					ScriptInfo info = ScriptCatalogLoader.scriptCatalog == null ? null : ScriptCatalogLoader.scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
+					if (info != null)
+					{
+						string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
+						if (hash != info.Hash)
+							scriptsToUpdate.Add(script);
+					}					
+				}
+				else
+				{
+					scriptsToLoad.Add(script);
+				}
+			}
+		
+			if (scriptsToLoad.Count != 0 || scriptsToUpdate.Count != 0)
+			{
+
+			}
+		}
 
 		public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
 		{

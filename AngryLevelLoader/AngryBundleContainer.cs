@@ -375,8 +375,6 @@ namespace AngryLevelLoader
 						}
 					}
 				}
-
-				sceneDiv.interactable = true;
 			}
 			catch (Exception err)
 			{
@@ -390,20 +388,24 @@ namespace AngryLevelLoader
 					if (legacy)
 						yield return SceneManager.LoadSceneAsync(previousName);
 					else
+					{
 						yield return Addressables.LoadSceneAsync(previousName);
+						AngrySceneManager.PostSceneLoad();
+					}
 				}
 				else
 					yield return Addressables.LoadSceneAsync("Main Menu");
 			}
 
 			updating = false;
-			sceneDiv.interactable = true;
-			sceneDiv.hidden = false;
 
 			if (e != null)
 			{
 				Debug.LogError($"Error while loading bundle {e}\n{e.StackTrace}");
 			}
+
+			sceneDiv.interactable = true;
+			sceneDiv.hidden = false;
 
 			// Update online field if there are any
 			if (author != Plugin.levelUpdateAuthorIgnore.value && OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))

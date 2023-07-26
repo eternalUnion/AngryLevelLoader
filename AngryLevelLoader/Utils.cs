@@ -1,9 +1,13 @@
-﻿using System;
+﻿using PluginConfig;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace AngryLevelLoader
 {
@@ -96,6 +100,86 @@ namespace AngryLevelLoader
 			MD5 md5 = MD5.Create();
 			byte[] hash = md5.ComputeHash(Encoding.ASCII.GetBytes(text));
 			return ByteArrayToString(hash).ToLower(); ;
+		}
+
+		public static string GetMD5String(byte[] data)
+		{
+			MD5 md5 = MD5.Create();
+			byte[] hash = md5.ComputeHash(data);
+			return ByteArrayToString(hash).ToLower(); ;
+		}
+	}
+
+	public static class UIUtils
+	{
+		public static RectTransform MakeSimpleRect(Transform parent)
+		{
+			RectTransform rect = new GameObject().AddComponent<RectTransform>();
+			rect.SetParent(parent);
+			rect.localScale = Vector3.one;
+
+			return rect;
+		}
+
+		private static GameObject sampleButton;
+		public static RectTransform MakeButton(Transform parent, string text)
+		{
+			if (sampleButton == null)
+			{
+				Transform canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
+				sampleButton = canvas.Find("OptionsMenu/Controls Options/Scroll Rect/Contents/Default").gameObject;
+			}
+
+			GameObject button = GameObject.Instantiate(sampleButton, parent);
+			RectTransform buttonRect = button.GetComponent<RectTransform>();
+			Button buttonButtonComp = button.GetComponent<Button>();
+			buttonButtonComp.onClick = new Button.ButtonClickedEvent();
+			Text buttonButtonText = button.GetComponentInChildren<Text>();
+			buttonButtonText.text = text;
+			
+			return buttonRect;
+		}
+	
+		public static RectTransform MakeText(Transform parent, string text, int fontSize, TextAnchor alignment)
+		{
+			RectTransform rect = MakeSimpleRect(parent);
+
+			Text rectText = rect.gameObject.AddComponent<Text>();
+			rectText.text = text;
+			rectText.fontSize = fontSize;
+			rectText.alignment = alignment;
+			rectText.font = Plugin.gameFont;
+
+			return rect;
+		}
+	
+		private static GameObject sampleMenu;
+		public static RectTransform MakePanel(Transform parent, int spacing)
+		{
+			if (sampleMenu == null)
+			{
+				Transform canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
+				sampleMenu = canvas.Find("OptionsMenu/Gameplay Options").gameObject;
+			}
+
+			GameObject panel = GameObject.Instantiate(sampleMenu, parent);
+			panel.SetActive(true);
+			RectTransform panelRect = panel.GetComponent<RectTransform>();
+			panelRect.anchoredPosition = new Vector2(0, 40);
+
+			UnityUtils.GetComponentInChildrenRecursively<ScrollRect>(panel.transform).normalizedPosition = new Vector2(0, 1);
+			VerticalLayoutGroup contentLayout = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(panel.transform);
+			contentLayout.spacing = spacing;
+			foreach (Transform child in contentLayout.transform)
+			{
+				GameObject.Destroy(child.gameObject);
+			}
+
+			Transform header = panel.transform.Find("Text");
+			header.SetParent(null);
+			GameObject.Destroy(header.gameObject);
+
+			return contentLayout.GetComponent<RectTransform>();
 		}
 	}
 }
