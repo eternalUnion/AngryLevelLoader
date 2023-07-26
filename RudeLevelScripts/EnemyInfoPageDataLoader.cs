@@ -17,7 +17,7 @@ namespace RudeLevelScripts
 			EnemyInfoPage comp = GetComponent<EnemyInfoPage>();
 			comp.objects = Instantiate(Addressables.LoadAssetAsync<SpawnableObjectsDatabase>("Assets/Data/Bestiary Database.asset").WaitForCompletion());
 			
-			if (additionalEnemies.Count != 0)
+			if (additionalEnemies != null && additionalEnemies.Count != 0)
 			{
 				var newEnemies = comp.objects.enemies.ToList();
 				newEnemies.AddRange(additionalEnemies);

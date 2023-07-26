@@ -373,6 +373,7 @@ namespace AngryLevelLoader
 
 		private IEnumerator m_CheckCatalogVersion()
 		{
+			int prevLevelCount = -1;
 			catalog = null;
 			downloadingCatalog = true;
 
@@ -406,22 +407,25 @@ namespace AngryLevelLoader
 			{
 				string cachedCatalog = File.ReadAllText(cachedCatalogPath);
 				string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+				catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+				prevLevelCount = catalog.Levels.Count;
 
 				if (catalogHash == newCatalogHash)
 				{
 					Debug.Log("Current online level catalog is up to date, loading from cache");
-					catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
 					PostCatalogLoad();
 					yield break;
 				}
+
+				catalog = null;
 			}
 
 			Debug.Log("Current online level catalog is out of date, downloading from web");
 			downloadingCatalog = true;
-			instance.StartCoroutine(m_DownloadCatalog(newCatalogHash));
+			instance.StartCoroutine(m_DownloadCatalog(newCatalogHash, prevLevelCount));
 		}
 
-		private IEnumerator m_DownloadCatalog(string newHash)
+		private IEnumerator m_DownloadCatalog(string newHash, int prevLevelCount)
 		{
 			downloadingCatalog = true;
 			catalog = null;
@@ -452,6 +456,15 @@ namespace AngryLevelLoader
 					if (catalogHash != newHash)
 					{
 						Debug.LogWarning("Catalog hash does not match, Github did not cache the new catalog yet");
+					}
+
+					if (newLevelNotifierToggle.value)
+					{
+						if (prevLevelCount != -1 && prevLevelCount != catalog.Levels.Count)
+						{
+							newLevelNotifier.hidden = false;
+							newLevelToggle.value = true;
+						}
 					}
 				}
 			}
@@ -502,12 +515,10 @@ namespace AngryLevelLoader
 				bool thumbnailExists = File.Exists(imageCachePath);
 				if (!thumbnailExists)
 				{
-					Debug.Log($"Thumbnail for {info.Name} not cached, downloading");
 					downloadThumbnail = true;
 				}
 				else if (!thumbnailHashes.TryGetValue(info.Guid, out string currentHash) || currentHash != info.ThumbnailHash)
 				{
-					Debug.Log($"Thumbnail for {info.Name} is outdated, downloading");
 					downloadThumbnail = true;
 				}
 

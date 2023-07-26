@@ -274,12 +274,15 @@ namespace AngryLevelLoader
         
 		public static PluginConfigurator config;
 		public static ConfigHeader levelUpdateNotifier;
+		public static ConfigHeader newLevelNotifier;
+		public static BoolField newLevelToggle;
         public static ConfigHeader errorText;
 		public static ConfigDivision bundleDivision;
 
 		public static KeyCodeField reloadFileKeybind;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField levelUpdateNotifierToggle;
+		public static BoolField newLevelNotifierToggle;
 		public static StringField levelUpdateAuthorIgnore;
 		public enum BundleSorting
 		{
@@ -374,11 +377,25 @@ namespace AngryLevelLoader
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
 			config.postConfigChange += UpdateAllUI;
 			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
+			newLevelToggle = new BoolField(config.rootPanel, "", "v_newLevelToggle", false);
+			newLevelToggle.hidden = true;
+			config.rootPanel.onPannelOpenEvent += (external) =>
+			{
+				if (newLevelToggle.value)
+					newLevelNotifier.hidden = false;
+				newLevelToggle.value = false;
+			};
 
+			newLevelNotifier = new ConfigHeader(config.rootPanel, "<color=lime>New levels are available!</color>", 16);
+			newLevelNotifier.hidden = true;
 			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=lime>Level updates available!</color>", 16);
 			levelUpdateNotifier.hidden = true;
 			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
 			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL(Path.Combine(workingDir, "online-icon.png"));
+			OnlineLevelsManager.onlineLevelsPanel.onPannelOpenEvent += (e) =>
+			{
+				newLevelNotifier.hidden = true;
+			};
 			OnlineLevelsManager.Init();
 
 			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
@@ -413,6 +430,13 @@ namespace AngryLevelLoader
 			{
 				levelUpdateNotifierToggle.value = e.value;
 				OnlineLevelsManager.CheckLevelUpdateText();
+			};
+			newLevelNotifierToggle = new BoolField(settingsPanel, "Notify on new level release", "s_newLevelNotiftToggle", true);
+			newLevelNotifierToggle.onValueChange += (e) =>
+			{
+				newLevelNotifierToggle.value = e.value;
+				if (!e.value)
+					newLevelNotifier.hidden = true;
 			};
 			levelUpdateAuthorIgnore = new StringField(settingsPanel, "Ignore update from author", "s_updateIgnoreAuthor", "", true);
 			levelUpdateAuthorIgnore.onValueChange += (e) =>

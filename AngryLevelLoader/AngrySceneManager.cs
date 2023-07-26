@@ -68,7 +68,7 @@ namespace AngryLevelLoader
 
 				if (!Plugin.ScriptExists(script))
 				{
-					notification = new ScriptWarningNotification("<color=red>Missing Script</color>", $"Script {script} is missing and may cause issues in the level", "Cancel", "Continue", (inst) =>
+					notification = new ScriptWarningNotification("<color=yellow>Missing Script</color>", $"Script {script} is missing and may cause issues in the level", "Cancel", "Continue", (inst) =>
 					{
 						inst.Close();
 						foreach (var not in notifications)
@@ -91,7 +91,7 @@ namespace AngryLevelLoader
 					if (result == Plugin.LoadScriptResult.Loaded)
 						continue;
 
-					notification = new ScriptWarningNotification("<color=red>Unverified Script</color>", $"Script {script} {(result == Plugin.LoadScriptResult.NoCertificate ? "has no certificate" : "has invalid certificate")}, loading unverified script could be dangerous", "Cancel", "Load", (inst) =>
+					notification = new ScriptWarningNotification("<color=red>Unverified Script</color>", $"Script {script} {(result == Plugin.LoadScriptResult.NoCertificate ? "has no certificate" : "has invalid certificate")}, loading scripts from unknown sources could be dangerous", "Cancel", "Load", (inst) =>
 					{
 						inst.Close();
 						foreach (var not in notifications)
