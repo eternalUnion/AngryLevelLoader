@@ -343,7 +343,7 @@ namespace AngryLevelLoader
 				if (status == OnlineLevelStatus.notInstalled)
 				{
 					installActive = true;
-					installButton.gameObject.SetActive(true);
+					installButton.gameObject.SetActive(false);
 					updateButton.gameObject.SetActive(false);
 				}
 				else if (status == OnlineLevelStatus.updateAvailable)

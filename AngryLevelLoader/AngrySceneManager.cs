@@ -24,6 +24,8 @@ namespace AngryLevelLoader
 			Plugin.currentLevelContainer = levelContainer;
 			Plugin.currentLevelData = levelData;
 
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
+
 			SceneHelper.LoadScene(levelName);
 			Plugin.UpdateLastPlayed(bundleContainer);
 		}
@@ -49,6 +51,8 @@ namespace AngryLevelLoader
 		// LEGACY
 		public static void LoadLegacyLevel(string levelPath)
 		{
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
+			
 			LegacyPatchController.enablePatches = true;
 			LegacyPatchController.Patch();
 			CurrentSceneName = levelPath;

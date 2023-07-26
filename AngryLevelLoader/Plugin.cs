@@ -256,6 +256,7 @@ namespace AngryLevelLoader
 		public static KeyCodeField reloadFileKeybind;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField levelUpdateNotifierToggle;
+		public static StringField levelUpdateAuthorIgnore;
 		public enum BundleSorting
 		{
 			Alphabetically,
@@ -313,6 +314,7 @@ namespace AngryLevelLoader
                 {
                     Debug.LogWarning("Invalid difficulty, setting to violent");
                     selectedDifficulty = 3;
+					e.value = "VIOLENT";
                 }
             };
             difficultySelect.TriggerValueChangeEvent();
@@ -330,6 +332,13 @@ namespace AngryLevelLoader
 			levelUpdateNotifierToggle = new BoolField(settingsPanel, "Notify on level updates", "s_levelUpdateNofify", true);
 			levelUpdateNotifierToggle.onValueChange += (e) =>
 			{
+				levelUpdateNotifierToggle.value = e.value;
+				OnlineLevelsManager.CheckLevelUpdateText();
+			};
+			levelUpdateAuthorIgnore = new StringField(settingsPanel, "Ignore update from author", "s_updateIgnoreAuthor", "", true);
+			levelUpdateAuthorIgnore.onValueChange += (e) =>
+			{
+				levelUpdateAuthorIgnore.value = e.value;
 				OnlineLevelsManager.CheckLevelUpdateText();
 			};
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 
 namespace AngryLevelLoader
@@ -88,6 +89,13 @@ namespace AngryLevelLoader
 			SHA256 hash = SHA256.Create();
 			hash.Initialize();
 			return ByteArrayToString(hash.ComputeHash(File.ReadAllBytes(filePath))).ToLower();
+		}
+
+		public static string GetMD5String(string text)
+		{
+			MD5 md5 = MD5.Create();
+			byte[] hash = md5.ComputeHash(Encoding.ASCII.GetBytes(text));
+			return ByteArrayToString(hash).ToLower(); ;
 		}
 	}
 }

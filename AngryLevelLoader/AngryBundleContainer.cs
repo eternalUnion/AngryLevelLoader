@@ -406,7 +406,7 @@ namespace AngryLevelLoader
 			}
 
 			// Update online field if there are any
-			if (OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
+			if (author != Plugin.levelUpdateAuthorIgnore.value && OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
 			{
 				if (field.bundleBuildHash == hash)
 				{

@@ -221,54 +221,52 @@ namespace AngryLevelLoader
 			catalog = null;
 			downloadingCatalog = true;
 
-			string currentVersionPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalogHash.txt");
-			string newCatalogVersion = "";
-			if (File.Exists(currentVersionPath))
+			string newCatalogHash = "";
+			string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
+
+			try
 			{
-				string currentVersion = File.ReadAllText(currentVersionPath);
+				UnityWebRequest catalogVersionRequest = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/LevelCatalogHash.txt");
+				catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
+				yield return catalogVersionRequest.SendWebRequest();
 
-				try
+				if (catalogVersionRequest.isNetworkError || catalogVersionRequest.isHttpError)
 				{
-					UnityWebRequest catalogVersionRequest = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/LevelCatalogHash.txt");
-					catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
-					yield return catalogVersionRequest.SendWebRequest();
-
-					if (catalogVersionRequest.isNetworkError || catalogVersionRequest.isHttpError)
-					{
-						Debug.LogError("Could not download catalog version");
-						downloadingCatalog = false;
-						catalog = null;
-						yield break;
-					}
-					else
-					{
-						newCatalogVersion = catalogVersionRequest.downloadHandler.text;
-					}
-				}
-				finally
-				{
+					Debug.LogError("Could not download catalog version");
 					downloadingCatalog = false;
+					catalog = null;
+					yield break;
 				}
-				
-				if (newCatalogVersion == currentVersion)
+				else
 				{
-					string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
-					if (File.Exists(cachedCatalogPath))
-					{
-						Debug.Log("Current online level catalog is up to date, loading from cache");
-						catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
-						PostCatalogLoad();
-						yield break;
-					}
+					newCatalogHash = catalogVersionRequest.downloadHandler.text;
+				}
+			}
+			finally
+			{
+				downloadingCatalog = false;
+			}
+
+			if (File.Exists(cachedCatalogPath))
+			{
+				string cachedCatalog = File.ReadAllText(cachedCatalogPath);
+				string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+
+				if (catalogHash == newCatalogHash)
+				{
+					Debug.Log("Current online level catalog is up to date, loading from cache");
+					catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+					PostCatalogLoad();
+					yield break;
 				}
 			}
 
 			Debug.Log("Current online level catalog is out of date, downloading from web");
 			downloadingCatalog = true;
-			instance.StartCoroutine(m_DownloadCatalog(newCatalogVersion));
+			instance.StartCoroutine(m_DownloadCatalog(newCatalogHash));
 		}
 
-		private IEnumerator m_DownloadCatalog(string newGuid)
+		private IEnumerator m_DownloadCatalog(string newHash)
 		{
 			downloadingCatalog = true;
 			catalog = null;
@@ -292,8 +290,14 @@ namespace AngryLevelLoader
 				}
 				else
 				{
-					catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(catalogPath));
-					File.WriteAllText(Path.Combine(catalogDir, "LevelCatalogHash.txt"), newGuid);
+					string cachedCatalog = File.ReadAllText(catalogPath);
+					catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+					string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+
+					if (catalogHash != newHash)
+					{
+						Debug.LogWarning("Catalog hash does not match, Github did not cache the new catalog yet");
+					}
 				}
 			}
 			finally
@@ -417,7 +421,7 @@ namespace AngryLevelLoader
 
 			foreach (OnlineLevelField field in onlineLevels.Values)
 			{
-				if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
+				if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable && field.author != Plugin.levelUpdateAuthorIgnore.value)
 				{
 					Plugin.levelUpdateNotifier.hidden = false;
 					return;
