@@ -7,10 +7,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using static AngryLevelLoader.Plugin;
 
 namespace AngryLevelLoader
 {
@@ -22,6 +24,7 @@ namespace AngryLevelLoader
 		public int Size { get; set; }
 		public string Hash { get; set; }
 		public string ThumbnailHash { get; set; }
+		public long LastUpdate { get; set; }
 	}
 
 	public class LevelCatalog
@@ -119,9 +122,18 @@ namespace AngryLevelLoader
 		public static LoadingCircleField loadingCircle;
 
 		// Filters
+		public enum SortFilter
+		{
+			Name,
+			Author,
+			LastUpdate
+		}
+
 		public static BoolField showInstalledLevels;
 		public static BoolField showUpdateAvailableLevels;
 		public static BoolField showNotInstalledLevels;
+		public static StringField authorFilter;
+		public static EnumField<SortFilter> sortFilter;
 
 		public static void Init()
 		{
@@ -138,6 +150,14 @@ namespace AngryLevelLoader
 			showInstalledLevels = new BoolField(filterPanel, "Installed", "online_installedLevels", true);
 			showNotInstalledLevels = new BoolField(filterPanel, "Not installed", "online_notInstalledLevels", true);
 			showUpdateAvailableLevels = new BoolField(filterPanel, "Update available", "online_updateAvailableLevels", true);
+			sortFilter = new EnumField<SortFilter>(filterPanel, "Sort type", "sf_o_sortType", SortFilter.Name);
+			sortFilter.onValueChange += (e) =>
+			{
+				sortFilter.value = e.value;
+				SortAll();
+			};
+			new ConfigHeader(filterPanel, "Variable Filters");
+			authorFilter = new StringField(filterPanel, "Author", "sf_o_authorFilter", "", true);
 
 			var toolbar = new ButtonArrayField(onlineLevelsPanel, "online_toolbar", 2, new float[] { 0.5f, 0.5f }, new string[] { "Refresh", "Filters" });
 			toolbar.OnClickEventHandler(0).onClick += RefreshAsync;
@@ -148,6 +168,28 @@ namespace AngryLevelLoader
 			onlineLevelContainer = new ConfigDivision(onlineLevelsPanel, "p_onlineLevelsDiv");
 
 			LoadThumbnailHashes();
+		}
+
+		public static void SortAll()
+		{
+			int i = 0;
+			if (sortFilter.value == SortFilter.Name)
+			{
+				foreach (var bundle in onlineLevels.Values.OrderBy(b => b.bundleName))
+					bundle.siblingIndex = i++;
+			}
+			else if (sortFilter.value == SortFilter.Author)
+			{
+				foreach (var bundle in onlineLevels.Values.OrderBy(b => b.author))
+					bundle.siblingIndex = i++;
+			}
+			else if (sortFilter.value == SortFilter.LastUpdate)
+			{
+				foreach (var bundle in onlineLevels.Values.OrderByDescending(b => b.lastUpdate))
+				{
+					bundle.siblingIndex = i++;
+				}
+			}
 		}
 
 		private static bool downloadingCatalog = false;
@@ -318,8 +360,10 @@ namespace AngryLevelLoader
 			foreach (LevelInfo info in catalog.Levels)
 			{
 				OnlineLevelField field;
+				bool justCreated = false;
 				if (!onlineLevels.TryGetValue(info.Guid, out field))
 				{
+					justCreated = true;
 					field = new OnlineLevelField(onlineLevelContainer);
 					onlineLevels[info.Guid] = field;
 				}
@@ -330,6 +374,7 @@ namespace AngryLevelLoader
 				field.bundleFileSize = info.Size;
 				field.bundleGuid = info.Guid;
 				field.bundleBuildHash = info.Hash;
+				field.lastUpdate = info.LastUpdate;
 
 				// Update ui
 				field.UpdateUI();
@@ -387,22 +432,33 @@ namespace AngryLevelLoader
 					field.DownloadPreviewImage(imageCachePath, false);
 				}
 
-				// Show the field if matches the field
+				// Sort if just created
+				if (justCreated)
+					field.UpdateOrder();
+
+				// Show the field if matches the filter
+				field.hidden = false;
 				if (field.status == OnlineLevelField.OnlineLevelStatus.notInstalled)
 				{
-					if (showNotInstalledLevels.value)
-						field.hidden = false;
+					if (!showNotInstalledLevels.value)
+						field.hidden = true;
 				}
 				else if (field.status == OnlineLevelField.OnlineLevelStatus.installed)
 				{
-					if (showInstalledLevels.value)
-						field.hidden = false;
+					if (!showInstalledLevels.value)
+						field.hidden = true;
 				}
 				else if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
 				{
-					if (showUpdateAvailableLevels.value)
-						field.hidden = false;
+					if (!showUpdateAvailableLevels.value)
+						field.hidden = true;
 				}
+
+				if (field.hidden)
+					continue;
+
+				if (!string.IsNullOrEmpty(authorFilter.value) && field.author.ToLower() != authorFilter.value.ToLower())
+					field.hidden = true;
 			}
 
 			if (dirtyThumbnailCacheHashFile)

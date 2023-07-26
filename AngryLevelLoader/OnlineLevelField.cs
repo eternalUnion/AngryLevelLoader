@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
@@ -20,6 +21,7 @@ namespace AngryLevelLoader
 	{
 		public string bundleGuid;
 		public string bundleBuildHash;
+		public long lastUpdate;
 
 		private RectTransform currentUI = null;
 		private RawImage currentPreview;
@@ -465,6 +467,69 @@ namespace AngryLevelLoader
 				currentRequest = null;
 				UpdateUI();
 			}
+		}
+
+		// Update order for this field only, assuming every other field is ordered correctly
+		public void UpdateOrder()
+		{
+			int order = 0;
+			OnlineLevelField[] allBundles = OnlineLevelsManager.onlineLevels.Values.OrderBy(level => level.siblingIndex).ToArray();
+
+			if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.Name)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(bundleName, allBundles[order].bundleName) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.Author)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(author, allBundles[order].author) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.LastUpdate)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (lastUpdate > allBundles[order].lastUpdate)
+						break;
+
+					order += 1;
+				}
+			}
+
+			if (order < 0)
+				order = 0;
+			else if (order >= allBundles.Length)
+				order = allBundles.Length - 1;
+
+			siblingIndex = order;
 		}
 	}
 }

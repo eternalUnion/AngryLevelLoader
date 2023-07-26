@@ -486,7 +486,6 @@ namespace AngryLevelLoader
 				}
 			}
 			
-			order -= 1;
 			if (order < 0)
 				order = 0;
 			else if (order >= allBundles.Length)

@@ -156,7 +156,7 @@ namespace AngryLevelLoader
 			}
 			else if (bundleSortingMode.value == BundleSorting.LastPlayed)
 			{
-				foreach (var bundle in angryBundles.Values.OrderBy((b) => {
+				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
 					if (lastPlayed.TryGetValue(b.guid, out long time))
 						return time;
 					return 0;
@@ -324,7 +324,11 @@ namespace AngryLevelLoader
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			settingsPanel.hidden = true;
 			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.Alphabetically);
-			bundleSortingMode.onValueChange += (e) => SortBundles();
+			bundleSortingMode.onValueChange += (e) =>
+			{
+				bundleSortingMode.value = e.value;
+				SortBundles();
+			};
 
 			new ConfigHeader(settingsPanel, "Online");
 			new ConfigHeader(settingsPanel, "Online level catalog and thumbnails are cached, if there are no updates only 64 bytes of data is downloaded per refresh", 12, TextAnchor.UpperLeft);
@@ -440,8 +444,13 @@ namespace AngryLevelLoader
 					return;
 
 				lastPress = Time.time;
-				currentBundleContainer.UpdateScenes(false);
+				ReloadFileKeyPressed();
 			}
+		}
+	
+		private void ReloadFileKeyPressed()
+		{
+			currentBundleContainer.UpdateScenes(false);
 		}
 	}
 
@@ -477,6 +486,20 @@ namespace AngryLevelLoader
 			if (secretIndex >= level.field.data.secretCount)
 				return false;
 			return level.secrets.value[secretIndex] == 'T';
+		}
+	}
+
+	public static class RudeBundleInterface
+	{
+		public static bool BundleExists(string bundleGuid)
+		{
+			return Plugin.angryBundles.Values.Where(bundle => bundle.guid == bundleGuid).FirstOrDefault() != null;
+		}
+
+		public static string GetBundleBuildHash(string bundleGuid)
+		{
+			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.guid == bundleGuid).FirstOrDefault();
+			return bundle == null ? "" : bundle.hash;
 		}
 	}
 }
