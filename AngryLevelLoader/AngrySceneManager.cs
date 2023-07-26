@@ -18,9 +18,14 @@ namespace AngryLevelLoader
 		{
 			List<string> requiredScripts = new List<string>();
 			foreach (var data in bundleContainer.GetAllLevelData())
+			{
+				if (data.requiredDllNames == null)
+					continue;
+
 				foreach (string script in data.requiredDllNames)
 					if (!requiredScripts.Contains(script))
 						requiredScripts.Add(script);
+			}
 
 			List<string> scriptsToDownload = new List<string>();
 			foreach (string script in requiredScripts)

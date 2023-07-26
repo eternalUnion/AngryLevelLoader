@@ -428,7 +428,7 @@ namespace AngryLevelLoader
 							downloadProgressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB";
 						}
 
-						yield return new WaitForSeconds(0.5f);
+						yield return new WaitForSecondsRealtime(0.5f);
 					}
 
 					if (!req.isNetworkError && !req.isHttpError)
