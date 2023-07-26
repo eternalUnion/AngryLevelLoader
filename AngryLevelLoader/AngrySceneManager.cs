@@ -1,4 +1,5 @@
-﻿using RudeLevelScript;
+﻿using PluginConfig;
+using RudeLevelScript;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,8 +22,7 @@ namespace AngryLevelLoader
 					if (!requiredScripts.Contains(script))
 						requiredScripts.Add(script);
 
-			List<string> scriptsToLoad = new List<string>();
-			List<string> scriptsToUpdate= new List<string>();
+			List<string> scriptsToDownload = new List<string>();
 			foreach (string script in requiredScripts)
 			{
 				if (Plugin.ScriptLoaded(script))
@@ -32,19 +32,88 @@ namespace AngryLevelLoader
 					{
 						string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
 						if (hash != info.Hash)
-							scriptsToUpdate.Add(script);
+							scriptsToDownload.Add(script);
 					}					
 				}
-				else
+				else if (!Plugin.ScriptExists(script))
 				{
-					scriptsToLoad.Add(script);
+					scriptsToDownload.Add(script);
 				}
 			}
 		
-			if (scriptsToLoad.Count != 0 || scriptsToUpdate.Count != 0)
+			if (scriptsToDownload.Count != 0)
 			{
-
+				NotificationPanel.Open(new ScriptUpdateNotification(scriptsToDownload, requiredScripts, bundleContainer, levelContainer, levelData, levelName));
 			}
+			else
+			{
+				LoadLevelWithScripts(requiredScripts ,bundleContainer, levelContainer, levelData, levelName);
+			}
+		}
+
+		public static void LoadLevelWithScripts(List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+		{
+			Stack<ScriptWarningNotification> notifications = new Stack<ScriptWarningNotification>();
+			foreach (string script in scripts)
+			{
+				if (Plugin.ScriptLoaded(script))
+					continue;
+
+				ScriptWarningNotification notification= null;
+
+				if (!Plugin.ScriptExists(script))
+				{
+					notification = new ScriptWarningNotification("<color=red>Missing Script</color>", $"Script {script} is missing and may cause issues in the level", "Cancel", "Continue", (inst) =>
+					{
+						inst.Close();
+						foreach (var not in notifications)
+							not.Close();
+					}, (inst) =>
+					{
+						inst.Close();
+						notifications.Pop();
+
+						if (notifications.Count == 0)
+						{
+							LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+						}
+					});
+				}
+				else
+				{
+					var result = Plugin.AttemptLoadScriptWithCertificate(script);
+
+					if (result == Plugin.LoadScriptResult.Loaded)
+						continue;
+
+					notification = new ScriptWarningNotification("<color=red>Unverified Script</color>", $"Script {script} {(result == Plugin.LoadScriptResult.NoCertificate ? "has no certificate" : "has invalid certificate")}, loading unverified script could be dangerous", "Cancel", "Load", (inst) =>
+					{
+						inst.Close();
+						foreach (var not in notifications)
+							not.Close();
+					}, (inst) =>
+					{
+						inst.Close();
+						notifications.Pop();
+
+						Plugin.ForceLoadScript(script);
+
+						if (notifications.Count == 0)
+						{
+							LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+						}
+					});
+				}
+
+				if (notification != null)
+				{
+					notifications.Push(notification);
+					NotificationPanel.Open(notification);
+				}
+			}
+
+			if (notifications.Count == 0)
+				LoadLevel(bundleContainer, levelContainer, levelData, levelName);
 		}
 
 		public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)

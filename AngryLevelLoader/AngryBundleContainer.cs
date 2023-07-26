@@ -367,7 +367,8 @@ namespace AngryLevelLoader
 								}
 								else
 								{
-									AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
+									// AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
+									AngrySceneManager.LevelButtonPressed(this, levelContainer, data, data.scenePath);
 								}
 							};
 

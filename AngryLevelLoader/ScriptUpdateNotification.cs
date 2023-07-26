@@ -1,4 +1,5 @@
 ﻿using PluginConfig;
+using RudeLevelScript;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ namespace AngryLevelLoader
 		{
 			public string scriptName;
 			public string fileSizeText = "";
+			public ScriptUpdateNotification caller;
 
 			public enum ScriptStatus
 			{
@@ -48,7 +50,7 @@ namespace AngryLevelLoader
 				{
 					if (downloaded)
 					{
-						if (scriptStatus == ScriptStatus.Update)
+						if (Plugin.ScriptLoaded(scriptName))
 							currentText += "<color=red>RESTART REQUIRED</color>";
 						else
 							currentText += "<color=lime>Installed!</color>";
@@ -57,10 +59,10 @@ namespace AngryLevelLoader
 					{
 						if (scriptStatus == ScriptStatus.NotFound)
 							currentText += "<color=red>Not Available Online</color>";
-						else if (scriptStatus == ScriptStatus.Download || scriptStatus == ScriptStatus.Update)
-						{
-							currentText += $"<color=cyan>Update Available ({fileSizeText})</color>";
-						}
+						else if (scriptStatus == ScriptStatus.Update)
+							currentText += $"<color=cyan>Update Available</color> ({fileSizeText})";
+						else if (scriptStatus == ScriptStatus.Download)
+							currentText += $"<color=orange>Available online</color> ({fileSizeText})";
 
 						if (downloadError)
 							currentText += "\n<color=red>Download error</color>";
@@ -188,8 +190,22 @@ namespace AngryLevelLoader
 					currentDllRequest = null;
 					currentCertRequest = null;
 
+					if (caller != null)
+						caller.CheckContinueButtonInteractable();
+
 					SetStatusText();
 				}
+			}
+
+			public void StopDownload()
+			{
+				if (!downloading)
+					return;
+
+				if (currentDllRequest != null)
+					currentDllRequest.Abort();
+				if (currentCertRequest != null)
+					currentCertRequest.Abort();
 			}
 
 			public bool isDone
@@ -201,17 +217,30 @@ namespace AngryLevelLoader
 			}
 		}
 
-		public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload)
+		public List<string> scripts;
+		public AngryBundleContainer bundleContainer;
+		public LevelContainer levelContainer;
+		public RudeLevelData levelData;
+		public string levelName;
+
+		public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
 		{
+			this.scripts = scripts;
+			this.bundleContainer = bundleContainer;
+			this.levelContainer = levelContainer;
+			this.levelData = levelData;
+			this.levelName = levelName;
+
 			if (scriptsToDownload != null)
 			{
 				foreach (string script in scriptsToDownload)
 				{
 					ScriptUpdateProgressField field = new ScriptUpdateProgressField();
 					field.scriptName = script;
+					field.caller = this;
 					if (ScriptCatalogLoader.TryGetScriptInfo(script, out var scriptInfo))
 					{
-						if (Plugin.ScriptLoaded(script))
+						if (Plugin.ScriptExists(script))
 							field.scriptStatus = ScriptUpdateProgressField.ScriptStatus.Update;
 						else
 							field.scriptStatus = ScriptUpdateProgressField.ScriptStatus.Download;
@@ -222,6 +251,25 @@ namespace AngryLevelLoader
 					fields.Add(field);
 				}
 			}
+		}
+
+		private Button currentContinueButton;
+		public void CheckContinueButtonInteractable()
+		{
+			if (currentContinueButton == null)
+				return;
+
+			bool interactable = true;
+			foreach (var field in fields)
+			{
+				if (field.downloading)
+				{
+					interactable = false;
+					break;
+				}
+			}
+
+			currentContinueButton.interactable = interactable;
 		}
 
 		public override void OnUI(RectTransform panel)
@@ -249,6 +297,9 @@ namespace AngryLevelLoader
 			Button cancel = cancelButton.GetComponent<Button>();
 			cancel.onClick.AddListener(() =>
 			{
+				foreach (var field in fields)
+					field.StopDownload();
+
 				Close();
 			});
 
@@ -263,12 +314,36 @@ namespace AngryLevelLoader
 			{
 				foreach (var field in fields)
 					field.StartDownload();
+
+				if (currentContinueButton != null)
+					currentContinueButton.interactable = false;
+			});
+
+			RectTransform continueButton = UIUtils.MakeButton(panel, "Continue");
+			continueButton.anchorMin = new Vector2(0.5f, 0);
+			continueButton.anchorMax = new Vector2(0.5f, 0);
+			continueButton.pivot = new Vector2(0.5f, 0);
+			continueButton.anchoredPosition = new Vector2(0, 80);
+			continueButton.sizeDelta = new Vector2(600, 60);
+			Button cont = currentContinueButton = continueButton.GetComponent<Button>();
+			foreach (var field in fields)
+			{
+				if (field.downloading)
+				{
+					cont.interactable = false;
+					break;
+				}
+			}
+			cont.onClick.AddListener(() =>
+			{
+				Close();
+				AngrySceneManager.LoadLevelWithScripts(scripts, bundleContainer, levelContainer, levelData, levelName);
 			});
 		}
 	
 		public static void Test()
 		{
-			NotificationPanel.Open(new ScriptUpdateNotification(new List<string>() { "eternalUnion.PhysicsExtensions.dll", "playerStats.dll" }));
+			NotificationPanel.Open(new ScriptUpdateNotification(new List<string>() { "eternalUnion.PhysicsExtensions.dll", "playerStats.dll" }, null, null, null, null, ""));
 		}
 	}
 }

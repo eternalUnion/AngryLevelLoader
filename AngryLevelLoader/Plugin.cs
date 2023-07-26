@@ -321,9 +321,21 @@ namespace AngryLevelLoader
 			return LoadScriptResult.Loaded;
 		}
 
+		public static void ForceLoadScript(string scriptName)
+		{
+			string scriptPath = Path.Combine(workingDir, "Scripts", scriptName);
+			Assembly.Load(File.ReadAllBytes(scriptPath));
+			loadedScripts.Add(scriptName);
+		}
+
 		public static bool ScriptLoaded(string scriptName)
 		{
 			return loadedScripts.Contains(scriptName);
+		}
+
+		public static bool ScriptExists(string scriptName)
+		{
+			return File.Exists(Path.Combine(workingDir, "Scripts", scriptName));
 		}
 
 		private void Awake()
