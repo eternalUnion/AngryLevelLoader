@@ -121,6 +121,29 @@ namespace AngryLevelLoader
 				LoadLevel(bundleContainer, levelContainer, levelData, levelName);
 		}
 
+		public static void SetToUltrapainDifficulty()
+		{
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 5);
+			Ultrapain.Plugin.ultrapainDifficulty = true;
+			Ultrapain.Plugin.realUltrapainDifficulty = true;
+		}
+
+		public static void UnsetUltrapainDifficulty()
+		{
+			Ultrapain.Plugin.realUltrapainDifficulty = false;
+		}
+
+		public static void SetToHeavenOrHellDifficulty()
+		{
+			MyCoolMod.Plugin.isHeavenOrHell = true;
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 3);
+		}
+
+		public static void UnsetHeavenOrHellDifficulty()
+		{
+			MyCoolMod.Plugin.isHeavenOrHell = false;
+		}
+
 		public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
 		{
 			// LEGACY
@@ -133,7 +156,23 @@ namespace AngryLevelLoader
 			Plugin.currentLevelContainer = levelContainer;
 			Plugin.currentLevelData = levelData;
 
-			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
+			if (Plugin.ultrapainLoaded)
+				UnsetUltrapainDifficulty();
+			if (Plugin.heavenOrHellLoaded)
+				UnsetHeavenOrHellDifficulty();
+
+			if (Plugin.selectedDifficulty == 4)
+			{
+				SetToUltrapainDifficulty();
+			}
+			else if (Plugin.selectedDifficulty == 5)
+			{
+				SetToHeavenOrHellDifficulty();
+			}
+			else
+			{
+				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
+			}
 
 			SceneHelper.LoadScene(levelName);
 			Plugin.UpdateLastPlayed(bundleContainer);
@@ -160,8 +199,23 @@ namespace AngryLevelLoader
 		// LEGACY
 		public static void LoadLegacyLevel(string levelPath)
 		{
-			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
-			
+			if (Plugin.ultrapainLoaded)
+				UnsetUltrapainDifficulty();
+			if (Plugin.heavenOrHellLoaded)
+				UnsetHeavenOrHellDifficulty();
+
+			if (Plugin.selectedDifficulty == 4)
+			{
+				SetToUltrapainDifficulty();
+			}
+			else if (Plugin.selectedDifficulty == 5)
+			{
+				SetToHeavenOrHellDifficulty();
+			}
+			else
+			{
+				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
+			}
 			LegacyPatchController.enablePatches = true;
 			LegacyPatchController.Patch();
 			CurrentSceneName = levelPath;

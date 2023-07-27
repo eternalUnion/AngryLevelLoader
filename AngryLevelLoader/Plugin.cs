@@ -18,6 +18,7 @@ using System.Collections;
 using UnityEngine.Audio;
 using RudeLevelScript;
 using PluginConfig;
+using BepInEx.Bootstrap;
 
 namespace AngryLevelLoader
 {
@@ -31,13 +32,18 @@ namespace AngryLevelLoader
 
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
     [BepInDependency(PluginConfig.PluginConfiguratorController.PLUGIN_GUID, "1.6.0")]
-    public class Plugin : BaseUnityPlugin
+	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
+	public class Plugin : BaseUnityPlugin
     {
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.0.0";
 		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelsUnpacked");
 		public static Plugin instance;
+
+		public static bool ultrapainLoaded = false;
+		public static bool heavenOrHellLoaded = false;
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
@@ -292,7 +298,7 @@ namespace AngryLevelLoader
 		}
 		public static EnumField<BundleSorting> bundleSortingMode;
 
-		private static string[] difficultyArr = new string[] { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+		private static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
 		public static string workingDir;
 
@@ -374,6 +380,17 @@ namespace AngryLevelLoader
 			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
 			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
 
+			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))
+			{
+				ultrapainLoaded = true;
+				difficultyList.Add("ULTRAPAIN");
+			}
+			if (Chainloader.PluginInfos.ContainsKey("com.heaven.orhell"))
+			{
+				heavenOrHellLoaded = true;
+				difficultyList.Add("HEAVEN OR HELL");
+			}
+
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
 			config.postConfigChange += UpdateAllUI;
 			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
@@ -398,16 +415,23 @@ namespace AngryLevelLoader
 			};
 			OnlineLevelsManager.Init();
 
-			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyArr, "VIOLENT");
+			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
             difficultySelect.onValueChange += (e) =>
             {
-                selectedDifficulty = Array.IndexOf(difficultyArr, e.value);
+                selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
                 if (selectedDifficulty == -1)
                 {
                     Debug.LogWarning("Invalid difficulty, setting to violent");
                     selectedDifficulty = 3;
 					e.value = "VIOLENT";
                 }
+				else
+				{
+					if (e.value == "ULTRAPAIN")
+						selectedDifficulty = 4;
+					else if (e.value == "HEAVEN OR HELL")
+						selectedDifficulty = 5;
+				}
             };
             difficultySelect.TriggerValueChangeEvent();
 

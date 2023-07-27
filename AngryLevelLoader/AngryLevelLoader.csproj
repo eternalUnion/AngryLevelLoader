@@ -29,8 +29,14 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>libs\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="MyCoolMod">
+      <HintPath>libs\HeavenOrHellDifficulty.dll</HintPath>
+    </Reference>
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
+    </Reference>
+    <Reference Include="Ultrapain">
+      <HintPath>libs\Ultrapain.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>libs\Unity.Addressables.dll</HintPath>
