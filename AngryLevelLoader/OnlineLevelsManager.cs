@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 using static AngryLevelLoader.Plugin;
 
@@ -280,7 +281,6 @@ namespace AngryLevelLoader
 			onlineLevelContainer = new ConfigDivision(onlineLevelsPanel, "p_onlineLevelsDiv");
 
 			LoadThumbnailHashes();
-			ScriptCatalogLoader.StartDownload();
 		}
 
 		public static void SortAll()
@@ -360,6 +360,8 @@ namespace AngryLevelLoader
 
 		public static void RefreshAsync()
 		{
+			ScriptCatalogLoader.StartDownload();
+
 			if (downloadingCatalog)
 				return;
 
@@ -412,6 +414,12 @@ namespace AngryLevelLoader
 
 				if (catalogHash == newCatalogHash)
 				{
+					// Wait for script catalog
+					while (ScriptCatalogLoader.downloading)
+					{
+						yield return null;
+					}
+
 					Debug.Log("Current online level catalog is up to date, loading from cache");
 					PostCatalogLoad();
 					yield break;
@@ -449,6 +457,11 @@ namespace AngryLevelLoader
 				}
 				else
 				{
+					while (ScriptCatalogLoader.downloading)
+					{
+						yield return null;
+					}
+
 					string cachedCatalog = File.ReadAllText(catalogPath);
 					catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
 					string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
@@ -460,7 +473,7 @@ namespace AngryLevelLoader
 
 					if (newLevelNotifierToggle.value)
 					{
-						if (prevLevelCount != -1 && prevLevelCount != catalog.Levels.Count)
+						if (prevLevelCount != -1 && prevLevelCount < catalog.Levels.Count)
 						{
 							newLevelNotifier.hidden = false;
 							newLevelToggle.value = true;
