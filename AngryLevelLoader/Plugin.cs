@@ -468,7 +468,11 @@ namespace AngryLevelLoader
 				levelUpdateAuthorIgnore.value = e.value;
 
 				foreach (var field in OnlineLevelsManager.onlineLevels.Values)
-					field.UpdateInfoText();
+					if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
+					{
+						field.UpdateInfoText();
+						field.UpdateUI();
+					}
 				OnlineLevelsManager.CheckLevelUpdateText();
 			};
 

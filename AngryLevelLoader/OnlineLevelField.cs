@@ -364,7 +364,7 @@ namespace AngryLevelLoader
 				{
 					installActive = false;
 					installButton.gameObject.SetActive(false);
-					updateButton.gameObject.SetActive(true);
+					updateButton.gameObject.SetActive(author != Plugin.levelUpdateAuthorIgnore.value);
 				}
 				else
 				{
