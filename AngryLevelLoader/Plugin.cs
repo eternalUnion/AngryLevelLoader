@@ -38,7 +38,7 @@ namespace AngryLevelLoader
     {
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.0.0";
+        public const string PLUGIN_VERSION = "2.1.0";
 		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelsUnpacked");
 		public static Plugin instance;
 
