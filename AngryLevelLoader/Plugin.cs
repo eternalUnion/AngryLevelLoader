@@ -466,6 +466,9 @@ namespace AngryLevelLoader
 			levelUpdateAuthorIgnore.onValueChange += (e) =>
 			{
 				levelUpdateAuthorIgnore.value = e.value;
+
+				foreach (var field in OnlineLevelsManager.onlineLevels.Values)
+					field.UpdateInfoText();
 				OnlineLevelsManager.CheckLevelUpdateText();
 			};
 

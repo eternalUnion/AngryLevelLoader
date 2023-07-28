@@ -69,7 +69,7 @@ namespace AngryLevelLoader
 			set
 			{
 				_bundleName = value;
-				UpdateInfo();
+				UpdateInfoText();
 			}
 		}
 		private string _author;
@@ -79,7 +79,7 @@ namespace AngryLevelLoader
 			set
 			{
 				_author = value;
-				UpdateInfo();
+				UpdateInfoText();
 			}
 		}
 		private int _bundleFileSize;
@@ -89,7 +89,7 @@ namespace AngryLevelLoader
 			set
 			{
 				_bundleFileSize = value;
-				UpdateInfo();
+				UpdateInfoText();
 			}
 		}
 		private string GetFileSizeString()
@@ -116,7 +116,7 @@ namespace AngryLevelLoader
 			set
 			{
 				_status = value;
-				UpdateInfo();
+				UpdateInfoText();
 			}
 		}
 		private string GetStatusString()
@@ -124,11 +124,23 @@ namespace AngryLevelLoader
 			if (_status == OnlineLevelStatus.notInstalled)
 				return $"<color=red>Not installed</color>";
 			else if (_status == OnlineLevelStatus.updateAvailable)
-				return $"<color=cyan>Update available</color>";
+			{
+				if (author == Plugin.levelUpdateAuthorIgnore.value)
+				{
+					if (Plugin.GetAngryBundleByGuid(bundleGuid) != null)
+						return $"<color=lime>Installed</color>";
+					else
+						return $"<color=red>Not installed</color>";
+				}
+				else
+				{
+					return $"<color=cyan>Update available</color>";
+				}
+			}
 			else
 				return $"<color=lime>Installed</color>";
 		}
-		private void UpdateInfo()
+		public void UpdateInfoText()
 		{
 			if (currentBundleInfo == null)
 				return;
@@ -230,7 +242,7 @@ namespace AngryLevelLoader
 			infoRect.anchoredPosition = new Vector2(180, 60);
 			infoRect.pivot = new Vector2(0, 1);
 			infoRect.sizeDelta = new Vector2(300, 160);
-			UpdateInfo();
+			UpdateInfoText();
 
 			RectTransform install = CreateButton(fieldUI, "Install", true, fieldUI.gameObject, e => { if (installActive) installButton.gameObject.SetActive(true); });
 			installButton = install.GetComponent<Button>();
