@@ -44,6 +44,21 @@ namespace AngryLevelLoader
 				{
 					scriptsToDownload.Add(script);
 				}
+				else
+				{
+					// Download if no or invalid certificate
+					bool validCert = true;
+					string scriptPath = Path.Combine(Plugin.workingDir, "Scripts", script);
+					string scriptCertPath = Path.Combine(scriptPath + ".cert");
+
+					if (!File.Exists(scriptCertPath))
+						validCert = false;
+					else if (!CryptographyUtils.VerifyFileCertificate(scriptPath, scriptCertPath))
+						validCert = false;
+
+					if (!validCert)
+						scriptsToDownload.Add(script);
+				}
 			}
 		
 			if (scriptsToDownload.Count != 0)
