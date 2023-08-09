@@ -137,8 +137,8 @@ namespace AngryLevelLoader
 
 				try
 				{
-					currentDllRequest = new UnityWebRequest($"https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/Scripts/{scriptName}");
-					currentCertRequest = new UnityWebRequest($"https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/Scripts/{scriptName}.cert");
+					currentDllRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL($"Scripts/{scriptName}"));
+					currentCertRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL($"Scripts/{scriptName}.cert"));
 
 					string tempPath = Path.Combine(Plugin.workingDir, "TempDownloads");
 					if (!Directory.Exists(tempPath))

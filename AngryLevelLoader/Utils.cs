@@ -99,14 +99,14 @@ namespace AngryLevelLoader
 		{
 			MD5 md5 = MD5.Create();
 			byte[] hash = md5.ComputeHash(Encoding.ASCII.GetBytes(text));
-			return ByteArrayToString(hash).ToLower(); ;
+			return ByteArrayToString(hash).ToLower();
 		}
 
 		public static string GetMD5String(byte[] data)
 		{
 			MD5 md5 = MD5.Create();
 			byte[] hash = md5.ComputeHash(data);
-			return ByteArrayToString(hash).ToLower(); ;
+			return ByteArrayToString(hash).ToLower();
 		}
 	}
 
@@ -170,6 +170,8 @@ namespace AngryLevelLoader
 			UnityUtils.GetComponentInChildrenRecursively<ScrollRect>(panel.transform).normalizedPosition = new Vector2(0, 1);
 			VerticalLayoutGroup contentLayout = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(panel.transform);
 			contentLayout.spacing = spacing;
+			ContentSizeFitter fitter = contentLayout.gameObject.AddComponent<ContentSizeFitter>();
+			fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 			foreach (Transform child in contentLayout.transform)
 			{
 				GameObject.Destroy(child.gameObject);

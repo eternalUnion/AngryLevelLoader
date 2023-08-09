@@ -22,6 +22,8 @@ namespace AngryLevelLoader
 {
 	public class BundleData
 	{
+		public string bundleName { get; set; }
+		public string bundleAuthor { get; set; }
 		public string bundleGuid { get; set; }
 		public string buildHash { get; set; }
 		public string bundleDataPath { get; set; }
@@ -136,7 +138,7 @@ namespace AngryLevelLoader
 		/// </summary>
 		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
 		/// <returns>Success</returns>
-		private bool ReloadBundle(bool forceReload)
+		private bool ReloadBundle(bool forceReload, bool lazyLoad)
 		{
 			// Release data handle
 			foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
@@ -150,7 +152,7 @@ namespace AngryLevelLoader
 			if (locator != null)
 			{
 				Addressables.RemoveResourceLocator(locator);
-				Addressables.CleanBundleCache(new string[] { locator.LocatorId });
+				Addressables.CleanBundleCache();
 			}
 
 			// LEGACY
@@ -173,6 +175,9 @@ namespace AngryLevelLoader
 					statusText.text += '\n';
 				statusText.text += "<color=yellow>Warning: Legacy angry file detected! Support for this format will be dropped on future updates!</color>";
 
+				if (lazyLoad)
+					return true;
+
 				LoadLegacy(pathToAngryBundle);
 				return true;
 			}
@@ -190,13 +195,24 @@ namespace AngryLevelLoader
 				using (TextReader dataReader = new StreamReader(dataEntry.Open()))
 				{
 					BundleData newData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
-
+					
 					hash = newData.buildHash;
 					guid = newData.bundleGuid;
 
 					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
 					dataPaths = newData.levelDataPaths;
 					bundleDataAddress = newData.bundleDataPath;
+
+					rootPanel.displayName = name = string.IsNullOrEmpty(newData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : newData.bundleName;
+					rootPanel.headerText = $"--{rootPanel.displayName}--";
+					if (!string.IsNullOrEmpty(newData.bundleAuthor))
+					{
+						rootPanel.displayName += $"\n<color=#909090>by {newData.bundleAuthor}</color>";
+						author = newData.bundleAuthor;
+					}
+
+					if (string.IsNullOrEmpty(newData.bundleName))
+						lazyLoad = false;
 
 					// If force reload is set to false, check if the build hashes match
 					// between unzipped bundle and the current angry file.
@@ -227,8 +243,11 @@ namespace AngryLevelLoader
 				}
 			}
 
+			if (lazyLoad)
+				return true;
+
 			// Load the catalog
-			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), true).WaitForCompletion();
+			locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false).WaitForCompletion();
 
 			// Load the bundle name
 			if (bundleDataAddress != null && !string.IsNullOrEmpty(bundleDataAddress))
@@ -305,7 +324,7 @@ namespace AngryLevelLoader
 		}
 
 		private bool updating = false;
-		private IEnumerator UpdateScenesInternal(bool forceReload)
+		private IEnumerator UpdateScenesInternal(bool forceReload, bool lazyLoad)
 		{
 			updating = true;
 			sceneDiv.interactable = false;
@@ -339,7 +358,7 @@ namespace AngryLevelLoader
 					sceneDiv.hidden = true;
 					statusText.hidden = true;
 					statusText.text = "";
-					ReloadBundle(forceReload);
+					ReloadBundle(forceReload, lazyLoad);
 
 					int currentIndex = 0;
 					foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
@@ -409,7 +428,7 @@ namespace AngryLevelLoader
 			sceneDiv.hidden = false;
 
 			// Update online field if there are any
-			if (author != Plugin.levelUpdateAuthorIgnore.value && OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
+			if (OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
 			{
 				if (field.bundleBuildHash == hash)
 				{
@@ -501,11 +520,11 @@ namespace AngryLevelLoader
 		/// Reloads the angry file and adds the new scenes
 		/// </summary>
 		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
-		public void UpdateScenes(bool forceReload)
+		public void UpdateScenes(bool forceReload, bool lazyLoad)
 		{
 			if (updating)
 				return;
-			BundleManager.instance.StartCoroutine(UpdateScenesInternal(forceReload));
+			BundleManager.instance.StartCoroutine(UpdateScenesInternal(forceReload, lazyLoad));
 		}
 		
 		public AngryBundleContainer(string path)
@@ -514,13 +533,18 @@ namespace AngryLevelLoader
 			this.pathToAngryBundle = path;
 
 			rootPanel = new ConfigPanel(Plugin.bundleDivision, Path.GetFileNameWithoutExtension(path), Path.GetFileName(path), ConfigPanel.PanelFieldType.StandardWithBigIcon);
+			rootPanel.onPannelOpenEvent += (external) =>
+			{
+				if (locator == null && allBundles.Count == 0)
+					UpdateScenes(false, false);
+			};
 			guid = "";
 			hash = "";
 			name = rootPanel.displayName;
 			author = "";
 
 			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
-			reloadButton.onClick += () => UpdateScenes(false);
+			reloadButton.onClick += () => UpdateScenes(false, false);
 			
 			new SpaceField(rootPanel, 5);
 

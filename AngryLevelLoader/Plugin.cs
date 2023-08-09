@@ -36,9 +36,11 @@ namespace AngryLevelLoader
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
     {
+		public const bool devMode = false;
+
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.1.0";
+        public const string PLUGIN_VERSION = "2.2.0";
 		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelsUnpacked");
 		public static Plugin instance;
 
@@ -136,7 +138,7 @@ namespace AngryLevelLoader
 				angryBundles[path] = level;
 				try
 				{
-					level.UpdateScenes(false);
+					level.UpdateScenes(false, true);
 				}
 				catch (Exception e)
 				{
@@ -281,6 +283,7 @@ namespace AngryLevelLoader
 		public static PluginConfigurator config;
 		public static ConfigHeader levelUpdateNotifier;
 		public static ConfigHeader newLevelNotifier;
+		public static StringField newLevelNotifierLevels;
 		public static BoolField newLevelToggle;
         public static ConfigHeader errorText;
 		public static ConfigDivision bundleDivision;
@@ -288,8 +291,12 @@ namespace AngryLevelLoader
 		public static KeyCodeField reloadFileKeybind;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField levelUpdateNotifierToggle;
+		public static BoolField levelUpdateIgnoreCustomBuilds;
 		public static BoolField newLevelNotifierToggle;
-		public static StringField levelUpdateAuthorIgnore;
+		public static List<string> scriptCertificateIgnore = new List<string>();
+		public static StringMultilineField scriptCertificateIgnoreField;
+		public static BoolField useDevelopmentBranch;
+		public static BoolField scriptUpdateIgnoreCustom;
 		public enum BundleSorting
 		{
 			Alphabetically,
@@ -399,7 +406,11 @@ namespace AngryLevelLoader
 			config.rootPanel.onPannelOpenEvent += (external) =>
 			{
 				if (newLevelToggle.value)
+				{
+					newLevelNotifier.text = string.Join("\n", Plugin.newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
 					newLevelNotifier.hidden = false;
+					Plugin.newLevelNotifierLevels.value = "";
+				}
 				newLevelToggle.value = false;
 			};
 
@@ -449,12 +460,23 @@ namespace AngryLevelLoader
 			new ConfigHeader(settingsPanel, "Online");
 			new ConfigHeader(settingsPanel, "Online level catalog and thumbnails are cached, if there are no updates only 64 bytes of data is downloaded per refresh", 12, TextAnchor.UpperLeft);
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
+			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
+			if (!devMode)
+				useDevelopmentBranch.hidden = true;
 			levelUpdateNotifierToggle = new BoolField(settingsPanel, "Notify on level updates", "s_levelUpdateNofify", true);
 			levelUpdateNotifierToggle.onValueChange += (e) =>
 			{
 				levelUpdateNotifierToggle.value = e.value;
 				OnlineLevelsManager.CheckLevelUpdateText();
 			};
+			levelUpdateIgnoreCustomBuilds = new BoolField(settingsPanel, "Ignore updates for custom build", "s_levelUpdateIgnoreCustomBuilds", false);
+			levelUpdateIgnoreCustomBuilds.onValueChange += (e) =>
+			{
+				levelUpdateIgnoreCustomBuilds.value = e.value;
+				OnlineLevelsManager.CheckLevelUpdateText();
+			};
+			newLevelNotifierLevels = new StringField(settingsPanel, "h_New levels", "s_newLevelNotifierLevels", "", true);
+			newLevelNotifierLevels.hidden = true;
 			newLevelNotifierToggle = new BoolField(settingsPanel, "Notify on new level release", "s_newLevelNotiftToggle", true);
 			newLevelNotifierToggle.onValueChange += (e) =>
 			{
@@ -462,20 +484,11 @@ namespace AngryLevelLoader
 				if (!e.value)
 					newLevelNotifier.hidden = true;
 			};
-			levelUpdateAuthorIgnore = new StringField(settingsPanel, "Ignore update from author", "s_updateIgnoreAuthor", "", true);
-			levelUpdateAuthorIgnore.onValueChange += (e) =>
-			{
-				levelUpdateAuthorIgnore.value = e.value;
-
-				foreach (var field in OnlineLevelsManager.onlineLevels.Values)
-					if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
-					{
-						field.UpdateInfoText();
-						field.UpdateUI();
-					}
-				OnlineLevelsManager.CheckLevelUpdateText();
-			};
-
+			new ConfigHeader(settingsPanel, "Scripts");
+			scriptUpdateIgnoreCustom = new BoolField(settingsPanel, "Ignore updates for custom builds", "s_scriptUpdateIgnoreCustom", false);
+			scriptCertificateIgnoreField = new StringMultilineField(settingsPanel, "Certificate ignore", "s_scriptCertificateIgnore", "", true);
+			scriptCertificateIgnore = scriptCertificateIgnoreField.value.Split('\n').ToList();
+			
 			ButtonArrayField settingsAndReload = new ButtonArrayField(config.rootPanel, "settingsAndReload", 2, new float[] { 0.5f, 0.5f }, new string[] { "Settings", "Scan For Levels" });
 			settingsAndReload.OnClickEventHandler(0).onClick += () =>
 			{
@@ -583,7 +596,7 @@ namespace AngryLevelLoader
 		private void ReloadFileKeyPressed()
 		{
 			if (currentBundleContainer != null)
-				currentBundleContainer.UpdateScenes(false);
+				currentBundleContainer.UpdateScenes(false, false);
 		}
 	}
 

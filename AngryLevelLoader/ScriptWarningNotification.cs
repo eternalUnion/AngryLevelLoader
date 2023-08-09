@@ -13,17 +13,26 @@ namespace AngryLevelLoader
 		public string text;
 		public string leftButtonName;
 		public string rightButtonName;
+		public string topButtonName;
 		public Action<ScriptWarningNotification> leftButton;
 		public Action<ScriptWarningNotification> rightButton;
+		public Action<ScriptWarningNotification> topButton;
 
-		public ScriptWarningNotification(string header, string text, string leftButtonName, string rightButtonName, Action<ScriptWarningNotification> leftButton, Action<ScriptWarningNotification> rightButton)
+		public ScriptWarningNotification(string header, string text, string leftButtonName, string rightButtonName, Action<ScriptWarningNotification> leftButton, Action<ScriptWarningNotification> rightButton, string topButtonName, Action<ScriptWarningNotification> topButton)
 		{
 			this.header = header;
 			this.text = text;
 			this.leftButtonName = leftButtonName;
 			this.rightButtonName = rightButtonName;
+			this.topButtonName = topButtonName;
 			this.leftButton = leftButton;
 			this.rightButton = rightButton;
+			this.topButton = topButton;
+		}
+
+		public ScriptWarningNotification(string header, string text, string leftButtonName, string rightButtonName, Action<ScriptWarningNotification> leftButton, Action<ScriptWarningNotification> rightButton) : this(header, text, leftButtonName, rightButtonName, leftButton, rightButton, "", null)
+		{
+
 		}
 
 		public override void OnUI(RectTransform panel)
@@ -65,6 +74,21 @@ namespace AngryLevelLoader
 			{
 				this.rightButton(this);
 			});
+
+			if (topButton != null)
+			{
+				RectTransform topButton = UIUtils.MakeButton(panel, topButtonName);
+				topButton.anchorMin = new Vector2(0.5f, 0);
+				topButton.anchorMax = new Vector2(0.5f, 0);
+				topButton.pivot = new Vector2(0.5f, 0);
+				topButton.anchoredPosition = new Vector2(0, 80);
+				topButton.sizeDelta = new Vector2(600, 60);
+				Button top = topButton.GetComponent<Button>();
+				top.onClick.AddListener(() =>
+				{
+					this.topButton(this);
+				});
+			}
 		}
 	}
 }

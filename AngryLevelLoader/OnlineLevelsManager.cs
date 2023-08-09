@@ -19,13 +19,21 @@ namespace AngryLevelLoader
 {
 	public class LevelInfo
 	{
+		public class UpdateInfo
+		{
+			public string Hash { get; set; }
+			public string Message { get; set; }
+		}
+
 		public string Name { get; set; }
 		public string Author { get; set; }
 		public string Guid { get; set; }
 		public int Size { get; set; }
 		public string Hash { get; set; }
 		public string ThumbnailHash { get; set; }
+		
 		public long LastUpdate { get; set; }
+		public List<UpdateInfo> Updates;
 	}
 
 	public class LevelCatalog
@@ -38,6 +46,7 @@ namespace AngryLevelLoader
 		public string FileName { get; set; }
 		public string Hash { get; set; }
 		public int Size { get; set; }
+		public List<string> Updates;
 	}
 
 	public class ScriptCatalog
@@ -141,7 +150,7 @@ namespace AngryLevelLoader
 			try
 			{
 				string newHash = "";
-				UnityWebRequest hashReq = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/ScriptCatalogHash.txt");
+				UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL("ScriptCatalogHash.txt"));
 				try
 				{
 					hashReq.downloadHandler = new DownloadHandlerBuffer();
@@ -173,7 +182,7 @@ namespace AngryLevelLoader
 					}
 				}
 
-				UnityWebRequest updatedCatalogRequest = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/ScriptCatalog.json");
+				UnityWebRequest updatedCatalogRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL("ScriptCatalog.json"));
 				try
 				{
 					updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -191,7 +200,7 @@ namespace AngryLevelLoader
 
 					if (currentHash != newHash)
 					{
-						Debug.LogWarning("New script catalog hash value does not match online catalog hash value, github page not cached yet");
+						Debug.LogWarning($"New script catalog hash value does not match online catalog hash value, github page not cached yet (current hash is {currentHash}. online hash is {newHash})");
 					}
 				}
 				finally
@@ -234,6 +243,15 @@ namespace AngryLevelLoader
 		public static ConfigDivision onlineLevelContainer;
 		public static LoadingCircleField loadingCircle;
 
+		public static string GetGithubURL(string path)
+		{
+			string branch = "release";
+			if (Plugin.useDevelopmentBranch.value)
+				branch = "dev";
+
+			return $"https://raw.githubusercontent.com/eternalUnion/AngryLevels/{branch}/{path}";
+		}
+
 		// Filters
 		public enum SortFilter
 		{
@@ -255,6 +273,10 @@ namespace AngryLevelLoader
 				instance = new GameObject().AddComponent<OnlineLevelsManager>();
 				UnityEngine.Object.DontDestroyOnLoad(instance);
 			}
+
+			string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
+			if (File.Exists(cachedCatalogPath))
+				catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
 
 			var filterPanel = new ConfigPanel(onlineLevelsPanel, "Filters", "online_filters");
 			filterPanel.hidden = true;
@@ -375,7 +397,7 @@ namespace AngryLevelLoader
 
 		private IEnumerator m_CheckCatalogVersion()
 		{
-			int prevLevelCount = -1;
+			LevelCatalog prevCatalog = catalog;
 			catalog = null;
 			downloadingCatalog = true;
 
@@ -384,7 +406,7 @@ namespace AngryLevelLoader
 
 			try
 			{
-				UnityWebRequest catalogVersionRequest = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/LevelCatalogHash.txt");
+				UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL("LevelCatalogHash.txt"));
 				catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
 				yield return catalogVersionRequest.SendWebRequest();
 
@@ -410,8 +432,7 @@ namespace AngryLevelLoader
 				string cachedCatalog = File.ReadAllText(cachedCatalogPath);
 				string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
 				catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
-				prevLevelCount = catalog.Levels.Count;
-
+				
 				if (catalogHash == newCatalogHash)
 				{
 					// Wait for script catalog
@@ -430,10 +451,10 @@ namespace AngryLevelLoader
 
 			Debug.Log("Current online level catalog is out of date, downloading from web");
 			downloadingCatalog = true;
-			instance.StartCoroutine(m_DownloadCatalog(newCatalogHash, prevLevelCount));
+			instance.StartCoroutine(m_DownloadCatalog(newCatalogHash, prevCatalog));
 		}
 
-		private IEnumerator m_DownloadCatalog(string newHash, int prevLevelCount)
+		private IEnumerator m_DownloadCatalog(string newHash, LevelCatalog prevCatalog)
 		{
 			downloadingCatalog = true;
 			catalog = null;
@@ -445,7 +466,7 @@ namespace AngryLevelLoader
 					Directory.CreateDirectory(catalogDir);
 				string catalogPath = Path.Combine(catalogDir, "LevelCatalog.json");
 
-				UnityWebRequest catalogRequest = new UnityWebRequest("https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/LevelCatalog.json");
+				UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL("LevelCatalog.json"));
 				catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
 				yield return catalogRequest.SendWebRequest();
 			
@@ -463,21 +484,33 @@ namespace AngryLevelLoader
 					}
 
 					string cachedCatalog = File.ReadAllText(catalogPath);
-					catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
 					string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+					catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
 
 					if (catalogHash != newHash)
 					{
-						Debug.LogWarning("Catalog hash does not match, Github did not cache the new catalog yet");
+						Debug.LogWarning($"Catalog hash does not match, github did not cache the new catalog yet (current hash is {catalogHash}. online hash is {newHash})");
 					}
 
-					if (newLevelNotifierToggle.value)
+					if (newLevelNotifierToggle.value && prevCatalog != null)
 					{
-						if (prevLevelCount != -1 && prevLevelCount < catalog.Levels.Count)
+						List<string> newLevels = catalog.Levels.Where(level => prevCatalog.Levels.Where(l => l.Guid == level.Guid).FirstOrDefault() == null).Select(level => level.Name).ToList();
+						
+						if (newLevels.Count != 0)
 						{
+							if (!string.IsNullOrEmpty(Plugin.newLevelNotifierLevels.value))
+								newLevels.AddRange(Plugin.newLevelNotifierLevels.value.Split('`'));
+							newLevels = newLevels.Distinct().ToList();
+							Plugin.newLevelNotifierLevels.value = string.Join("`", newLevels);
+
+							newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
 							newLevelNotifier.hidden = false;
 							newLevelToggle.value = true;
 						}
+					}
+					else
+					{
+						newLevelNotifier.hidden = true;
 					}
 				}
 			}
@@ -546,7 +579,7 @@ namespace AngryLevelLoader
 					thumbnailHashes[info.Guid] = info.ThumbnailHash;
 					dirtyThumbnailCacheHashFile = true;
 
-					UnityWebRequest req = new UnityWebRequest($"https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/Levels/{info.Guid}/thumbnail.png");
+					UnityWebRequest req = new UnityWebRequest(GetGithubURL($"Levels/{info.Guid}/thumbnail.png"));
 					req.downloadHandler = new DownloadHandlerFile(imageCachePath);
 					var handle = req.SendWebRequest();
 
@@ -612,16 +645,29 @@ namespace AngryLevelLoader
 				return;
 			}
 
+			Plugin.levelUpdateNotifier.text = "";
+			Plugin.levelUpdateNotifier.hidden = true;
 			foreach (OnlineLevelField field in onlineLevels.Values)
 			{
-				if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable && field.author != Plugin.levelUpdateAuthorIgnore.value)
+				if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
 				{
+					if (Plugin.levelUpdateIgnoreCustomBuilds.value)
+					{
+						AngryBundleContainer container = Plugin.GetAngryBundleByGuid(field.bundleGuid);
+						if (container != null)
+						{
+							LevelInfo info = catalog.Levels.Where(level => level.Guid == field.bundleGuid).First();
+							if (info.Updates != null && !info.Updates.Select(u => u.Hash).Contains(container.hash))
+								continue;
+						}
+					}
+
+					if (Plugin.levelUpdateNotifier.text != "")
+						Plugin.levelUpdateNotifier.text += '\n';
+					Plugin.levelUpdateNotifier.text += $"<color=cyan>Update available for {field.bundleName}</color>";
 					Plugin.levelUpdateNotifier.hidden = false;
-					return;
 				}
 			}
-
-			Plugin.levelUpdateNotifier.hidden = true;
 		}
 	}
 }

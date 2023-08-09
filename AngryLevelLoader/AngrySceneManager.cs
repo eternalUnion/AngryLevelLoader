@@ -30,34 +30,29 @@ namespace AngryLevelLoader
 			List<string> scriptsToDownload = new List<string>();
 			foreach (string script in requiredScripts)
 			{
-				if (Plugin.ScriptLoaded(script))
+				if (Plugin.ScriptExists(script))
 				{
+					// Download if out of date
 					ScriptInfo info = ScriptCatalogLoader.scriptCatalog == null ? null : ScriptCatalogLoader.scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
 					if (info != null)
 					{
 						string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
 						if (hash != info.Hash)
+						{
+							if (Plugin.scriptUpdateIgnoreCustom.value)
+							{
+								if (info.Updates != null && !info.Updates.Contains(hash))
+									continue;
+							}
+
 							scriptsToDownload.Add(script);
+						}
 					}					
-				}
-				else if (!Plugin.ScriptExists(script))
-				{
-					scriptsToDownload.Add(script);
 				}
 				else
 				{
-					// Download if no or invalid certificate
-					bool validCert = true;
-					string scriptPath = Path.Combine(Plugin.workingDir, "Scripts", script);
-					string scriptCertPath = Path.Combine(scriptPath + ".cert");
-
-					if (!File.Exists(scriptCertPath))
-						validCert = false;
-					else if (!CryptographyUtils.VerifyFileCertificate(scriptPath, scriptCertPath))
-						validCert = false;
-
-					if (!validCert)
-						scriptsToDownload.Add(script);
+					// Download if not found locally
+					scriptsToDownload.Add(script);
 				}
 			}
 		
@@ -74,6 +69,7 @@ namespace AngryLevelLoader
 		public static void LoadLevelWithScripts(List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
 		{
 			Stack<ScriptWarningNotification> notifications = new Stack<ScriptWarningNotification>();
+			Plugin.scriptCertificateIgnore = Plugin.scriptCertificateIgnoreField.value.Split('\n').ToList();
 			foreach (string script in scripts)
 			{
 				if (Plugin.ScriptLoaded(script))
@@ -106,6 +102,12 @@ namespace AngryLevelLoader
 					if (result == Plugin.LoadScriptResult.Loaded)
 						continue;
 
+					if (Plugin.scriptCertificateIgnore.Contains(script))
+					{
+						Plugin.ForceLoadScript(script);
+						continue;
+					}
+
 					notification = new ScriptWarningNotification("<color=red>Unverified Script</color>", $"Script {script} {(result == Plugin.LoadScriptResult.NoCertificate ? "has no certificate" : "has invalid certificate")}, loading scripts from unknown sources could be dangerous", "Cancel", "Load", (inst) =>
 					{
 						inst.Close();
@@ -113,6 +115,22 @@ namespace AngryLevelLoader
 							not.Close();
 					}, (inst) =>
 					{
+						inst.Close();
+						notifications.Pop();
+
+						Plugin.ForceLoadScript(script);
+
+						if (notifications.Count == 0)
+						{
+							LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+						}
+					},
+					"Don't Ask Again For This Script",
+					(inst) =>
+					{
+						Plugin.scriptCertificateIgnore.Add(script);
+						Plugin.scriptCertificateIgnoreField.value = string.Join("\n", Plugin.scriptCertificateIgnore);
+
 						inst.Close();
 						notifications.Pop();
 

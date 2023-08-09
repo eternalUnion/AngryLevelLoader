@@ -125,17 +125,7 @@ namespace AngryLevelLoader
 				return $"<color=red>Not installed</color>";
 			else if (_status == OnlineLevelStatus.updateAvailable)
 			{
-				if (author == Plugin.levelUpdateAuthorIgnore.value)
-				{
-					if (Plugin.GetAngryBundleByGuid(bundleGuid) != null)
-						return $"<color=lime>Installed</color>";
-					else
-						return $"<color=red>Not installed</color>";
-				}
-				else
-				{
-					return $"<color=cyan>Update available</color>";
-				}
+				return $"<color=cyan>Update available</color>";
 			}
 			else
 				return $"<color=lime>Installed</color>";
@@ -254,7 +244,33 @@ namespace AngryLevelLoader
 
 			RectTransform update = CreateButton(fieldUI, "Update", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
 			updateButton = update.GetComponent<Button>();
-			updateButton.onClick.AddListener(StartDownload);
+			updateButton.onClick.AddListener(() =>
+			{
+				LevelInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
+				
+				if (onlineBundle.Updates == null)
+				{
+					StartDownload();
+				}
+				else
+				{
+					if (bundle == null)
+					{
+						bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+						if (bundle == null)
+						{
+							StartDownload();
+							return;
+						}
+					}
+
+					LevelUpdateNotification notification = new LevelUpdateNotification();
+					notification.currentHash = bundle.hash;
+					notification.onlineInfo = onlineBundle;
+					notification.callback = this;
+					NotificationPanel.Open(notification);
+				}
+			});
 			update.anchorMin = update.anchorMax = new Vector2(1, 0.5f);
 			update.pivot = new Vector2(1, 0.5f);
 			update.anchoredPosition = new Vector2(-10, 0);
@@ -364,7 +380,7 @@ namespace AngryLevelLoader
 				{
 					installActive = false;
 					installButton.gameObject.SetActive(false);
-					updateButton.gameObject.SetActive(author != Plugin.levelUpdateAuthorIgnore.value);
+					updateButton.gameObject.SetActive(true);
 				}
 				else
 				{
@@ -405,7 +421,7 @@ namespace AngryLevelLoader
 			downloading = true;
 			try
 			{
-				string bundleUrl = $"https://raw.githubusercontent.com/eternalUnion/AngryLevels/release/Levels/{bundleGuid}/level.angry";
+				string bundleUrl = OnlineLevelsManager.GetGithubURL($"Levels/{bundleGuid}/level.angry");
 				string tempDownloadDir = Path.Combine(Plugin.workingDir, "TempDownloads");
 				if (!Directory.Exists(tempDownloadDir))
 					Directory.CreateDirectory(tempDownloadDir);
@@ -461,7 +477,7 @@ namespace AngryLevelLoader
 						else
 						{
 							File.Copy(tempDownloadPath, bundle.pathToAngryBundle, true);
-							bundle.UpdateScenes(false);
+							bundle.UpdateScenes(false, false);
 						}
 					}
 
@@ -478,6 +494,7 @@ namespace AngryLevelLoader
 				downloading = false;
 				currentRequest = null;
 				UpdateUI();
+				OnlineLevelsManager.CheckLevelUpdateText();
 			}
 		}
 
