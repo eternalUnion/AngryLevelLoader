@@ -19,5 +19,10 @@ namespace AngryLoaderAPI
 		{
 			return RudeLevelInterface.GetLevelSecret(levelId, secretIndex);
 		}
-	}
+
+        public static string GetCurrentLevelId()
+        {
+            return RudeLevelInterface.GetCurrentLevelId();
+        }
+    }
 }

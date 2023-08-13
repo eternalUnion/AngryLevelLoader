@@ -30,7 +30,7 @@ namespace AngryLevelLoader.patches
 			if (!Plugin.isInCustomScene)
 				return;
 
-			__instance.challengeComplete = Plugin.currentLevelContainer.challenge.value;
+			__instance.challengeComplete = false;
 
 			__instance.secretObjects = new GameObject[Plugin.currentLevelData.secretCount];
 
@@ -87,9 +87,6 @@ namespace AngryLevelLoader.patches
 			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
 			if (!Plugin.isInCustomScene || secretLevel)
 				return true;
-
-			if (!Plugin.currentLevelData.levelChallengeEnabled)
-				__instance.challengeComplete = true;
 
 			Transform secretContainer = __instance.fr.transform.Find("Secrets - Info");
 			if (secretContainer != null)
@@ -171,8 +168,11 @@ namespace AngryLevelLoader.patches
 			int previousRankScore = RankUtils.GetRankScore(Plugin.currentLevelContainer.finalRank.value[0]);
 			int currentRankScore = RankUtils.GetRankScore(currentRank);
 
-			bool playerBestWithoutCheats = !AssistController.instance.cheatsEnabled && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < Plugin.currentLevelContainer.time.value));
-			bool firstTimeWithCheats = previousRankScore == -1 && AssistController.instance.cheatsEnabled;
+			bool usedCheats = AssistController.instance.cheatsEnabled;
+			bool challengeCompletedThisSeason = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
+			bool challengeCompletedBefore = Plugin.currentLevelContainer.challenge.value;
+            bool playerBestWithoutCheats = !usedCheats && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < Plugin.currentLevelContainer.time.value));
+			bool firstTimeWithCheats = previousRankScore == -1 && usedCheats;
 
 			if (playerBestWithoutCheats || firstTimeWithCheats)
 			{
@@ -183,15 +183,15 @@ namespace AngryLevelLoader.patches
 				Plugin.currentLevelContainer.style.value = __instance.stylePoints;
 				Plugin.currentLevelContainer.styleRank.value = RemoveFormatting(__instance.fr.styleRank.text);
 
-				if (AssistController.instance.cheatsEnabled)
+				if (usedCheats)
 				{
 					Plugin.currentLevelContainer.finalRank.value = " ";
 				}
 				else
 				{
 					Plugin.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
-					if (!Plugin.currentLevelContainer.challenge.value && Plugin.currentLevelData.levelChallengeEnabled)
-						Plugin.currentLevelContainer.challenge.value = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
+					if (!challengeCompletedBefore && Plugin.currentLevelData.levelChallengeEnabled)
+						Plugin.currentLevelContainer.challenge.value = challengeCompletedThisSeason;
 				}
 
 				Plugin.UpdateAllUI();
@@ -205,6 +205,20 @@ namespace AngryLevelLoader.patches
 			}
 			else
 				Debug.LogWarning("Could not find challenge text");
+
+			// Set challenge panel
+			if (Plugin.currentLevelData.levelChallengeEnabled && (challengeCompletedThisSeason || challengeCompletedBefore))
+			{
+				Debug.Log("Enabling challenge panel since it is completed now or before");
+				ChallengeManager.Instance.challengePanel.GetComponent<Image>().color = usedCheats && !challengeCompletedBefore ? new Color(0, 1, 0, 0.5f) : new Color(1f, 0.696f, 0f, 0.5f);
+                ChallengeManager.Instance.challengePanel.GetComponent<AudioSource>().volume = !challengeCompletedBefore && !usedCheats ? 1f : 0f;
+                ChallengeManager.Instance.challengePanel.SetActive(true);
+            }
+			else
+			{
+                Debug.Log("Disabling challenge panel since it is not completed now and before");
+                ChallengeManager.Instance.challengePanel.SetActive(false);
+            }
 		}
 	}
 }

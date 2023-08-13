@@ -16,5 +16,5 @@ namespace AngryLoaderAPI
 		{
 			return RudeBundleInterface.GetBundleBuildHash(bundleGuid);
 		}
-	}
+    }
 }

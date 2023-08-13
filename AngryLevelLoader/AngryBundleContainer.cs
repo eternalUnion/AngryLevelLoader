@@ -61,7 +61,6 @@ namespace AngryLevelLoader
 		public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
 		public ConfigPanel rootPanel;
-		public ButtonField reloadButton;
 		public ConfigHeader statusText;
 		public ConfigDivision sceneDiv;
 		public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
@@ -184,7 +183,9 @@ namespace AngryLevelLoader
 
 			// Open the angry zip archive
 			string bundleDataAddress = "";
-			using(ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read), ZipArchiveMode.Read))
+			BundleData latestData = null;
+			bool rewriteData = false;
+            using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read), ZipArchiveMode.Read))
 			{
 				var dataEntry = zip.GetEntry("data.json");
 				bool unzip = true;
@@ -194,25 +195,28 @@ namespace AngryLevelLoader
 
 				using (TextReader dataReader = new StreamReader(dataEntry.Open()))
 				{
-					BundleData newData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
+					latestData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
 					
-					hash = newData.buildHash;
-					guid = newData.bundleGuid;
+					hash = latestData.buildHash;
+					guid = latestData.bundleGuid;
 
-					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, newData.bundleGuid);
-					dataPaths = newData.levelDataPaths;
-					bundleDataAddress = newData.bundleDataPath;
+					pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
+					dataPaths = latestData.levelDataPaths;
+					bundleDataAddress = latestData.bundleDataPath;
 
-					rootPanel.displayName = name = string.IsNullOrEmpty(newData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : newData.bundleName;
+					rootPanel.displayName = name = string.IsNullOrEmpty(latestData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : latestData.bundleName;
 					rootPanel.headerText = $"--{rootPanel.displayName}--";
-					if (!string.IsNullOrEmpty(newData.bundleAuthor))
+					if (!string.IsNullOrEmpty(latestData.bundleAuthor))
 					{
-						rootPanel.displayName += $"\n<color=#909090>by {newData.bundleAuthor}</color>";
-						author = newData.bundleAuthor;
+						rootPanel.displayName += $"\n<color=#909090>by {latestData.bundleAuthor}</color>";
+						author = latestData.bundleAuthor;
 					}
 
-					if (string.IsNullOrEmpty(newData.bundleName))
+					if (string.IsNullOrEmpty(latestData.bundleName))
+					{
 						lazyLoad = false;
+						rewriteData = true;
+					}
 
 					// If force reload is set to false, check if the build hashes match
 					// between unzipped bundle and the current angry file.
@@ -220,7 +224,7 @@ namespace AngryLevelLoader
 					if (!forceReload && Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
 					{
 						BundleData previousData = JsonConvert.DeserializeObject<BundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
-						if (previousData.buildHash == newData.buildHash)
+						if (previousData.buildHash == latestData.buildHash)
 						{
 							unzip = false;
 						}
@@ -266,6 +270,9 @@ namespace AngryLevelLoader
 					}
 
 					rootPanel.headerText = $"--{bundleData.bundleName}--";
+
+					latestData.bundleName = bundleData.bundleName;
+					latestData.bundleAuthor = bundleData.author;
 				}
 
 				bundleData = null;
@@ -297,6 +304,24 @@ namespace AngryLevelLoader
 
 				dataDictionary[data.uniqueIdentifier] = handle;
 				Plugin.idDictionary[data.uniqueIdentifier] = data;
+			}
+
+			if (rewriteData)
+			{
+				using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
+				{
+					ZipArchiveEntry dataEntry = angryFile.GetEntry("data.json");
+
+					using (Stream dataStream = dataEntry.Open())
+					{
+						dataStream.SetLength(0);
+						dataStream.Seek(0, SeekOrigin.Begin);
+                        StreamWriter sw = new StreamWriter(dataStream);
+
+						sw.Write(JsonConvert.SerializeObject(latestData));
+						sw.Flush();
+                    }
+				}
 			}
 
 			return true;
@@ -543,8 +568,9 @@ namespace AngryLevelLoader
 			name = rootPanel.displayName;
 			author = "";
 
-			reloadButton = new ButtonField(rootPanel, "Reload File", "reloadButton");
-			reloadButton.onClick += () => UpdateScenes(false, false);
+			ButtonArrayField reloadButtons = new ButtonArrayField(rootPanel, rootPanel.guid + "_reloadButtons", 2, new float[2] { 0.5f, 0.5f }, new string[] { "Reload File", "Force Reload File" });
+			reloadButtons.OnClickEventHandler(0).onClick += () => UpdateScenes(false, false);
+			reloadButtons.OnClickEventHandler(1).onClick += () => UpdateScenes(true, false);
 			
 			new SpaceField(rootPanel, 5);
 

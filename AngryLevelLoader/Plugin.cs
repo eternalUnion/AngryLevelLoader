@@ -40,7 +40,7 @@ namespace AngryLevelLoader
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.2.0";
+        public const string PLUGIN_VERSION = "2.2.1";
 		public static string tempFolderPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "LevelsUnpacked");
 		public static Plugin instance;
 
@@ -253,6 +253,7 @@ namespace AngryLevelLoader
 		public static AngryBundleContainer currentBundleContainer;
 		public static int selectedDifficulty;
 
+		internal static PropertyInfo SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty(nameof(SceneHelper.CurrentScene));
         public static void CheckIsInCustomScene(Scene current)
         {
 			foreach (AngryBundleContainer container in angryBundles.Values)
@@ -265,6 +266,7 @@ namespace AngryLevelLoader
 					currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == current.path).First().uniqueIdentifier];
 					currentLevelContainer.discovered.value = true;
 					currentLevelContainer.UpdateUI();
+					SceneHelper_CurrentScene.SetValue(null, currentLevelData.uniqueIdentifier);
 					config.presetButtonInteractable = false;
 
 					return;
@@ -633,7 +635,12 @@ namespace AngryLevelLoader
 				return false;
 			return level.secrets.value[secretIndex] == 'T';
 		}
-	}
+
+        public static string GetCurrentLevelId()
+        {
+            return Plugin.isInCustomScene ? Plugin.currentLevelData.uniqueIdentifier : "";
+        }
+    }
 
 	public static class RudeBundleInterface
 	{
@@ -647,5 +654,5 @@ namespace AngryLevelLoader
 			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.guid == bundleGuid).FirstOrDefault();
 			return bundle == null ? "" : bundle.hash;
 		}
-	}
+    }
 }
