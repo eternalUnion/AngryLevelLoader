@@ -31,7 +31,8 @@ namespace AngryLevelLoader
 		public int Size { get; set; }
 		public string Hash { get; set; }
 		public string ThumbnailHash { get; set; }
-		
+
+		public string ExternalLink { get; set; }
 		public long LastUpdate { get; set; }
 		public List<UpdateInfo> Updates;
 	}
@@ -150,7 +151,7 @@ namespace AngryLevelLoader
 			try
 			{
 				string newHash = "";
-				UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL("ScriptCatalogHash.txt"));
+				UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalogHash.txt"));
 				try
 				{
 					hashReq.downloadHandler = new DownloadHandlerBuffer();
@@ -182,7 +183,7 @@ namespace AngryLevelLoader
 					}
 				}
 
-				UnityWebRequest updatedCatalogRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL("ScriptCatalog.json"));
+				UnityWebRequest updatedCatalogRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalog.json"));
 				try
 				{
 					updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -243,13 +244,31 @@ namespace AngryLevelLoader
 		public static ConfigDivision onlineLevelContainer;
 		public static LoadingCircleField loadingCircle;
 
-		public static string GetGithubURL(string path)
+		public enum Repo
+		{
+			AngryLevelLoader,
+			AngryLevels
+		}
+
+		public static string GetGithubURL(Repo repo, string path)
 		{
 			string branch = "release";
 			if (Plugin.useDevelopmentBranch.value)
 				branch = "dev";
 
-			return $"https://raw.githubusercontent.com/eternalUnion/AngryLevels/{branch}/{path}";
+			string repoName = "AngryLevels";
+			switch (repo)
+			{
+				case Repo.AngryLevels:
+					repoName = "AngryLevels";
+					break;
+
+				case Repo.AngryLevelLoader:
+					repoName = "AngryLevelLoader";
+					break;
+			}
+
+			return $"https://raw.githubusercontent.com/eternalUnion/{repoName}/{branch}/{path}";
 		}
 
 		// Filters
@@ -406,7 +425,7 @@ namespace AngryLevelLoader
 
 			try
 			{
-				UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL("LevelCatalogHash.txt"));
+				UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalogHash.txt"));
 				catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
 				yield return catalogVersionRequest.SendWebRequest();
 
@@ -466,7 +485,7 @@ namespace AngryLevelLoader
 					Directory.CreateDirectory(catalogDir);
 				string catalogPath = Path.Combine(catalogDir, "LevelCatalog.json");
 
-				UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL("LevelCatalog.json"));
+				UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalog.json"));
 				catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
 				yield return catalogRequest.SendWebRequest();
 			
@@ -579,7 +598,7 @@ namespace AngryLevelLoader
 					thumbnailHashes[info.Guid] = info.ThumbnailHash;
 					dirtyThumbnailCacheHashFile = true;
 
-					UnityWebRequest req = new UnityWebRequest(GetGithubURL($"Levels/{info.Guid}/thumbnail.png"));
+					UnityWebRequest req = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, $"Levels/{info.Guid}/thumbnail.png"));
 					req.downloadHandler = new DownloadHandlerFile(imageCachePath);
 					var handle = req.SendWebRequest();
 

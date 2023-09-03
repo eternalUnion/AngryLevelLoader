@@ -1,0 +1,33 @@
+﻿{
+  "latestVersion": "2.3.0",
+  "updates": [
+    {
+      "version": "1.0.0",
+      "updateText": "- Initial release"
+    },
+    {
+      "version": "1.0.2",
+      "updateText": "- Fixed hellmap beeping indefinitely for the descending first rooms\nGLCore support for doilus"
+    },
+    {
+      "version": "2.0.0",
+      "updateText": "<color=cyan>New Features</color>:\n- Switched to angry file version 2, old format support will be dropped in the next update\n- Added settings to notify on new levels and level updates\n- Added online level and script download capability\n- Added script verification\n- Added bundle sorting based on name, author and last time played\n- Added hotkey to reload bundles\n- Added icons to bundles\n<color=cyan>Fixes</color>:\n- Fixed 0-1 secrets getting reset\n- Fixed tab sometimes not working\n- Improved loading times"
+    },
+    {
+      "version": "2.1.0",
+      "updateText": "- Online script catalog refreshed with online level catalog\n- Scripts without certificates are also downloaded\n- Support for ULTRAPAIN and HEAVEN OR HELL"
+    },
+    {
+      "version": "2.2.0",
+      "updateText": "- Several bugfixes\n- Bundles (built with the new exporter) are now 'lazy loaded', meaning only the icon and the name is loaded at boot, improving boot times for games with high amount of levels.\n<color=cyan>Online Levels</color>:\n- Level update notifications now also include the level name\n- Option to disable updates for levels which are not found on the catalog (useful when you build levels which was uploaded before, prevents update notification from popping up)\n- Updates now also contain logs. Missing updates are listed before updating\n<color=cyan>Scripts</color>:Unverified scripts no longer show up on the script downloader\n- Option to ignore script certificates for selected scripts\n- Option to ignore updates for custom built scripts (useful for hiding update notifications when testing a script which is already online)"
+    },
+    {
+      "version": "2.2.1",
+      "updateText": "<color=cyan>Bug Fixes</color>:\n- Fixed a visual bug causing failed challenges to show up as completed on final rank screen. Changes to final rank challenge panel:\n  * Challenge completed before or now without cheats: Golden background\n  * Challenge not completed before but completed now with cheats: Green background, challenge not completed in the save file\n  * Challenge not completed now and before: Black background\n<color=cyan>New Features</color>:\n- Option to force reload a file, deleting the unpacked level folder regardless of the build hashes matching\n- Bundle data updater, rewriting data.json to update file to the newer version"
+    },
+    {
+      "version": "2.3.0",
+      "updateText": "- Moved levels folders to app data. Can be accessed via options\n- A new plugin update panel to display changes after updating angry\n- An online plugin version checker\n- External link support for online level downloads"
+    }
+  ]
+}

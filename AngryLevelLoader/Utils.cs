@@ -69,6 +69,19 @@ namespace AngryLevelLoader
 
 			return $"{newName}{ext}";
 		}
+	
+		public static string AppData
+		{
+			get => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        }
+
+		public static bool TryCreateDirectory(string path)
+		{
+			if (Directory.Exists(path))
+				return false;
+			Directory.CreateDirectory(path);
+			return true;
+		}
 	}
 
 	public static class CryptographyUtils

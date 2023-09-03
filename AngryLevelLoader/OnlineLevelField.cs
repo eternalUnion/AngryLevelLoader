@@ -421,7 +421,7 @@ namespace AngryLevelLoader
 			downloading = true;
 			try
 			{
-				string bundleUrl = OnlineLevelsManager.GetGithubURL($"Levels/{bundleGuid}/level.angry");
+				string bundleUrl = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First().ExternalLink;
 				string tempDownloadDir = Path.Combine(Plugin.workingDir, "TempDownloads");
 				if (!Directory.Exists(tempDownloadDir))
 					Directory.CreateDirectory(tempDownloadDir);
@@ -466,7 +466,7 @@ namespace AngryLevelLoader
 
 						if (bundle == null)
 						{
-							string destinationFolder = Path.Combine(Plugin.workingDir, "Levels");
+							string destinationFolder = Plugin.levelsPath;
 							if (!Directory.Exists(destinationFolder))
 								Directory.CreateDirectory(destinationFolder);
 							string destinationPath = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, bundleName + ".angry"));
