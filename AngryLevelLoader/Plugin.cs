@@ -38,17 +38,6 @@ namespace AngryLevelLoader
 	{
 		public const bool devMode = false;
 
-		/*public static readonly List<Tuple<string, string>> versionHistory = new List<Tuple<string, string>>()
-		{
-			new Tuple<string, string>("1.0.0", "- Initial release"),
-			new Tuple<string, string>("1.0.2", "- Fixed hellmap beeping indefinitely for the descending first rooms\nGLCore support for doilus (hola was not able to export world series with glcore)"),
-            new Tuple<string, string>("2.0.0", "<color=cyan>New Features</color>:\n- Switched to angry file version 2, old format support will be dropped in the next update\n- Added settings to notify on new levels and level updates\n- Added online level and script download capability\n- Added script verification\n- Added bundle sorting based on name, author and last time played\n- Added hotkey to reload bundles\n- Added icons to bundles\n<color=cyan>Fixes</color>:\n- Fixed 0-1 secrets getting reset\n- Fixed tab sometimes not working\n- Improved loading times"),
-            new Tuple<string, string>("2.1.0", "- Online script catalog refreshed with online level catalog\n- Scripts without certificates are also downloaded\n- Support for ULTRAPAIN and HEAVEN OR HELL"),
-            new Tuple<string, string>("2.2.0", "- Several bugfixes\n- Bundles (built with the new exporter) are now 'lazy loaded', meaning only the icon and the name is loaded at boot, improving boot times for games with high amount of levels.\n<color=cyan>Online Levels</color>:\n- Level update notifications now also include the level name\n- Option to disable updates for levels which are not found on the catalog (useful when you build levels which was uploaded before, prevents update notification from popping up)\n- Updates now also contain logs. Missing updates are listed before updating\n<color=cyan>Scripts</color>:Unverified scripts no longer show up on the script downloader\n- Option to ignore script certificates for selected scripts\n- Option to ignore updates for custom built scripts (useful for hiding update notifications when testing a script which is already online)"),
-            new Tuple<string, string>("2.2.1", "<color=cyan>Bug Fixes</color>:\n- Fixed a visual bug causing failed challenges to show up as completed on final rank screen. Changes to final rank challenge panel:\n  * Challenge completed before or now without cheats: Golden background\n  * Challenge not completed before but completed now with cheats: Green background, challenge not completed in the save file\n  * Challenge not completed now and before: Black background\n<color=cyan>New Features</color>:\n- Option to force reload a file, deleting the unpacked level folder regardless of the build hashes matching\n- Bundle data updater, rewriting data.json to update file to the newer version"),
-            new Tuple<string, string>("2.3.0", "- Moved levels folders to app data. Can be accessed via options\n- A new plugin update panel to display changes after updating angry\n- An online plugin version checker"),
-        };*/
-
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.3.0";
@@ -376,7 +365,9 @@ namespace AngryLevelLoader
 			return File.Exists(Path.Combine(workingDir, "Scripts", scriptName));
 		}
 
-		private void Awake()
+		public static ButtonField changelog;
+
+        private void Awake()
 		{
 			// Plugin startup logic
 			instance = this;
@@ -397,7 +388,7 @@ namespace AngryLevelLoader
 			internalConfig.presetButtonHidden = true;
 			internalConfig.presetButtonInteractable = false;
 
-			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "");
+			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true);
 			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false);
 
 			if (!LoadEssentialScripts())
@@ -486,6 +477,12 @@ namespace AngryLevelLoader
 
 			ButtonField openLevels = new ButtonField(settingsPanel, "Open Levels Folder", "openLevelsButton");
 			openLevels.onClick += () => Application.OpenURL(levelsPath);
+			changelog = new ButtonField(settingsPanel, "Changelog", "changelogButton");
+			changelog.onClick += () =>
+			{
+				changelog.interactable = false;
+				OnlineLevelsManager.instance.StartCoroutine(PluginUpdateHandler.CheckPluginUpdate());
+			};
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			settingsPanel.hidden = true;
 			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.Alphabetically);
@@ -542,8 +539,7 @@ namespace AngryLevelLoader
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
 			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
-			ScanForLevels();
-
+			
 			// TODO: Investigate further on this issue:
 			//
 			// if I don't do that, when I load an addressable scene (custom level)
@@ -555,10 +551,11 @@ namespace AngryLevelLoader
 			// bundles every addressable bundle is already in the memory like what?)
 			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
 
+			PluginUpdateHandler.Check();
+
+            ScanForLevels();
 			if (refreshCatalogOnBoot.value)
 				OnlineLevelsManager.RefreshAsync();
-
-			PluginUpdateHandler.Check();
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }

@@ -16,20 +16,28 @@ namespace AngryLevelLoader
         {
             UnityWebRequest infoReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
             infoReq.downloadHandler = new DownloadHandlerBuffer();
-            yield return infoReq;
+
+            var handle = infoReq.SendWebRequest();
+            yield return handle;
 
             if (infoReq.isHttpError || infoReq.isNetworkError)
             {
                 Debug.LogError("Could not download plugin data");
                 infoReq.Dispose();
+                Plugin.changelog.interactable = true;
                 yield break;
             }
 
-            PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(infoReq.downloadHandler.text);
-            infoReq.Dispose();
+            string text = infoReq.downloadHandler.text;
+            int startIndex = text.IndexOf('{');
+            if (startIndex > 0)
+                text = text.Substring(startIndex);
+            PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(text);
 
             PluginUpdateNotification notification = new PluginUpdateNotification(json);
             NotificationPanel.Open(notification);
+            Plugin.changelog.interactable = true;
+            infoReq.Dispose();
         }
 
         public static void Check()
@@ -47,7 +55,10 @@ namespace AngryLevelLoader
                     if (File.Exists(destinationFile))
                         File.Delete(levelFile);
                     else
+                    {
+                        Debug.Log($"{levelFile} => {destinationFile}");
                         File.Move(levelFile, destinationFile);
+                    }
                 }
                 Directory.Delete(oldLevelsPath, true);
 
@@ -56,11 +67,14 @@ namespace AngryLevelLoader
                 {
                     foreach (string unpackedLevel in Directory.GetDirectories(oldUnpackedFolder))
                     {
-                        string destinationDir = Path.Combine(Plugin.tempFolderPath, Path.GetDirectoryName(unpackedLevel));
+                        string destinationDir = Path.Combine(Plugin.tempFolderPath, Path.GetFileName(unpackedLevel));
                         if (Directory.Exists(destinationDir))
-                            Directory.Delete(unpackedLevel);
+                            Directory.Delete(unpackedLevel, true);
                         else
-                            Directory.Move(unpackedLevel, destinationDir);
+                        {
+                            Debug.Log($"{unpackedLevel} => {destinationDir}");
+                            IOUtils.DirectoryCopy(unpackedLevel, destinationDir, true, true);
+                        }
                     }
                     Directory.Delete(oldUnpackedFolder, true);
                 }

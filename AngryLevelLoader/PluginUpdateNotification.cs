@@ -30,6 +30,13 @@ namespace AngryLevelLoader
 
         public override void OnUI(RectTransform panel)
         {
+            if (json == null)
+            {
+                Debug.LogError("Closed plugin changelog panel because passed json is null");
+                Close();
+                return;
+            }
+
             string headerText = "<color=cyan>Changelog</color>";
             if (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion))
                 headerText = "<color=lime>UPDATE AVAILABLE</color>";
@@ -62,7 +69,7 @@ namespace AngryLevelLoader
                     updateTextBuilder.Append($"V{version} <color=lime>Latest Version</color>");
                 }
 
-                updateTextBuilder.Append("<size=18>\n");
+                updateTextBuilder.Append("<size=18>\n\n");
                 updateTextBuilder.Append(json.updates[currentVersion].updateText.Replace(@"\n", "\n"));
                 updateTextBuilder.Append("</size>");
 
