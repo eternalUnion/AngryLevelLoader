@@ -12,7 +12,7 @@ namespace AngryLevelLoader
 {
     public static class PluginUpdateHandler
     {
-        public static IEnumerator CheckPluginUpdate()
+        public static IEnumerator CheckPluginUpdate(bool userRequested = true)
         {
             UnityWebRequest infoReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
             infoReq.downloadHandler = new DownloadHandlerBuffer();
@@ -33,11 +33,17 @@ namespace AngryLevelLoader
             if (startIndex > 0)
                 text = text.Substring(startIndex);
             PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(text);
+            Plugin.changelog.interactable = true;
+            infoReq.Dispose();
+
+            if (!userRequested)
+            {
+                if (!(Plugin.lastVersion.value != Plugin.PLUGIN_VERSION || (Plugin.PLUGIN_VERSION != json.latestVersion && !Plugin.ignoreUpdates.value)))
+                    yield break;
+            }
 
             PluginUpdateNotification notification = new PluginUpdateNotification(json);
             NotificationPanel.Open(notification);
-            Plugin.changelog.interactable = true;
-            infoReq.Dispose();
         }
 
         public static void Check()
@@ -85,8 +91,8 @@ namespace AngryLevelLoader
                 Plugin.ignoreUpdates.value = false;
 
             // Show update notification
-            if (Plugin.checkForUpdates.value && !(Plugin.lastVersion.value == Plugin.PLUGIN_VERSION && Plugin.ignoreUpdates.value))
-                OnlineLevelsManager.instance.StartCoroutine(CheckPluginUpdate());
+            if (Plugin.checkForUpdates.value)
+                OnlineLevelsManager.instance.StartCoroutine(CheckPluginUpdate(false));
         }
     }
 }

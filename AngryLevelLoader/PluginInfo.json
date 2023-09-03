@@ -28,6 +28,10 @@
     {
       "version": "2.3.0",
       "updateText": "- Moved levels folders to app data. Can be accessed via options\n- A new plugin update panel to display changes after updating angry\n- An online plugin version checker\n- External link support for online level downloads"
+    },
+    {
+      "version": "2.3.1",
+      "updateText": "- Fixed changelog always showing up\n- Added a setting field to change the data directory. Enter a new (existing) path and click change data path"
     }
   ]
 }

@@ -40,7 +40,7 @@ namespace AngryLevelLoader
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.3.0";
+        public const string PLUGIN_VERSION = "2.3.1";
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
 		public static string tempFolderPath;
@@ -51,6 +51,7 @@ namespace AngryLevelLoader
 		public static PluginConfigurator internalConfig;
 		public static StringField lastVersion;
 		public static BoolField ignoreUpdates;
+		public static StringField configDataPath;
 
 		public static bool ultrapainLoaded = false;
 		public static bool heavenOrHellLoaded = false;
@@ -372,8 +373,18 @@ namespace AngryLevelLoader
 			// Plugin startup logic
 			instance = this;
 
-			workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			dataPath = Path.Combine(IOUtils.AppData, "AngryLevelLoader");
+			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
+			internalConfig.hidden = true;
+			internalConfig.interactable = false;
+			internalConfig.presetButtonHidden = true;
+			internalConfig.presetButtonInteractable = false;
+
+            lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true);
+            ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false);
+			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"));
+
+            workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			dataPath = configDataPath.value;
 			IOUtils.TryCreateDirectory(dataPath);
 			levelsPath = Path.Combine(dataPath, "Levels");
             IOUtils.TryCreateDirectory(levelsPath);
@@ -381,15 +392,6 @@ namespace AngryLevelLoader
             IOUtils.TryCreateDirectory(tempFolderPath);
 
             Addressables.InitializeAsync().WaitForCompletion();
-
-			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
-			internalConfig.hidden = true;
-			internalConfig.interactable = false;
-			internalConfig.presetButtonHidden = true;
-			internalConfig.presetButtonInteractable = false;
-
-			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true);
-			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false);
 
 			if (!LoadEssentialScripts())
 			{
@@ -483,7 +485,55 @@ namespace AngryLevelLoader
 				changelog.interactable = false;
 				OnlineLevelsManager.instance.StartCoroutine(PluginUpdateHandler.CheckPluginUpdate());
 			};
-			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
+
+			new SpaceField(settingsPanel, 5);
+			StringField dataPathInput = new StringField(settingsPanel, "Data Path", "s_dataPathInput", dataPath, false, false);
+			ButtonField changeDataPath = new ButtonField(settingsPanel, "Move Data", "s_changeDataPath");
+			ConfigHeader dataInfo = new ConfigHeader(settingsPanel, "<color=red>RESTART REQUIRED</color>", 18);
+            new SpaceField(settingsPanel, 5);
+            dataInfo.hidden = true;
+			changeDataPath.onClick += () =>
+			{
+				string newPath = dataPathInput.value;
+				if (newPath == configDataPath.value)
+					return;
+
+				if (!Directory.Exists(newPath))
+				{
+					dataInfo.text = "<color=red>Could not find the directory</color>";
+					dataInfo.hidden = false;
+					return;
+				}
+
+				string newLevelsFolder = Path.Combine(newPath, "Levels");
+				IOUtils.TryCreateDirectory(newLevelsFolder);
+				foreach (string levelFile in Directory.GetFiles(levelsPath))
+				{
+					File.Copy(levelFile, Path.Combine(newLevelsFolder, Path.GetFileName(levelFile)), true);
+					File.Delete(levelFile);
+				}
+				Directory.Delete(levelsPath, true);
+				levelsPath = newLevelsFolder;
+
+                string newLevelsUnpackedFolder = Path.Combine(newPath, "LevelsUnpacked");
+                IOUtils.TryCreateDirectory(newLevelsUnpackedFolder);
+                foreach (string unpackedLevelFolder in Directory.GetDirectories(tempFolderPath))
+                {
+					string dest = Path.Combine(newLevelsUnpackedFolder, Path.GetFileName(unpackedLevelFolder));
+					if (Directory.Exists(dest))
+						Directory.Delete(dest, true);
+
+					IOUtils.DirectoryCopy(unpackedLevelFolder, dest, true, true);
+                }
+                Directory.Delete(tempFolderPath, true);
+                tempFolderPath = newLevelsUnpackedFolder;
+
+                dataInfo.text = "<color=red>RESTART REQUIRED</color>";
+                dataInfo.hidden = false;
+				configDataPath.value = newPath;
+            };
+
+            reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			settingsPanel.hidden = true;
 			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.Alphabetically);
 			bundleSortingMode.onValueChange += (e) =>
