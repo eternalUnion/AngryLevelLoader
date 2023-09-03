@@ -11,7 +11,7 @@
     },
     {
       "version": "2.0.0",
-      "updateText": "<color=cyan>New Features</color>:\n- Switched to angry file version 2, old format support will be dropped in the next update\n- Added settings to notify on new levels and level updates\n- Added online level and script download capability\n- Added script verification\n- Added bundle sorting based on name, author and last time played\n- Added hotkey to reload bundles\n- Added icons to bundles\n<color=cyan>Fixes</color>:\n\n- Fixed 0-1 secrets getting reset\n- Fixed tab sometimes not working\n- Improved loading times"
+      "updateText": "<color=cyan>New Features</color>:\n- Switched to angry file version 2, old format support will be dropped in the next update\n- Added settings to notify on new levels and level updates\n- Added online level and script download capability\n- Added script verification\n- Added bundle sorting based on name, author and last time played\n- Added hotkey to reload bundles\n- Added icons to bundles\n\n<color=cyan>Fixes</color>:\n- Fixed 0-1 secrets getting reset\n- Fixed tab sometimes not working\n- Improved loading times"
     },
     {
       "version": "2.1.0",
