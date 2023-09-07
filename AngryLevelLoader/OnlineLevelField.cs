@@ -452,7 +452,7 @@ namespace AngryLevelLoader
 						if (currentUI != null)
 						{
 							progressBar.sizeDelta = new Vector2(progressBarWidth * handle.progress, progressBar.sizeDelta.y);
-							string downloadedFileMegabytes = ((bundleFileSize * handle.progress) / (float)(1024 * 1024)).ToString("0.0");
+							string downloadedFileMegabytes = (req.downloadedBytes / (float)(1024 * 1024)).ToString("0.0");
 							downloadProgressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB";
 						}
 

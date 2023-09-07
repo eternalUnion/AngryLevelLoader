@@ -36,11 +36,11 @@ namespace AngryLevelLoader
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const bool devMode = false;
+		public const bool devMode = true;
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.3.1";
+        public const string PLUGIN_VERSION = "2.3.2";
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
 		public static string tempFolderPath;

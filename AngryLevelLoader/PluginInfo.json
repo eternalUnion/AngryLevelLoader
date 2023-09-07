@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.3.1",
+  "latestVersion": "2.3.2",
   "updates": [
     {
       "version": "1.0.0",
@@ -32,6 +32,10 @@
     {
       "version": "2.3.1",
       "updateText": "- Fixed changelog always showing up\n- Added a setting field to change the data directory. Enter a new (existing) path and click change data path"
+    },
+    {
+      "version": "2.3.2",
+      "updateText": "- A very small fix for a ui bug preventing download progress bar from working"
     }
   ]
 }

@@ -38,7 +38,7 @@ namespace AngryLevelLoader
 
             if (!userRequested)
             {
-                if (!(Plugin.lastVersion.value != Plugin.PLUGIN_VERSION || (Plugin.PLUGIN_VERSION != json.latestVersion && !Plugin.ignoreUpdates.value)))
+                if (!(Plugin.lastVersion.value != Plugin.PLUGIN_VERSION || (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion) && !Plugin.ignoreUpdates.value)))
                     yield break;
             }
 
