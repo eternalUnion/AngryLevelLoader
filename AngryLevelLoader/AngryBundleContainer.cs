@@ -419,6 +419,10 @@ namespace AngryLevelLoader
 							levels[data.uniqueIdentifier] = levelContainer;
 						}
 					}
+
+					// Locked fix
+					foreach (var level in levels.Values)
+						level.UpdateUI();
 				}
 			}
 			catch (Exception err)

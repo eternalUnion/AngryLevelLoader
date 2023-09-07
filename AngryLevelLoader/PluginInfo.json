@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.3.2",
+  "latestVersion": "2.3.3",
   "updates": [
     {
       "version": "1.0.0",
@@ -36,6 +36,10 @@
     {
       "version": "2.3.2",
       "updateText": "- A very small fix for a ui bug preventing download progress bar from working"
+    },
+    {
+      "version": "2.3.3",
+      "updateText": "- Fixed locked levels sometimes showing up as unlocked\n- Fixed online catalog not being sorted correctly when updated"
     }
   ]
 }

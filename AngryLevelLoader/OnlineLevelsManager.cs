@@ -654,6 +654,8 @@ namespace AngryLevelLoader
 				SaveThumbnailHashes();
 
 			CheckLevelUpdateText();
+			
+			SortAll();
 		}
 	
 		public static void CheckLevelUpdateText()

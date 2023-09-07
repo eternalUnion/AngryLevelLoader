@@ -67,7 +67,8 @@ namespace AngryLevelLoader
 					if (reqLevel == null)
 					{
 						Debug.LogWarning($"Could not find level unlock requirement id for {data.uniqueIdentifier}, requested id was {reqId}");
-						continue;
+						locked = true;
+						break;
 					}
 
 					if (reqLevel.finalRank.value[0] == '-')
