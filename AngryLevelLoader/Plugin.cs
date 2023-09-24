@@ -40,7 +40,7 @@ namespace AngryLevelLoader
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.3.3";
+        public const string PLUGIN_VERSION = "2.4.0";
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
 		public static string tempFolderPath;

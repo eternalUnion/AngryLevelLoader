@@ -1,4 +1,5 @@
-﻿using PluginConfig;
+﻿using Newtonsoft.Json;
+using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
@@ -6,10 +7,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
@@ -25,6 +28,8 @@ namespace AngryLevelLoader
 
 		private RectTransform currentUI = null;
 		private RawImage currentPreview;
+
+		private UnityEvent onCancel = new UnityEvent();
 
 		private Texture2D _previewImage;
 		public Texture2D previewImage
@@ -277,7 +282,6 @@ namespace AngryLevelLoader
 			update.sizeDelta = new Vector2(100, 100);
 
 			RectTransform cancel = CreateButton(fieldUI, "Cancel", false, fieldUI.gameObject, e => updateButton.gameObject.SetActive(true));
-			cancelButton = cancel.GetComponent<Button>();
 			cancel.anchorMin = cancel.anchorMax = new Vector2(1, 0f);
 			cancel.pivot = new Vector2(1, 0f);
 			cancel.anchoredPosition = new Vector2(-10, 10);
@@ -285,12 +289,8 @@ namespace AngryLevelLoader
 			cancelButton = cancel.GetComponent<Button>();
 			cancelButton.onClick.AddListener(() =>
 			{
-				if (!downloading || currentRequest == null)
-					return;
-
-				currentRequest.Abort();
-				downloading = false;
-				UpdateUI();
+				if (onCancel != null)
+					onCancel.Invoke();
 			});
 
 			progressBarBase = new GameObject().AddComponent<RectTransform>();
@@ -415,80 +415,150 @@ namespace AngryLevelLoader
 		public UnityWebRequest currentRequest;
 		public IEnumerator DownloadCoroutine()
 		{
-			if (downloading || currentRequest != null)
+			if (downloading)
 				yield break;
 
 			downloading = true;
-			try
-			{
-				string bundleUrl = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First().ExternalLink;
-				string tempDownloadDir = Path.Combine(Plugin.workingDir, "TempDownloads");
-				if (!Directory.Exists(tempDownloadDir))
-					Directory.CreateDirectory(tempDownloadDir);
-				string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundleGuid}.angry");
 
-				UnityWebRequest req = currentRequest = new UnityWebRequest(bundleUrl);
-				req.downloadHandler = new DownloadHandlerFile(tempDownloadPath);
-				var handle = req.SendWebRequest();
+            installActive = false;
+            if (currentUI != null)
+            {
+                installButton.gameObject.SetActive(false);
+                updateButton.gameObject.SetActive(false);
+                cancelButton.gameObject.SetActive(true);
+                progressBar.gameObject.SetActive(true);
+                progressBarBase.gameObject.SetActive(true);
+                downloadProgressText.gameObject.SetActive(true);
+                progressBar.sizeDelta = new Vector2(0, progressBar.sizeDelta.y);
+            }
 
-				installActive = false;
-				if (currentUI != null)
+            try
+            {
+				LevelInfo level = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
+
+				List<string> downloadedParts = new List<string>();
+                string fileMegabytes = (bundleFileSize / (float)(1024 * 1024)).ToString("0.0");
+                float progressBarWidth = 100 - 2 * progressBarThickness;
+				ulong downloadedBytes = 0;
+
+                string tempDownloadDir = Path.Combine(Plugin.dataPath, "TempDownloads");
+                if (!Directory.Exists(tempDownloadDir))
+                    Directory.CreateDirectory(tempDownloadDir);
+
+                for (int i = 0; i < level.Parts.Count; i++)
 				{
-					installButton.gameObject.SetActive(false);
-					updateButton.gameObject.SetActive(false);
-					cancelButton.gameObject.SetActive(true);
-					progressBar.gameObject.SetActive(true);
-					progressBarBase.gameObject.SetActive(true);
-					downloadProgressText.gameObject.SetActive(true);
-				}
+                    string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundleName}.angry{i}");
+					if (File.Exists(tempDownloadPath))
+						File.Delete(tempDownloadPath);
+					downloadedParts.Add(tempDownloadPath);
 
-				string fileMegabytes = (bundleFileSize / (float)(1024 * 1024)).ToString("0.0");
-				float progressBarWidth = 100 - 2 * progressBarThickness;
+                    UnityWebRequest req = currentRequest = new UnityWebRequest(level.Parts[i]);
+                    req.downloadHandler = new DownloadHandlerFile(tempDownloadPath);
+                    var handle = req.SendWebRequest();
 
-				try
-				{
-					while (!handle.isDone)
+                    onCancel = new UnityEvent();
+                    onCancel.AddListener(() =>
+                    {
+                        if (!downloading || currentRequest == null)
+                            return;
+
+                        currentRequest.Abort();
+                        downloading = false;
+                        UpdateUI();
+                    });
+
+                    while (!handle.isDone)
+                    {
+                        if (currentUI != null)
+                        {
+                            progressBar.sizeDelta = new Vector2(progressBarWidth * Mathf.Clamp((float)(req.downloadedBytes + downloadedBytes) / bundleFileSize, 0f, 1f), progressBar.sizeDelta.y);
+                            string downloadedFileMegabytes = ((req.downloadedBytes + downloadedBytes) / (float)(1024 * 1024)).ToString("0.0");
+                            downloadProgressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB";
+                        }
+
+                        yield return new WaitForSecondsRealtime(0.5f);
+                    }
+
+					onCancel = new UnityEvent();
+
+                    if (req.isHttpError || req.isNetworkError)
 					{
-						if (currentUI != null)
-						{
-							progressBar.sizeDelta = new Vector2(progressBarWidth * Mathf.Clamp((float)req.downloadedBytes / bundleFileSize, 0f, 1f), progressBar.sizeDelta.y);
-							string downloadedFileMegabytes = (req.downloadedBytes / (float)(1024 * 1024)).ToString("0.0");
-							downloadProgressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB";
-						}
+						foreach (string part in downloadedParts)
+							if (File.Exists(part))
+								File.Delete(part);
 
-						yield return new WaitForSecondsRealtime(0.5f);
+						yield break;
 					}
 
-					if (!req.isNetworkError && !req.isHttpError)
+					downloadedBytes += req.downloadedBytes;
+					req.Dispose();
+                }
+
+                if (bundle == null)
+                    bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+
+                string destinationFolder = Plugin.levelsPath;
+                if (!Directory.Exists(destinationFolder))
+                    Directory.CreateDirectory(destinationFolder);
+				string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, bundleName + ".angry"));
+                if (bundle != null)
+					destinationFile = bundle.pathToAngryBundle;
+
+				using (FileStream str = File.Open(destinationFile, FileMode.OpenOrCreate, FileAccess.Write))
+				{
+					str.Position = 0;
+					str.SetLength(0);
+
+					foreach (string part in downloadedParts)
 					{
-						if (bundle == null)
-							bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
-
-						if (bundle == null)
+                        using (FileStream fpart = File.Open(part, FileMode.Open, FileAccess.Read))
 						{
-							string destinationFolder = Plugin.levelsPath;
-							if (!Directory.Exists(destinationFolder))
-								Directory.CreateDirectory(destinationFolder);
-							string destinationPath = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, bundleName + ".angry"));
-							File.Copy(tempDownloadPath, destinationPath, true);
+							fpart.CopyTo(str);
+						}
 
-							Plugin.ScanForLevels();
+						File.Delete(part);
+                    }
+				}
+
+				// Make sure the file is not messed up
+				bool valid = true;
+				try
+				{
+					using (ZipArchive zip = new ZipArchive(File.Open(destinationFile, FileMode.Open, FileAccess.Read)))
+					{
+						var dataEntry = zip.GetEntry("data.json");
+						if (dataEntry == null)
+						{
+							valid = false;
 						}
 						else
 						{
-							File.Copy(tempDownloadPath, bundle.pathToAngryBundle, true);
-							bundle.UpdateScenes(false, false);
-						}
+							using (StreamReader dataStr = new StreamReader(dataEntry.Open()))
+							{
+                                BundleData data = JsonConvert.DeserializeObject<BundleData>(dataStr.ReadToEnd());
+								if (data.bundleGuid != bundleGuid)
+									valid = false;
+							}
+                        }
 					}
-
-					if (File.Exists(tempDownloadPath))
-						File.Delete(tempDownloadPath);
 				}
-				finally
+				catch (Exception e)
 				{
-					req.Dispose();
+					Debug.LogError($"Exception thrown while validating file\n{e}");
+					File.Delete(destinationFile);
 				}
-			}
+
+				if (!valid)
+				{
+                    File.Delete(destinationFile);
+					yield break;
+                }
+
+                if (bundle == null)
+					Plugin.ScanForLevels();
+				else
+					bundle.UpdateScenes(false, false);
+            }
 			finally
 			{
 				downloading = false;

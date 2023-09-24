@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.3.3",
+  "latestVersion": "2.4.0",
   "updates": [
     {
       "version": "1.0.0",
@@ -40,6 +40,10 @@
     {
       "version": "2.3.3",
       "updateText": "- Fixed locked levels sometimes showing up as unlocked\n- Fixed online catalog not being sorted correctly when updated"
+    },
+    {
+      "version": "2.4.0",
+      "updateText": "- Implemented parted downloads for large levels\n- Linux icon support\n- Temp downloads are now in the data directory"
     }
   ]
 }
