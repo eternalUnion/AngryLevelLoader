@@ -238,12 +238,12 @@ namespace AngryLevelLoader
 					Directory.CreateDirectory(pathToTempFolder);
 					zip.ExtractToDirectory(pathToTempFolder);
 
-					rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
+					rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
 				}
 				else
 				{
 					if (rootPanel.icon == null)
-						rootPanel.SetIconWithURL(Path.Combine(pathToTempFolder, "icon.png"));
+						rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
 				}
 			}
 

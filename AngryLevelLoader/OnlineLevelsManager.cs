@@ -65,7 +65,7 @@ namespace AngryLevelLoader
 				return;
 			init = true;
 
-			UnityWebRequest spriteReq = UnityWebRequestTexture.GetTexture(Path.Combine(Plugin.workingDir, "loading-icon.png"));
+			UnityWebRequest spriteReq = UnityWebRequestTexture.GetTexture("file://" + Path.Combine(Plugin.workingDir, "loading-icon.png"));
 			var handle = spriteReq.SendWebRequest();
 			handle.completed += (e) =>
 			{
@@ -608,7 +608,7 @@ namespace AngryLevelLoader
 						{
 							if (req.isHttpError || req.isNetworkError)
 								return;
-							field.DownloadPreviewImage(imageCachePath, true);
+							field.DownloadPreviewImage("file://" + imageCachePath, true);
 						}
 						finally
 						{
@@ -618,7 +618,7 @@ namespace AngryLevelLoader
 				}
 				else
 				{
-					field.DownloadPreviewImage(imageCachePath, false);
+					field.DownloadPreviewImage("file://" + imageCachePath, false);
 				}
 
 				// Sort if just created

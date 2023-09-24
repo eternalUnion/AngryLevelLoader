@@ -31,12 +31,12 @@ namespace AngryLevelLoader
     }
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-	[BepInDependency(PluginConfig.PluginConfiguratorController.PLUGIN_GUID, "1.6.0")]
+	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.6.0")]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const bool devMode = false;
+		public const bool devMode = true;
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
@@ -429,7 +429,7 @@ namespace AngryLevelLoader
 
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
 			config.postConfigChange += UpdateAllUI;
-			config.SetIconWithURL(Path.Combine(workingDir, "plugin-icon.png"));
+			config.SetIconWithURL("file://" + Path.Combine(workingDir, "plugin-icon.png"));
 			newLevelToggle = new BoolField(config.rootPanel, "", "v_newLevelToggle", false);
 			newLevelToggle.hidden = true;
 			config.rootPanel.onPannelOpenEvent += (external) =>
@@ -448,7 +448,7 @@ namespace AngryLevelLoader
 			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=lime>Level updates available!</color>", 16);
 			levelUpdateNotifier.hidden = true;
 			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
-			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL(Path.Combine(workingDir, "online-icon.png"));
+			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(workingDir, "online-icon.png"));
 			OnlineLevelsManager.onlineLevelsPanel.onPannelOpenEvent += (e) =>
 			{
 				newLevelNotifier.hidden = true;
