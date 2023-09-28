@@ -17,7 +17,9 @@ using static AngryLevelLoader.Plugin;
 
 namespace AngryLevelLoader
 {
-	public class LevelInfo
+    #region JSON Object Types
+
+    public class LevelInfo
 	{
 		public class UpdateInfo
 		{
@@ -56,7 +58,9 @@ namespace AngryLevelLoader
 		public List<ScriptInfo> Scripts;
 	}
 
-	public class LoadingCircleField : CustomConfigField
+    #endregion
+
+    public class LoadingCircleField : CustomConfigField
 	{
 		public static Sprite loadingIcon;
 		private static bool init = false;
@@ -66,7 +70,7 @@ namespace AngryLevelLoader
 				return;
 			init = true;
 
-			UnityWebRequest spriteReq = UnityWebRequestTexture.GetTexture("file://" + Path.Combine(Plugin.workingDir, "loading-icon.png"));
+			UnityWebRequest spriteReq = UnityWebRequestTexture.GetTexture("file://" + Path.Combine(workingDir, "loading-icon.png"));
 			var handle = spriteReq.SendWebRequest();
 			handle.completed += (e) =>
 			{
@@ -171,7 +175,7 @@ namespace AngryLevelLoader
 					hashReq.Dispose();
 				}
 
-				string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "ScriptCatalog.json");
+				string cachedCatalogPath = Path.Combine(workingDir, "OnlineCache", "ScriptCatalog.json");
 				if (File.Exists(cachedCatalogPath))
 				{
 					string catalog = File.ReadAllText(cachedCatalogPath);
@@ -227,7 +231,7 @@ namespace AngryLevelLoader
 		{
 			if (scriptCatalog == null)
 				return false;
-			return scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault() != null;
+			return scriptCatalog.Scripts.Where(s => s.FileName == script).Any();
 		}
 
 		public static bool TryGetScriptInfo(string script, out ScriptInfo info)
@@ -254,7 +258,7 @@ namespace AngryLevelLoader
 		public static string GetGithubURL(Repo repo, string path)
 		{
 			string branch = "release";
-			if (Plugin.useDevelopmentBranch.value)
+			if (useDevelopmentBranch.value)
 				branch = "dev";
 
 			string repoName = "AngryLevels";
@@ -291,10 +295,10 @@ namespace AngryLevelLoader
 			if (instance == null)
 			{
 				instance = new GameObject().AddComponent<OnlineLevelsManager>();
-				UnityEngine.Object.DontDestroyOnLoad(instance);
+                DontDestroyOnLoad(instance);
 			}
 
-			string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
+			string cachedCatalogPath = Path.Combine(workingDir, "OnlineCache", "LevelCatalog.json");
 			if (File.Exists(cachedCatalogPath))
 				catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
 
@@ -356,7 +360,7 @@ namespace AngryLevelLoader
 		{
 			thumbnailHashes.Clear();
 
-			string thumbnailHashLocation = Path.Combine(Plugin.workingDir, "OnlineCache", "thumbnailCacheHashes.txt");
+			string thumbnailHashLocation = Path.Combine(workingDir, "OnlineCache", "thumbnailCacheHashes.txt");
 			if (File.Exists(thumbnailHashLocation))
 			{
 				using (StreamReader hashReader = new StreamReader(File.Open(thumbnailHashLocation, FileMode.Open, FileAccess.Read)))
@@ -379,7 +383,7 @@ namespace AngryLevelLoader
 
 		public static void SaveThumbnailHashes()
 		{
-			string thumbnailHashDir = Path.Combine(Plugin.workingDir, "OnlineCache");
+			string thumbnailHashDir = Path.Combine(workingDir, "OnlineCache");
 			string thumbnailHashLocation = Path.Combine(thumbnailHashDir, "thumbnailCacheHashes.txt");
 			if (!Directory.Exists(thumbnailHashDir))
 				Directory.CreateDirectory(thumbnailHashDir);
@@ -422,7 +426,7 @@ namespace AngryLevelLoader
 			downloadingCatalog = true;
 
 			string newCatalogHash = "";
-			string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
+			string cachedCatalogPath = Path.Combine(workingDir, "OnlineCache", "LevelCatalog.json");
 
 			try
 			{
@@ -481,7 +485,7 @@ namespace AngryLevelLoader
 
 			try
 			{
-				string catalogDir = Path.Combine(Plugin.workingDir, "OnlineCache");
+				string catalogDir = Path.Combine(workingDir, "OnlineCache");
 				if (!Directory.Exists(catalogDir))
 					Directory.CreateDirectory(catalogDir);
 				string catalogPath = Path.Combine(catalogDir, "LevelCatalog.json");
@@ -518,10 +522,10 @@ namespace AngryLevelLoader
 						
 						if (newLevels.Count != 0)
 						{
-							if (!string.IsNullOrEmpty(Plugin.newLevelNotifierLevels.value))
-								newLevels.AddRange(Plugin.newLevelNotifierLevels.value.Split('`'));
+							if (!string.IsNullOrEmpty(newLevelNotifierLevels.value))
+								newLevels.AddRange(newLevelNotifierLevels.value.Split('`'));
 							newLevels = newLevels.Distinct().ToList();
-							Plugin.newLevelNotifierLevels.value = string.Join("`", newLevels);
+                            newLevelNotifierLevels.value = string.Join("`", newLevels);
 
 							newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
 							newLevelNotifier.hidden = false;
@@ -556,7 +560,7 @@ namespace AngryLevelLoader
 				if (!onlineLevels.TryGetValue(info.Guid, out field))
 				{
 					justCreated = true;
-					field = new OnlineLevelField(onlineLevelContainer);
+					field = new OnlineLevelField(onlineLevelContainer, info.Guid);
 					onlineLevels[info.Guid] = field;
 				}
 
@@ -564,7 +568,6 @@ namespace AngryLevelLoader
 				field.bundleName = info.Name;
 				field.author = info.Author;
 				field.bundleFileSize = info.Size;
-				field.bundleGuid = info.Guid;
 				field.bundleBuildHash = info.Hash;
 				field.lastUpdate = info.LastUpdate;
 
@@ -572,7 +575,7 @@ namespace AngryLevelLoader
 				field.UpdateUI();
 
 				// Update thumbnail if not cahced or out of date
-				string imageCacheDir = Path.Combine(Plugin.workingDir, "OnlineCache", "ThumbnailCache");
+				string imageCacheDir = Path.Combine(workingDir, "OnlineCache", "ThumbnailCache");
 				if (!Directory.Exists(imageCacheDir))
 					Directory.CreateDirectory(imageCacheDir);
 				string imageCachePath = Path.Combine(imageCacheDir, $"{info.Guid}.png");
@@ -661,21 +664,21 @@ namespace AngryLevelLoader
 	
 		public static void CheckLevelUpdateText()
 		{
-			if (!Plugin.levelUpdateNotifierToggle.value)
+			if (!levelUpdateNotifierToggle.value)
 			{
-				Plugin.levelUpdateNotifier.hidden = true;
+                levelUpdateNotifier.hidden = true;
 				return;
 			}
 
-			Plugin.levelUpdateNotifier.text = "";
-			Plugin.levelUpdateNotifier.hidden = true;
+            levelUpdateNotifier.text = "";
+            levelUpdateNotifier.hidden = true;
 			foreach (OnlineLevelField field in onlineLevels.Values)
 			{
 				if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
 				{
-					if (Plugin.levelUpdateIgnoreCustomBuilds.value)
+					if (levelUpdateIgnoreCustomBuilds.value)
 					{
-						AngryBundleContainer container = Plugin.GetAngryBundleByGuid(field.bundleGuid);
+						AngryBundleContainer container = GetAngryBundleByGuid(field.bundleGuid);
 						if (container != null)
 						{
 							LevelInfo info = catalog.Levels.Where(level => level.Guid == field.bundleGuid).First();
@@ -684,10 +687,10 @@ namespace AngryLevelLoader
 						}
 					}
 
-					if (Plugin.levelUpdateNotifier.text != "")
-						Plugin.levelUpdateNotifier.text += '\n';
-					Plugin.levelUpdateNotifier.text += $"<color=cyan>Update available for {field.bundleName}</color>";
-					Plugin.levelUpdateNotifier.hidden = false;
+					if (levelUpdateNotifier.text != "")
+                        levelUpdateNotifier.text += '\n';
+                    levelUpdateNotifier.text += $"<color=cyan>Update available for {field.bundleName}</color>";
+                    levelUpdateNotifier.hidden = false;
 				}
 			}
 		}

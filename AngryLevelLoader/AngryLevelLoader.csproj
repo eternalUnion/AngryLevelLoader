@@ -22,6 +22,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\AngryUiComponents\AngryUiComponents.csproj" />
     <ProjectReference Include="..\RudeLevelScripts.Essentials\RudeLevelScripts.Essentials.csproj" />
   </ItemGroup>
   

@@ -1,4 +1,5 @@
-﻿using PluginConfig;
+﻿using AngryUiComponents;
+using PluginConfig;
 using RudeLevelScript;
 using System;
 using System.Collections;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq.Expressions;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
@@ -14,7 +16,10 @@ namespace AngryLevelLoader
 {
 	public class ScriptUpdateNotification : NotificationPanel.Notification
 	{
-		private List<ScriptUpdateProgressField> fields = new List<ScriptUpdateProgressField>();
+		private const string ASSET_PATH_PANEL = "AngryLevelLoader/ScriptUpdateNotification.prefab";
+        private const string ASSET_PATH_SCRIPT_INFO = "AngryLevelLoader/ScriptUpdateInfo.prefab";
+
+        private List<ScriptUpdateProgressField> fields = new List<ScriptUpdateProgressField>();
 
 		class ScriptUpdateProgressField
 		{
@@ -65,30 +70,16 @@ namespace AngryLevelLoader
 							currentText += $"<color=orange>Available online</color> ({fileSizeText})";
 
 						if (downloadError)
-							currentText += "\n<color=red>Download error</color>";
+							currentText += "<color=red>Download error</color>";
 					}
 				}
 
 				currentTextComp.text = currentText;
 			}
 
-			public void OnUI(RectTransform content)
+			public void OnUI(Transform content)
 			{
-				RectTransform container = UIUtils.MakeSimpleRect(content);
-				container.anchorMin = new Vector2(0, 1);
-				container.anchorMax = new Vector2(0, 1);
-				container.sizeDelta = new Vector2(600, 80);
-				container.pivot = new Vector2(0.5f, 1);
-				container.anchoredPosition = new Vector2(0, 0);
-				container.gameObject.AddComponent<Image>().color = Color.black;
-
-				RectTransform statusText = UIUtils.MakeText(container, "", 16, TextAnchor.UpperLeft);
-				statusText.anchorMin = new Vector2(0, 0.5f);
-				statusText.anchorMax = new Vector2(0, 0.5f);
-				statusText.sizeDelta = new Vector2(580, 30);
-				statusText.pivot = new Vector2(0, 0.5f);
-				statusText.anchoredPosition = new Vector2(10, 0);
-				currentTextComp = statusText.GetComponent<Text>();
+				currentTextComp = Addressables.InstantiateAsync(ASSET_PATH_SCRIPT_INFO, content).WaitForCompletion().GetComponentInChildren<Text>();
 
 				if (string.IsNullOrEmpty(fileSizeText))
 				{
@@ -114,6 +105,7 @@ namespace AngryLevelLoader
 						fileSizeText = "? MB";
 					}
 				}
+
 				SetStatusText();
 			}
 		
@@ -217,6 +209,8 @@ namespace AngryLevelLoader
 			}
 		}
 
+		private AngryScriptUpdateNotificationComponent ui;
+
 		public List<string> scripts;
 		public AngryBundleContainer bundleContainer;
 		public LevelContainer levelContainer;
@@ -253,10 +247,9 @@ namespace AngryLevelLoader
 			}
 		}
 
-		private Button currentContinueButton;
 		public void CheckContinueButtonInteractable()
 		{
-			if (currentContinueButton == null)
+			if (ui == null)
 				return;
 
 			bool interactable = true;
@@ -269,33 +262,18 @@ namespace AngryLevelLoader
 				}
 			}
 
-			currentContinueButton.interactable = interactable;
+			if (ui != null)
+				ui.continueButton.interactable = interactable;
 		}
 
 		public override void OnUI(RectTransform panel)
 		{
-			RectTransform header = UIUtils.MakeText(panel, "Missing Or Outdated Scripts", 30, TextAnchor.UpperCenter);
-			header.anchorMin = new Vector2(0, 1);
-			header.anchorMax = new Vector2(1, 1);
-			header.sizeDelta = new Vector2(0, 70);
-			header.pivot = new Vector2(0.5f, 1);
-			header.anchoredPosition = new Vector2(0, -50);
-
-			RectTransform scriptsPanel = UIUtils.MakePanel(panel, 5);
-			
+            ui = Addressables.InstantiateAsync(ASSET_PATH_PANEL, panel).WaitForCompletion().GetComponent<AngryScriptUpdateNotificationComponent>();
+            
 			foreach (var field in fields)
-				field.OnUI(scriptsPanel);
+				field.OnUI(ui.content);
 
-			LayoutRebuilder.ForceRebuildLayoutImmediate(scriptsPanel);
-
-			RectTransform cancelButton = UIUtils.MakeButton(panel, "Cancel");
-			cancelButton.anchorMin = new Vector2(0.5f, 0);
-			cancelButton.anchorMax = new Vector2(0.5f, 0);
-			cancelButton.pivot = new Vector2(1, 0);
-			cancelButton.anchoredPosition = new Vector2(-5, 10);
-			cancelButton.sizeDelta = new Vector2(295, 60);
-			Button cancel = cancelButton.GetComponent<Button>();
-			cancel.onClick.AddListener(() =>
+			ui.cancel.onClick.AddListener(() =>
 			{
 				foreach (var field in fields)
 					field.StopDownload();
@@ -303,38 +281,25 @@ namespace AngryLevelLoader
 				Close();
 			});
 
-			RectTransform updateButton = UIUtils.MakeButton(panel, "Update");
-			updateButton.anchorMin = new Vector2(0.5f, 0);
-			updateButton.anchorMax = new Vector2(0.5f, 0);
-			updateButton.pivot = new Vector2(0, 0);
-			updateButton.anchoredPosition = new Vector2(5, 10);
-			updateButton.sizeDelta = new Vector2(295, 60);
-			Button update = updateButton.GetComponent<Button>();
-			update.onClick.AddListener(() =>
+			ui.update.onClick.AddListener(() =>
 			{
 				foreach (var field in fields)
 					field.StartDownload();
 
-				if (currentContinueButton != null)
-					currentContinueButton.interactable = false;
+				if (ui != null)
+					ui.continueButton.interactable = false;
 			});
 
-			RectTransform continueButton = UIUtils.MakeButton(panel, "Continue");
-			continueButton.anchorMin = new Vector2(0.5f, 0);
-			continueButton.anchorMax = new Vector2(0.5f, 0);
-			continueButton.pivot = new Vector2(0.5f, 0);
-			continueButton.anchoredPosition = new Vector2(0, 80);
-			continueButton.sizeDelta = new Vector2(600, 60);
-			Button cont = currentContinueButton = continueButton.GetComponent<Button>();
 			foreach (var field in fields)
 			{
 				if (field.downloading)
 				{
-					cont.interactable = false;
+					ui.continueButton.interactable = false;
 					break;
 				}
 			}
-			cont.onClick.AddListener(() =>
+
+			ui.continueButton.onClick.AddListener(() =>
 			{
 				Close();
 				AngrySceneManager.LoadLevelWithScripts(scripts, bundleContainer, levelContainer, levelData, levelName);

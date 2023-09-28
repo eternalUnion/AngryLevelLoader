@@ -98,27 +98,27 @@ namespace AngryLevelLoader
 					onLevelButtonPress.Invoke();
 			};
 
-			time = new FloatField(panel, "", $"l_{data.uniqueIdentifier}_time", 0) { hidden = true, presetLoadPriority = -1 };
-			timeRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_timeRank", "-") { hidden = true };
-			kills = new IntField(panel, "", $"l_{data.uniqueIdentifier}_kills", 0) { hidden = true };
-			killsRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_killsRank", "-") { hidden = true };
-			style = new IntField(panel, "", $"l_{data.uniqueIdentifier}_style", 0) { hidden = true };
-			styleRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_styleRank", "-") { hidden = true };
+			time = new FloatField(panel, "", $"l_{data.uniqueIdentifier}_time", 0, true, false) { hidden = true, presetLoadPriority = -1 };
+			timeRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_timeRank", "-", true, true, false) { hidden = true };
+			kills = new IntField(panel, "", $"l_{data.uniqueIdentifier}_kills", 0, true, false) { hidden = true };
+			killsRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_killsRank", "-", true, true, false) { hidden = true };
+			style = new IntField(panel, "", $"l_{data.uniqueIdentifier}_style", 0, true, false) { hidden = true };
+			styleRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_styleRank", "-", true, true, false) { hidden = true };
 
-			finalRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_finalRank", "-") { hidden = true };
+			finalRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_finalRank", "-", true, true, false) { hidden = true };
 
 			string defaultSecretText = "";
 			for (int i = 0; i < data.secretCount; i++)
 				defaultSecretText += 'F';
-			secrets = new StringField(panel, "", $"l_{data.uniqueIdentifier}_secrets", defaultSecretText, true) { hidden = true };
+			secrets = new StringField(panel, "", $"l_{data.uniqueIdentifier}_secrets", defaultSecretText, true, true, false) { hidden = true };
 			if (secrets.value.Length != data.secretCount)
 			{
 				Debug.LogWarning($"Secret orb count does not match for {data.scenePath}, resetting");
 				secrets.value = defaultSecretText;
 			}
 
-			challenge = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_challenge", false) { hidden = true };
-			discovered = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_discovered", false) { hidden = true };
+			challenge = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_challenge", false, true, false) { hidden = true };
+			discovered = new BoolField(panel, "", $"l_{data.uniqueIdentifier}_discovered", false, true, false) { hidden = true };
 
 			UpdateUI();
 

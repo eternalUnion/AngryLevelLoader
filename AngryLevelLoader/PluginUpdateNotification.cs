@@ -4,9 +4,13 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine.UI;
 using UnityEngine;
+using AngryUiComponents;
+using UnityEngine.AddressableAssets;
 
 namespace AngryLevelLoader
 {
+
+    #pragma warning disable IDE1006
     public class PluginVersion
     {
         public string version { get; set; }
@@ -18,9 +22,12 @@ namespace AngryLevelLoader
         public string latestVersion { get; set; }
         public List<PluginVersion> updates;
     }
+    #pragma warning restore IDE1006
 
     public class PluginUpdateNotification : NotificationPanel.Notification
     {
+        private const string ASSET_PATH = "AngryLevelLoader/PluginUpdateNotification.prefab";
+
         private PluginInfoJson json;
 
         public PluginUpdateNotification(PluginInfoJson json)
@@ -37,18 +44,11 @@ namespace AngryLevelLoader
                 return;
             }
 
-            string headerText = "<color=cyan>Changelog</color>";
+            AngryPluginChangelogNotificationComponent ui = Addressables.InstantiateAsync(ASSET_PATH, panel).WaitForCompletion().GetComponent<AngryPluginChangelogNotificationComponent>();
+
+            ui.header.text = "<color=cyan>Changelog</color>";
             if (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion))
-                headerText = "<color=lime>UPDATE AVAILABLE</color>";
-
-            RectTransform header = UIUtils.MakeText(panel, headerText, 30, TextAnchor.UpperCenter);
-            header.anchorMin = new Vector2(0, 1);
-            header.anchorMax = new Vector2(1, 1);
-            header.sizeDelta = new Vector2(0, 70);
-            header.pivot = new Vector2(0.5f, 1);
-            header.anchoredPosition = new Vector2(0, -50);
-
-            RectTransform updatePanel = UIUtils.MakePanel(panel, 5);
+                ui.header.text = "<color=lime>UPDATE AVAILABLE</color>";
 
             StringBuilder updateTextBuilder = new StringBuilder();
             bool firstTime = true;
@@ -76,36 +76,15 @@ namespace AngryLevelLoader
                 firstTime = false;
             }
 
-            RectTransform updateText = UIUtils.MakeText(updatePanel, updateTextBuilder.ToString(), 28, TextAnchor.UpperLeft);
-            updateText.anchorMin = new Vector2(0, 1);
-            updateText.anchorMax = new Vector2(0, 1);
-            updateText.sizeDelta = new Vector2(600, updateText.GetComponent<Text>().preferredHeight);
-            updateText.pivot = new Vector2(0, 1);
-            updateText.anchoredPosition = new Vector2(0, 0);
+            ui.text.text = updateTextBuilder.ToString();
 
-            LayoutRebuilder.ForceRebuildLayoutImmediate(updatePanel);
-
-            RectTransform cancelButton = UIUtils.MakeButton(panel, "Close");
-            cancelButton.anchorMin = new Vector2(0.5f, 0);
-            cancelButton.anchorMax = new Vector2(0.5f, 0);
-            cancelButton.pivot = new Vector2(1, 0);
-            cancelButton.anchoredPosition = new Vector2(-5, 10);
-            cancelButton.sizeDelta = new Vector2(295, 60);
-            Button cancel = cancelButton.GetComponent<Button>();
-            cancel.onClick.AddListener(() =>
+            ui.cancel.onClick.AddListener(() =>
             {
                 Close();
                 Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
             });
 
-            RectTransform updateButton = UIUtils.MakeButton(panel, "Ignore Until Next Update");
-            updateButton.anchorMin = new Vector2(0.5f, 0);
-            updateButton.anchorMax = new Vector2(0.5f, 0);
-            updateButton.pivot = new Vector2(0, 0);
-            updateButton.anchoredPosition = new Vector2(5, 10);
-            updateButton.sizeDelta = new Vector2(295, 60);
-            Button update = updateButton.GetComponent<Button>();
-            update.onClick.AddListener(() =>
+            ui.ignoreUpdate.onClick.AddListener(() =>
             {
                 Close();
                 Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;

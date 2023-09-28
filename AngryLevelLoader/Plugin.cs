@@ -41,11 +41,16 @@ namespace AngryLevelLoader
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.4.0";
+		
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
 		public static string tempFolderPath;
 		public static string dataPath;
         public static string levelsPath;
+
+		// This is the path angry addressables use
+		public static string angryCatalogPath;
+
         public static Plugin instance;
 		
 		public static PluginConfigurator internalConfig;
@@ -392,8 +397,10 @@ namespace AngryLevelLoader
             IOUtils.TryCreateDirectory(tempFolderPath);
 
             Addressables.InitializeAsync().WaitForCompletion();
+			angryCatalogPath = Path.Combine(workingDir, "Assets");
+			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 
-			if (!LoadEssentialScripts())
+            if (!LoadEssentialScripts())
 			{
 				Debug.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
 				enabled = false;
@@ -534,7 +541,13 @@ namespace AngryLevelLoader
             };
 
             reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
-			settingsPanel.hidden = true;
+			reloadFileKeybind.onValueChange += (e) =>
+			{
+				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
+					e.canceled = true;
+			};
+
+            settingsPanel.hidden = true;
 			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.Alphabetically);
 			bundleSortingMode.onValueChange += (e) =>
 			{
