@@ -19,6 +19,7 @@ using System.Collections;
 using RudeLevelScripts.Essentials;
 using AngryLevelLoader.Fields;
 using PluginConfig.API.Fields;
+using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader.Containers
 {

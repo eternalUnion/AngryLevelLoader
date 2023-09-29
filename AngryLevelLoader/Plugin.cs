@@ -20,6 +20,7 @@ using RudeLevelScript;
 using PluginConfig;
 using BepInEx.Bootstrap;
 using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader
 {
@@ -275,7 +276,6 @@ namespace AngryLevelLoader
 		}
 
         // Game assets
-        public static Font gameFont;
 		public static Sprite notPlayedPreview;
 		public static Sprite lockedPreview;
 
@@ -437,8 +437,7 @@ namespace AngryLevelLoader
 					AngrySceneManager.PostSceneLoad();
 			};
 
-            gameFont = Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
-			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
+            notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
 			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
 
 			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))

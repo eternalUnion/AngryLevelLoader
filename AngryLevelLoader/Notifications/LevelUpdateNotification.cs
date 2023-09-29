@@ -7,6 +7,7 @@ using UnityEngine;
 using AngryUiComponents;
 using UnityEngine.AddressableAssets;
 using AngryLevelLoader.Fields;
+using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader.Notifications
 {
