@@ -181,9 +181,6 @@ namespace AngryLevelLoader
 
 		public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
 		{
-			// LEGACY
-			LegacyPatchController.enablePatches = false;
-
 			Plugin.config.presetButtonInteractable = false;
 			CurrentSceneName = levelName;
 
@@ -229,35 +226,6 @@ namespace AngryLevelLoader
 					bonus.BeenFound();
 				}
 			}
-		}
-
-		// LEGACY
-		public static void LoadLegacyLevel(string levelPath)
-		{
-			if (Plugin.ultrapainLoaded)
-				UnsetUltrapainDifficulty();
-			if (Plugin.heavenOrHellLoaded)
-				UnsetHeavenOrHellDifficulty();
-
-			if (Plugin.selectedDifficulty == 4)
-			{
-				SetToUltrapainDifficulty();
-			}
-			else if (Plugin.selectedDifficulty == 5)
-			{
-				SetToHeavenOrHellDifficulty();
-			}
-			else
-			{
-				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
-			}
-			LegacyPatchController.enablePatches = true;
-			LegacyPatchController.Patch();
-			CurrentSceneName = levelPath;
-			SceneManager.LoadScene(levelPath);
-
-			LegacyPatchController.LinkMixers();
-			LegacyPatchController.ReplaceShaders();
 		}
 	}
 }

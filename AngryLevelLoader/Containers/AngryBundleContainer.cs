@@ -68,73 +68,6 @@ namespace AngryLevelLoader.Containers
         public IntField finalRankScore;
         public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
-        // LEGACY
-        private List<AssetBundle> allBundles = new List<AssetBundle>();
-        public bool legacy = false;
-
-        // LEGACY
-        private bool CheckForLegacyFile()
-        {
-            using (FileStream fs = File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read))
-            {
-                try
-                {
-                    BinaryReader reader = new BinaryReader(fs);
-                    fs.Seek(0, SeekOrigin.Begin);
-                    int bundleCount = reader.ReadInt32();
-                    if (bundleCount * 4 + 4 >= fs.Length)
-                        return false;
-                    int totalSize = 4 + bundleCount * 4;
-                    for (int i = 0; i < bundleCount && totalSize < fs.Length; i++)
-                        totalSize += reader.ReadInt32();
-
-                    if (totalSize == fs.Length)
-                    {
-                        return true;
-                    }
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-            }
-
-            return false;
-        }
-
-        // LEGACY
-        private void LoadLegacy(string path)
-        {
-            using (FileStream fs = File.Open(path, FileMode.Open, FileAccess.Read))
-            using (BinaryReader br = new BinaryReader(fs))
-            {
-                int bundleCount = br.ReadInt32();
-                int currentOffset = 0;
-
-                for (int i = 0; i < bundleCount; i++)
-                {
-                    fs.Seek(4 + i * 4, SeekOrigin.Begin);
-                    int bundleLen = br.ReadInt32();
-
-                    byte[] bundleData = new byte[bundleLen];
-                    fs.Seek(4 + bundleCount * 4 + currentOffset, SeekOrigin.Begin);
-                    fs.Read(bundleData, 0, bundleLen);
-                    AssetBundle bundle = AssetBundle.LoadFromMemory(bundleData);
-                    if (bundle != null)
-                        allBundles.Add(bundle);
-                    else
-                    {
-                        statusText.hidden = false;
-                        if (!string.IsNullOrEmpty(statusText.text))
-                            statusText.text += '\n';
-                        statusText.text += "<color=red>Error: </color>Could not load some of the bundles. Possible confliction with another angry file.";
-                    }
-
-                    currentOffset += bundleLen;
-                }
-            }
-        }
-
         /// <summary>
         /// Read .angry file and load the levels in memory
         /// </summary>
@@ -155,33 +88,6 @@ namespace AngryLevelLoader.Containers
             {
                 Addressables.RemoveResourceLocator(locator);
                 Addressables.CleanBundleCache().WaitForCompletion();
-            }
-
-            // LEGACY
-            foreach (AssetBundle bundle in allBundles)
-            {
-                try
-                {
-                    bundle.Unload(false);
-                }
-                catch (Exception) { }
-            }
-            allBundles.Clear();
-
-            // LEGACY
-            if (CheckForLegacyFile())
-            {
-                legacy = true;
-                statusText.hidden = false;
-                if (!string.IsNullOrEmpty(statusText.text))
-                    statusText.text += '\n';
-                statusText.text += "<color=yellow>Warning: Legacy angry file detected! Support for this format will be dropped on future updates!</color>";
-
-                if (lazyLoad)
-                    return true;
-
-                LoadLegacy(pathToAngryBundle);
-                return true;
             }
 
             // Open the angry zip archive
@@ -332,16 +238,6 @@ namespace AngryLevelLoader.Containers
 
         public IEnumerable<RudeLevelData> GetAllLevelData()
         {
-            // LEGACY
-            if (legacy)
-            {
-                foreach (var dataArr in allBundles.Where(bundle => !bundle.isStreamedSceneAssetBundle).Select(bundle => bundle.LoadAllAssets<RudeLevelData>()))
-                    foreach (var data in dataArr)
-                        yield return data;
-
-                yield break;
-            }
-
             foreach (var data in dataDictionary.Values)
                 yield return data.Result;
         }
@@ -362,7 +258,7 @@ namespace AngryLevelLoader.Containers
             Scene tempScene = new Scene();
             string previousPath = SceneManager.GetActiveScene().path;
             string previousName = SceneManager.GetActiveScene().name;
-            if (GetAllScenePaths().Contains(previousPath) && !legacy)
+            if (GetAllScenePaths().Contains(previousPath))
             {
                 tempScene = SceneManager.CreateScene("temp");
                 inTempScene = true;
@@ -407,16 +303,8 @@ namespace AngryLevelLoader.Containers
                                 Plugin.currentLevelContainer = levelContainer;
                                 Plugin.currentLevelData = data;
 
-                                // LEGACY
-                                if (legacy)
-                                {
-                                    AngrySceneManager.LoadLegacyLevel(data.scenePath);
-                                }
-                                else
-                                {
-                                    // AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
-                                    AngrySceneManager.LevelButtonPressed(this, levelContainer, data, data.scenePath);
-                                }
+                                // AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
+                                AngrySceneManager.LevelButtonPressed(this, levelContainer, data, data.scenePath);
                             };
 
                             levels[data.uniqueIdentifier] = levelContainer;
@@ -437,13 +325,8 @@ namespace AngryLevelLoader.Containers
             {
                 if (GetAllScenePaths().Contains(previousPath))
                 {
-                    if (legacy)
-                        yield return SceneManager.LoadSceneAsync(previousName);
-                    else
-                    {
-                        yield return Addressables.LoadSceneAsync(previousName);
-                        AngrySceneManager.PostSceneLoad();
-                    }
+                    yield return Addressables.LoadSceneAsync(previousName);
+                    AngrySceneManager.PostSceneLoad();
                 }
                 else
                     yield return Addressables.LoadSceneAsync("Main Menu");
@@ -641,7 +524,7 @@ namespace AngryLevelLoader.Containers
             rootPanel = new ConfigPanelForBundles(this, Plugin.bundleDivision, Path.GetFileNameWithoutExtension(guid), guid);
             rootPanel.onPannelOpenEvent += (external) =>
             {
-                if (locator == null && allBundles.Count == 0)
+                if (locator == null)
                     UpdateScenes(false, false);
             };
             guid = "";
