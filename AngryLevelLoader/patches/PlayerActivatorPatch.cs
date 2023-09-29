@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	// Why I even need this witchcraft?
 

@@ -7,10 +7,10 @@ using UnityEngine;
 using AngryUiComponents;
 using UnityEngine.AddressableAssets;
 
-namespace AngryLevelLoader
+namespace AngryLevelLoader.Notifications
 {
 
-    #pragma warning disable IDE1006
+#pragma warning disable IDE1006
     public class PluginVersion
     {
         public string version { get; set; }
@@ -22,7 +22,7 @@ namespace AngryLevelLoader
         public string latestVersion { get; set; }
         public List<PluginVersion> updates;
     }
-    #pragma warning restore IDE1006
+#pragma warning restore IDE1006
 
     public class PluginUpdateNotification : NotificationPanel.Notification
     {

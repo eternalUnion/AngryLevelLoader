@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.Awake))]
 	class StatsManager_Awake_Patch
@@ -194,7 +194,8 @@ namespace AngryLevelLoader.patches
 						Plugin.currentLevelContainer.challenge.value = challengeCompletedThisSeason;
 				}
 
-				Plugin.UpdateAllUI();
+				Plugin.currentBundleContainer.RecalculateFinalRank();
+				Plugin.currentLevelContainer.UpdateUI();
 			}
 
 			// Set challenge text

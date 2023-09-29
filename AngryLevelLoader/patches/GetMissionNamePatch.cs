@@ -1,6 +1,6 @@
 ﻿using HarmonyLib;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(GetMissionName), nameof(GetMissionName.GetMission))]
 	class GetMissionName_Patch

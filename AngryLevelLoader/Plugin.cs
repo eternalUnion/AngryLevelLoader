@@ -19,10 +19,11 @@ using UnityEngine.Audio;
 using RudeLevelScript;
 using PluginConfig;
 using BepInEx.Bootstrap;
+using AngryLevelLoader.Containers;
 
 namespace AngryLevelLoader
 {
-	public class SpaceField : CustomConfigField
+    public class SpaceField : CustomConfigField
     {
         public SpaceField(ConfigPanel parentPanel, float space) : base(parentPanel, 60, space)
         {
@@ -152,8 +153,20 @@ namespace AngryLevelLoader
 				angryBundles[path] = level;
 				try
 				{
-					level.UpdateScenes(false, true);
-				}
+					// To prevent force load on preset reset
+					level.finalRankScore.defaultValue = 0;
+
+                    // If rank score is not cached (invalid value) do not lazy load and calculate rank data
+                    if (level.finalRankScore.value < 0)
+                    {
+                        Debug.LogWarning("Final rank score for the bundle not cached, skipping lazy reload");
+                        level.UpdateScenes(false, false);
+                    }
+					else
+					{
+						level.UpdateScenes(false, true);
+					}
+                }
 				catch (Exception e)
 				{
 					Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
@@ -208,7 +221,12 @@ namespace AngryLevelLoader
 		{
 			foreach (AngryBundleContainer angryBundle in  angryBundles.Values)
 			{
-				foreach (LevelContainer level in angryBundle.levels.Values)
+				if (angryBundle.finalRankScore.value < 0)
+					angryBundle.UpdateScenes(false, false);
+				else
+					angryBundle.UpdateUI();
+
+                foreach (LevelContainer level in angryBundle.levels.Values)
 				{
 					level.UpdateUI();
 				}
@@ -435,7 +453,7 @@ namespace AngryLevelLoader
 			}
 
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
-			config.postConfigChange += UpdateAllUI;
+			config.postPresetChangeEvent += (b, a) => UpdateAllUI();
 			config.SetIconWithURL("file://" + Path.Combine(workingDir, "plugin-icon.png"));
 			newLevelToggle = new BoolField(config.rootPanel, "", "v_newLevelToggle", false);
 			newLevelToggle.hidden = true;

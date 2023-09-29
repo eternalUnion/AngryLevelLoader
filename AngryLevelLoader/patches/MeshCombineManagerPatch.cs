@@ -7,7 +7,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	// To prevent error if the shader is not attached
 

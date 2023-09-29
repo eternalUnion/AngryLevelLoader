@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using RudeLevelScript;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(FinalPit), nameof(FinalPit.SendInfo))]
 	public static class FinalPit_SendInfo_Patch

@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(SceneHelper))]
 	public class SceneHelper_LoadScene_Patch

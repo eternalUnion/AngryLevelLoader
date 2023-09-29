@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(ChallengeManager))]
     public static class ChallengeManagerPatch

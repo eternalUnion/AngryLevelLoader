@@ -7,7 +7,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
 	/*
 	 * Stealing script execution order

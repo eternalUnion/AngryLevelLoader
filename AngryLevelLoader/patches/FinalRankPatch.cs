@@ -1,11 +1,12 @@
-﻿using HarmonyLib;
+﻿using AngryLevelLoader.Containers;
+using HarmonyLib;
 using RudeLevelScript;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace AngryLevelLoader.patches
+namespace AngryLevelLoader.Patches
 {
-	[HarmonyPatch(typeof(FinalRank), nameof(FinalRank.Start))]
+    [HarmonyPatch(typeof(FinalRank), nameof(FinalRank.Start))]
 	class FinalRank_Start_Patch
 	{
 		[HarmonyPrefix]

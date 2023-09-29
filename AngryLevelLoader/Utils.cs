@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -35,6 +36,28 @@ namespace AngryLevelLoader
 			return -1;
 		}
 
+		public static char GetRankChar(int score)
+		{
+            if (score == 1)
+                return 'D';
+            if (score == 2)
+                return 'C';
+            if (score == 3)
+                return 'B';
+            if (score == 4)
+                return 'A';
+            if (score == 5)
+                return 'S';
+            if (score == 6)
+                return 'P';
+            if (score == -1)
+                return '-';
+            if (score == 0)
+                return ' ';
+
+            return '-';
+        }
+
 		private static Dictionary<char, Color> rankColors = new Dictionary<char, Color>()
 		{
 			{ 'D', new Color(0, 0x94 / 255f, 0xFF / 255f) },
@@ -43,8 +66,17 @@ namespace AngryLevelLoader
 			{ 'A', new Color(0xFF / 255f, 0x6A / 255f, 0) },
 			{ 'S', Color.red },
 			{ 'P', Color.white },
-			{ '-', Color.gray }
+			{ '-', Color.gray },
+			{ ' ', Color.gray },
 		};
+
+		public static Color GetRankColor(char rank, Color fallback)
+		{
+			if (rankColors.TryGetValue(rank, out var color))
+				return color;
+			return fallback;
+		}
+
 		public static string GetFormattedRankText(char rank)
 		{
 			Color textColor;
@@ -132,6 +164,26 @@ namespace AngryLevelLoader
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs, deleteSource);
                 }
             }
+        }
+    }
+
+	public static class UIUtils
+	{
+        public static void AddMouseEvents(GameObject field, Button btn, Action<BaseEventData> mouseOnEvent, Action<BaseEventData> mouseOffEvent)
+        {
+            EventTrigger trigger = field.GetComponent<EventTrigger>();
+            if (trigger == null)
+            {
+                trigger = field.AddComponent<EventTrigger>();
+                PluginConfig.API.Utils.AddScrollEvents(trigger, PluginConfig.API.Utils.GetComponentInParent<ScrollRect>(btn.transform));
+            }
+
+            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
+            mouseOn.callback.AddListener(e => mouseOnEvent(e));
+            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
+            mouseOff.callback.AddListener(e => mouseOffEvent(e));
+            trigger.triggers.Add(mouseOn);
+            trigger.triggers.Add(mouseOff);
         }
     }
 

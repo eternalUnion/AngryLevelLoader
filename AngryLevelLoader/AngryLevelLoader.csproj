@@ -36,6 +36,9 @@
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
     </Reference>
+    <Reference Include="PluginConfiguratorComponents">
+      <HintPath>libs\PluginConfiguratorComponents.dll</HintPath>
+    </Reference>
     <Reference Include="Ultrapain">
       <HintPath>libs\Ultrapain.dll</HintPath>
     </Reference>

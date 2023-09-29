@@ -1,4 +1,6 @@
-﻿using PluginConfig;
+﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Notifications;
+using PluginConfig;
 using RudeLevelScript;
 using System;
 using System.Collections.Generic;
@@ -10,7 +12,7 @@ using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader
 {
-	public static class AngrySceneManager
+    public static class AngrySceneManager
 	{
 		public static string CurrentSceneName = "";
 

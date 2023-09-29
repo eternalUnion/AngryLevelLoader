@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using AngryLevelLoader.Notifications;
+using Newtonsoft.Json;
 using PluginConfig;
 using System;
 using System.Collections;
