@@ -13,7 +13,7 @@ namespace AngryLevelLoader.Fields
 {
     public class LevelField : CustomConfigField
     {
-        private const string ASSET_PATH = "AngryLevelLoader/LevelField.prefab";
+        private const string ASSET_PATH = "AngryLevelLoader/Fields/LevelField.prefab";
 
         private bool inited = false;
         public RudeLevelData data;

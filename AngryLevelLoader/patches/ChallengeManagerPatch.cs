@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using AngryLevelLoader.Managers;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -12,7 +13,7 @@ namespace AngryLevelLoader.Patches
         [HarmonyPrefix]
         public static bool CancelOnEnable()
         {
-            if (Plugin.isInCustomScene)
+            if (AngrySceneManager.isInCustomLevel)
                 return false;
             return true;
         }

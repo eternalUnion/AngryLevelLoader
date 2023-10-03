@@ -26,7 +26,7 @@ namespace AngryLevelLoader.Notifications
 
     public class PluginUpdateNotification : NotificationPanel.Notification
     {
-        private const string ASSET_PATH = "AngryLevelLoader/PluginUpdateNotification.prefab";
+        private const string ASSET_PATH = "AngryLevelLoader/Notifications/PluginUpdateNotification.prefab";
 
         private PluginInfoJson json;
 

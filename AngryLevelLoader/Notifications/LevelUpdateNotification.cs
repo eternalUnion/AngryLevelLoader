@@ -13,7 +13,7 @@ namespace AngryLevelLoader.Notifications
 {
     public class LevelUpdateNotification : NotificationPanel.Notification
     {
-        private const string ASSET_PATH = "AngryLevelLoader/LevelUpdateNotification.prefab";
+        private const string ASSET_PATH = "AngryLevelLoader/Notifications/LevelUpdateNotification.prefab";
 
         public string currentHash;
         public LevelInfo onlineInfo;

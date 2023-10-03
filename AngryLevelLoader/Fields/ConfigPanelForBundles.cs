@@ -19,8 +19,8 @@ namespace AngryLevelLoader.Fields
             }
         }
 
-        private const string ASSET_PATH_RANK_ICON = "AngryLevelLoader/RankIcon.prefab";
-        private const string ASSET_PATH_DELETE_BUTTON = "AngryLevelLoader/DeleteButton.prefab";
+        private const string ASSET_PATH_RANK_ICON = "AngryLevelLoader/Fields/BundlePanelPrefabs/RankIcon.prefab";
+        private const string ASSET_PATH_DELETE_BUTTON = "AngryLevelLoader/Fields/BundlePanelPrefabs/DeleteButton.prefab";
 
         public readonly AngryBundleContainer callback;
 
@@ -111,7 +111,7 @@ namespace AngryLevelLoader.Fields
                 deleteButton.onClick.AddListener(() =>
                 {
                     if (callback != null)
-                        callback.Delete();
+                        callback.OpenDeletePanel();
                     else
                         Debug.LogError("Delete bundle button pressed but callback is null");
                 });

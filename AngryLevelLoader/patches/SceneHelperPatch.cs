@@ -2,6 +2,7 @@
 using UnityEngine.SceneManagement;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader.Patches
 {
@@ -12,7 +13,7 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		public static bool GoToMainMenuIfNoSceneFound(ref string __0)
 		{
-			if (Plugin.isInCustomScene && __0 == "")
+			if (AngrySceneManager.isInCustomLevel && __0 == "")
 			{
 				__0 = "Main Menu";
 			}
@@ -24,7 +25,7 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		public static bool ChangeSceneNameBeforeLoad(SceneHelper __instance)
 		{
-			if (!Plugin.isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
             foreach (MonoBehaviour monoBehaviour in Object.FindObjectsOfType<MonoBehaviour>())
@@ -36,9 +37,9 @@ namespace AngryLevelLoader.Patches
             }
             if (string.IsNullOrEmpty(SceneHelper.CurrentScene))
             {
-				Plugin.SceneHelper_CurrentScene.SetValue(null, Plugin.currentLevelData.uniqueIdentifier);
+                AngrySceneManager.SceneHelper_CurrentScene.SetValue(null, AngrySceneManager.currentLevelData.uniqueIdentifier);
             }
-            Addressables.LoadSceneAsync(Plugin.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).WaitForCompletion();
+            Addressables.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).WaitForCompletion();
 
             return false;
 		}

@@ -547,6 +547,12 @@ namespace AngryLevelLoader.Managers
             }
         }
 
+        public static void UpdateUI()
+        {
+            foreach (var levelField in onlineLevels.Values)
+                levelField.UpdateUI();
+        }
+
         private static void PostCatalogLoad()
         {
             loadingCircle.hidden = true;
@@ -684,7 +690,7 @@ namespace AngryLevelLoader.Managers
                         if (container != null)
                         {
                             LevelInfo info = catalog.Levels.Where(level => level.Guid == field.bundleGuid).First();
-                            if (info.Updates != null && !info.Updates.Select(u => u.Hash).Contains(container.hash))
+                            if (info.Updates != null && !info.Updates.Select(u => u.Hash).Contains(container.bundleData.buildHash))
                                 continue;
                         }
                     }

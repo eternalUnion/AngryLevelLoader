@@ -1,7 +1,10 @@
-﻿using PluginConfig;
+﻿using AngryLevelLoader.DataTypes;
+using Newtonsoft.Json;
+using PluginConfig;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -89,6 +92,12 @@ namespace AngryLevelLoader
 
 	public static class IOUtils
 	{
+		/// <summary>
+		/// Returns a unique file name in the given folder by appending `_num` to file name if the file already exists
+		/// </summary>
+		/// <param name="folder">Folder path</param>
+		/// <param name="name">File name with the extension</param>
+		/// <returns>File name which does not exist in the folder</returns>
 		public static string GetUniqueFileName(string folder, string name)
 		{
 			string nameExtensionless = Path.GetFileNameWithoutExtension(name);
@@ -96,13 +105,47 @@ namespace AngryLevelLoader
 			string ext = Path.GetExtension(name);
 
 			int i = 0;
-			while (File.Exists(Path.Combine(folder, newName)))
+			while (File.Exists(Path.Combine(folder, $"{newName}{ext}")))
 				newName = $"{nameExtensionless}_{i++}";
 
 			return $"{newName}{ext}";
 		}
-	
-		public static string AppData
+
+        /// <summary>
+        /// Returns a full path to a unique file in the given folder by appending `_num` to file name if the file already exists
+        /// </summary>
+        /// <param name="path">Full path to the file</param>
+        /// <returns>Full path to a file which does not exist in the directory</returns>
+        public static string GetUniqueFileName(string path)
+		{
+			return Path.Combine(Path.GetDirectoryName(path), GetUniqueFileName(Path.GetDirectoryName(path), Path.GetFileName(path)));
+		}
+
+		public static string GetPathSafeName(string name)
+		{
+			StringBuilder newName = new StringBuilder();
+			for (int i = 0; i < name.Length; i++)
+			{
+                char c = name[i];
+
+                if (char.IsLetterOrDigit(c) || c == '-' || c == '_')
+				{
+					newName.Append(c);
+				}
+				else if (c == ' ')
+				{
+					if (i > 0 && name[i - 1] != ' ')
+						newName.Append('_');
+				}
+			}
+
+			string result = newName.ToString();
+			if (string.IsNullOrEmpty(result))
+				return "file";
+			return result;
+		}
+
+        public static string AppData
 		{
 			get => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         }
@@ -224,5 +267,37 @@ namespace AngryLevelLoader
 			byte[] hash = md5.ComputeHash(data);
 			return ByteArrayToString(hash).ToLower();
 		}
+	}
+
+	public static class AngryFileUtils
+	{
+        public static AngryBundleData TryGetAngryBundleData(string filePath, out Exception error)
+		{
+			error = null;
+
+			try
+			{
+				return GetAngryBundleData(filePath);
+
+            }
+			catch (Exception e)
+			{
+				error = e;
+				return null;
+			}
+		}
+		
+		public static AngryBundleData GetAngryBundleData(string filePath)
+		{
+            using (ZipArchive zip = new ZipArchive(File.Open(filePath, FileMode.Open, FileAccess.Read)))
+            {
+                var entry = zip.GetEntry("data.json");
+                if (entry == null)
+                    return null;
+
+                using (StreamReader dataReader = new StreamReader(entry.Open()))
+                    return JsonConvert.DeserializeObject<AngryBundleData>(dataReader.ReadToEnd());
+            }
+        }
 	}
 }

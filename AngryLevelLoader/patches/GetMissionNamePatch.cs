@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using AngryLevelLoader.Managers;
+using HarmonyLib;
 
 namespace AngryLevelLoader.Patches
 {
@@ -8,10 +9,10 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		static bool Prefix(ref string __result)
 		{
-			if (!Plugin.isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
-			__result = Plugin.currentLevelData.levelName;
+			__result = AngrySceneManager.currentLevelData.levelName;
 			return false;
 		}
 	}

@@ -10,6 +10,7 @@ namespace AngryLevelLoader.Containers
     public class LevelContainer
     {
         public LevelField field;
+        public AngryBundleContainer container;
         public RudeLevelData data;
 
         public delegate void onLevelButtonPressDelegate();
@@ -89,8 +90,9 @@ namespace AngryLevelLoader.Containers
             UpdateUI();
         }
 
-        public LevelContainer(ConfigPanel panel, RudeLevelData data)
+        public LevelContainer(ConfigPanel panel, AngryBundleContainer container, RudeLevelData data)
         {
+            this.container = container;
             this.data = data;
             field = new LevelField(panel, data);
             field.onLevelButtonPress += () =>

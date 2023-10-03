@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using AngryLevelLoader.Managers;
+using HarmonyLib;
 using RudeLevelScripts.Essentials;
 using System;
 using System.Collections.Generic;
@@ -19,8 +20,7 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPostfix]
 		public static void Postfix()
 		{
-			Plugin.CheckIsInCustomScene(SceneManager.GetActiveScene());
-			if (!Plugin.isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return;
 
 			StatsManager sman = GameObject.FindObjectOfType<StatsManager>();

@@ -11,7 +11,7 @@ namespace AngryLevelLoader.Notifications
 {
     public class ScriptWarningNotification : NotificationPanel.Notification
     {
-        private const string ASSET_PATH = "AngryLevelLoader/ScriptWarningNotification.prefab";
+        private const string ASSET_PATH = "AngryLevelLoader/Notifications/ScriptWarningNotification.prefab";
 
         public string header;
         public string text;

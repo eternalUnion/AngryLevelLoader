@@ -13,7 +13,7 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		static bool Prefix(FinalRank __instance)
 		{
-			if (!Plugin.isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
 			bool secretLevel = __instance.transform.Find("Challenge") == null;
@@ -23,7 +23,7 @@ namespace AngryLevelLoader.Patches
 				Transform titleTrans = __instance.transform.Find("Title/Text");
 				if (titleTrans != null)
 				{
-					titleTrans.GetComponent<Text>().text = Plugin.currentLevelData.name;
+					titleTrans.GetComponent<Text>().text = AngrySceneManager.currentLevelData.name;
 				}
 				else
 				{
@@ -34,10 +34,10 @@ namespace AngryLevelLoader.Patches
 			}
 
 			__instance.levelSecrets = StatsManager.instance.secretObjects;
-			if (__instance.levelSecrets.Length != Plugin.currentLevelData.secretCount)
+			if (__instance.levelSecrets.Length != AngrySceneManager.currentLevelData.secretCount)
 			{
-				Debug.LogWarning($"Inconsistent secrets size, expected {Plugin.currentLevelData.secretCount}, found {__instance.levelSecrets.Length}");
-				__instance.levelSecrets = new GameObject[Plugin.currentLevelData.secretCount];
+				Debug.LogWarning($"Inconsistent secrets size, expected {AngrySceneManager.currentLevelData.secretCount}, found {__instance.levelSecrets.Length}");
+				__instance.levelSecrets = new GameObject[AngrySceneManager.currentLevelData.secretCount];
 			}
 
 			return true;
@@ -49,17 +49,17 @@ namespace AngryLevelLoader.Patches
 	{
 		static bool Prefix(FinalRank __instance)
 		{
-			if (!Plugin.isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
-			Plugin.currentLevelContainer.AssureSecretsSize();
-			if (__instance.secretsCheckProgress >= Plugin.currentLevelData.secretCount)
+			AngrySceneManager.currentLevelContainer.AssureSecretsSize();
+			if (__instance.secretsCheckProgress >= AngrySceneManager.currentLevelData.secretCount)
 			{
 				__instance.Invoke("Appear", __instance.timeBetween);
 				return false;
 			}
 
-			if (Plugin.currentLevelContainer.secrets.value[__instance.secretsCheckProgress] != 'T')
+			if (AngrySceneManager.currentLevelContainer.secrets.value[__instance.secretsCheckProgress] != 'T')
 			{
 				__instance.secretsInfo[__instance.secretsCheckProgress].color = Color.black;
 				__instance.secretsCheckProgress += 1;
@@ -83,7 +83,7 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		static bool Prefix()
 		{
-			if (!Plugin.isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
 			if (FinalPit_SendInfo_Patch.lastTarget != null && !string.IsNullOrEmpty(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId))

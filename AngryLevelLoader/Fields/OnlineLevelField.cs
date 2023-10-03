@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Notifications;
 using AngryUiComponents;
@@ -27,7 +28,7 @@ namespace AngryLevelLoader.Fields
 {
     public class OnlineLevelField : CustomConfigField
     {
-        private const string ASSET_PATH = "AngryLevelLoader/OnlineLevelField.prefab";
+        private const string ASSET_PATH = "AngryLevelLoader/Fields/OnlineLevelField.prefab";
 
         public readonly string bundleGuid;
         public string bundleBuildHash;
@@ -240,7 +241,7 @@ namespace AngryLevelLoader.Fields
             {
                 LevelInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
                 LevelUpdateNotification notification = new LevelUpdateNotification();
-                notification.currentHash = bundle == null ? "" : bundle.hash;
+                notification.currentHash = (bundle == null || status == OnlineLevelStatus.notInstalled) ? "" : bundle.bundleData.buildHash;
                 notification.onlineInfo = onlineBundle;
                 notification.callback = this;
                 NotificationPanel.Open(notification);
@@ -267,14 +268,14 @@ namespace AngryLevelLoader.Fields
                 }
                 else
                 {
-                    if (bundle == null)
+                    if (bundle == null || string.IsNullOrEmpty(bundle.pathToAngryBundle) || !File.Exists(bundle.pathToAngryBundle))
                     {
                         StartDownload();
                         return;
                     }
 
                     LevelUpdateNotification notification = new LevelUpdateNotification();
-                    notification.currentHash = bundle.hash;
+                    notification.currentHash = bundle.bundleData.buildHash;
                     notification.onlineInfo = onlineBundle;
                     notification.callback = this;
                     NotificationPanel.Open(notification);
@@ -295,9 +296,9 @@ namespace AngryLevelLoader.Fields
 
         public void UpdateState()
         {
-            if (bundle == null)
+            if (bundle == null || string.IsNullOrEmpty(bundle.pathToAngryBundle) || !File.Exists(bundle.pathToAngryBundle))
                 status = OnlineLevelStatus.notInstalled;
-            else if (bundle.hash != bundleBuildHash)
+            else if (bundle.bundleData.buildHash != bundleBuildHash)
                 status = OnlineLevelStatus.updateAvailable;
             else
                 status = OnlineLevelStatus.installed;
@@ -387,7 +388,7 @@ namespace AngryLevelLoader.Fields
 
                 for (int i = 0; i < level.Parts.Count; i++)
                 {
-                    string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundleName}.angry{i}");
+                    string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundleGuid}.angry{i}");
                     if (File.Exists(tempDownloadPath))
                         File.Delete(tempDownloadPath);
                     downloadedParts.Add(tempDownloadPath);
@@ -442,8 +443,8 @@ namespace AngryLevelLoader.Fields
                 string destinationFolder = Plugin.levelsPath;
                 if (!Directory.Exists(destinationFolder))
                     Directory.CreateDirectory(destinationFolder);
-                string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, bundleName + ".angry"));
-                if (bundle != null)
+                string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, IOUtils.GetPathSafeName(bundleName) + ".angry"));
+                if (bundle != null && !string.IsNullOrEmpty(bundle.pathToAngryBundle) && File.Exists(bundle.pathToAngryBundle))
                     destinationFile = bundle.pathToAngryBundle;
 
                 using (FileStream str = File.Open(destinationFile, FileMode.OpenOrCreate, FileAccess.Write))
@@ -478,7 +479,7 @@ namespace AngryLevelLoader.Fields
                         {
                             using (StreamReader dataStr = new StreamReader(dataEntry.Open()))
                             {
-                                BundleData data = JsonConvert.DeserializeObject<BundleData>(dataStr.ReadToEnd());
+                                AngryBundleData data = JsonConvert.DeserializeObject<AngryBundleData>(dataStr.ReadToEnd());
                                 if (data.bundleGuid != bundleGuid)
                                 {
                                     Debug.LogError("Downloaded level's GUID does not match the expected level's GUID. Discarding.");
@@ -503,7 +504,7 @@ namespace AngryLevelLoader.Fields
                     yield break;
                 }
 
-                if (bundle == null)
+                if (bundle == null || bundle.pathToAngryBundle != destinationFile)
                     Plugin.ScanForLevels();
                 else
                     bundle.UpdateScenes(false, false);

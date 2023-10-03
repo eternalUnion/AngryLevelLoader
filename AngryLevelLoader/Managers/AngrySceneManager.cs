@@ -2,10 +2,12 @@
 using AngryLevelLoader.Notifications;
 using PluginConfig;
 using RudeLevelScript;
+using RudeLevelScripts.Essentials;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,25 +16,93 @@ namespace AngryLevelLoader.Managers
 {
     public static class AngrySceneManager
     {
-        public static string CurrentSceneName = "";
+        #region Loaded Level Data Tracker
+
+        private static string _currentLevel = "";
+        private static bool _isInCustomLevel = false;
+        private static AngryBundleContainer _currentBundleContainer = null;
+        private static LevelContainer _currentLevelContainer = null;
+        private static RudeLevelData _currentLevelData = null;
+
+        internal static PropertyInfo SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty(nameof(SceneHelper.CurrentScene));
+        private static void CheckCurrentDataStatus()
+        {
+            string currentScene = SceneManager.GetActiveScene().path;
+            if (currentScene != _currentLevel)
+            {
+                _currentLevel = currentScene;
+
+                foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
+                {
+                    if (container.GetAllScenePaths().Contains(currentScene))
+                    {
+                        _isInCustomLevel = true;
+                        _currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == currentScene).First();
+                        _currentBundleContainer = container;
+                        _currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == currentScene).First().uniqueIdentifier];
+                        _currentLevelContainer.discovered.value = true;
+                        _currentLevelContainer.UpdateUI();
+                        SceneHelper_CurrentScene.SetValue(null, _currentLevelData.uniqueIdentifier);
+                        Plugin.config.presetButtonInteractable = false;
+
+                        return;
+                    }
+                }
+
+                _isInCustomLevel = false;
+                _currentBundleContainer = null;
+                _currentLevelData = null;
+                _currentLevelContainer = null;
+                Plugin.config.presetButtonInteractable = true;
+            }
+        }
+
+        public static bool isInCustomLevel
+        {
+            get
+            {
+                CheckCurrentDataStatus();
+                return _isInCustomLevel;
+            }
+        }
+
+        public static AngryBundleContainer currentBundleContainer
+        {
+            get
+            {
+                CheckCurrentDataStatus();
+                return _currentBundleContainer;
+            }
+        }
+
+        public static LevelContainer currentLevelContainer
+        {
+            get
+            {
+                CheckCurrentDataStatus();
+                return _currentLevelContainer;
+            }
+        }
+
+        public static RudeLevelData currentLevelData
+        {
+            get
+            {
+                CheckCurrentDataStatus();
+                return _currentLevelData;
+            }
+        }
+        
+        #endregion
 
         public static void LevelButtonPressed(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
-            List<string> requiredScripts = new List<string>();
-            foreach (var data in bundleContainer.GetAllLevelData())
-            {
-                if (data.requiredDllNames == null)
-                    continue;
-
-                foreach (string script in data.requiredDllNames)
-                    if (!requiredScripts.Contains(script))
-                        requiredScripts.Add(script);
-            }
+            List<string> requiredScripts = ScriptManager.GetRequiredScriptsFromBundle(bundleContainer);
 
             List<string> scriptsToDownload = new List<string>();
             foreach (string script in requiredScripts)
             {
-                if (Plugin.ScriptExists(script))
+                if (ScriptManager.ScriptExists(script))
                 {
                     // Download if out of date
                     ScriptInfo info = ScriptCatalogLoader.scriptCatalog == null ? null : ScriptCatalogLoader.scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
@@ -74,12 +144,12 @@ namespace AngryLevelLoader.Managers
             Plugin.scriptCertificateIgnore = Plugin.scriptCertificateIgnoreField.value.Split('\n').ToList();
             foreach (string script in scripts)
             {
-                if (Plugin.ScriptLoaded(script))
+                if (ScriptManager.ScriptLoaded(script))
                     continue;
 
                 ScriptWarningNotification notification = null;
 
-                if (!Plugin.ScriptExists(script))
+                if (!ScriptManager.ScriptExists(script))
                 {
                     notification = new ScriptWarningNotification("<color=yellow>Missing Script</color>", $"Script {script} is missing and may cause issues in the level", "Cancel", "Continue", (inst) =>
                     {
@@ -99,18 +169,18 @@ namespace AngryLevelLoader.Managers
                 }
                 else
                 {
-                    var result = Plugin.AttemptLoadScriptWithCertificate(script);
+                    var result = ScriptManager.AttemptLoadScriptWithCertificate(script);
 
-                    if (result == Plugin.LoadScriptResult.Loaded)
+                    if (result == ScriptManager.LoadScriptResult.Loaded)
                         continue;
 
                     if (Plugin.scriptCertificateIgnore.Contains(script))
                     {
-                        Plugin.ForceLoadScript(script);
+                        ScriptManager.ForceLoadScript(script);
                         continue;
                     }
 
-                    notification = new ScriptWarningNotification("<color=red>Unverified Script</color>", $"Script {script} {(result == Plugin.LoadScriptResult.NoCertificate ? "has no certificate" : "has invalid certificate")}, loading scripts from unknown sources could be dangerous", "Cancel", "Load", (inst) =>
+                    notification = new ScriptWarningNotification("<color=red>Unverified Script</color>", $"Script {script} {(result == ScriptManager.LoadScriptResult.NoCertificate ? "has no certificate" : "has invalid certificate")}, loading scripts from unknown sources could be dangerous", "Cancel", "Load", (inst) =>
                     {
                         inst.Close();
                         foreach (var not in notifications)
@@ -120,7 +190,7 @@ namespace AngryLevelLoader.Managers
                         inst.Close();
                         notifications.Pop();
 
-                        Plugin.ForceLoadScript(script);
+                        ScriptManager.ForceLoadScript(script);
 
                         if (notifications.Count == 0)
                         {
@@ -136,7 +206,7 @@ namespace AngryLevelLoader.Managers
                         inst.Close();
                         notifications.Pop();
 
-                        Plugin.ForceLoadScript(script);
+                        ScriptManager.ForceLoadScript(script);
 
                         if (notifications.Count == 0)
                         {
@@ -156,6 +226,7 @@ namespace AngryLevelLoader.Managers
                 LoadLevel(bundleContainer, levelContainer, levelData, levelName);
         }
 
+        #region DifficultyHandle
         public static void SetToUltrapainDifficulty()
         {
             MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 5);
@@ -178,20 +249,26 @@ namespace AngryLevelLoader.Managers
         {
             MyCoolMod.Plugin.isHeavenOrHell = false;
         }
+        #endregion
 
-        public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelPath)
         {
+            _isInCustomLevel = true;
+            _currentBundleContainer = bundleContainer;
+            _currentLevelContainer = levelContainer;
+            _currentLevelData = levelData;
+            _currentLevel = levelPath;
+
             Plugin.config.presetButtonInteractable = false;
-            CurrentSceneName = levelName;
-
-            Plugin.currentBundleContainer = bundleContainer;
-            Plugin.currentLevelContainer = levelContainer;
-            Plugin.currentLevelData = levelData;
-
+            
             if (Plugin.ultrapainLoaded)
+            {
                 UnsetUltrapainDifficulty();
+            }
             if (Plugin.heavenOrHellLoaded)
+            {
                 UnsetHeavenOrHellDifficulty();
+            }
 
             if (Plugin.selectedDifficulty == 4)
             {
@@ -206,18 +283,18 @@ namespace AngryLevelLoader.Managers
                 MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
             }
 
-            SceneHelper.LoadScene(levelName);
+            SceneHelper.LoadScene(levelPath);
             Plugin.UpdateLastPlayed(bundleContainer);
         }
 
         public static void PostSceneLoad()
         {
-            Plugin.currentLevelContainer.AssureSecretsSize();
+            currentLevelContainer.AssureSecretsSize();
 
-            string secretString = Plugin.currentLevelContainer.secrets.value;
-            foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == Plugin.currentLevelData.scenePath))
+            string secretString = currentLevelContainer.secrets.value;
+            foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == currentLevelData.scenePath))
             {
-                if (bonus.gameObject.scene.path != Plugin.currentLevelData.scenePath)
+                if (bonus.gameObject.scene.path != currentLevelData.scenePath)
                     continue;
 
                 if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')

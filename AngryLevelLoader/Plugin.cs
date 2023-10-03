@@ -21,6 +21,8 @@ using PluginConfig;
 using BepInEx.Bootstrap;
 using AngryLevelLoader.Containers;
 using AngryLevelLoader.Managers;
+using AngryLevelLoader.DataTypes;
+using AngryLevelLoader.Fields;
 
 namespace AngryLevelLoader
 {
@@ -101,7 +103,7 @@ namespace AngryLevelLoader
 
 		public static void UpdateLastPlayed(AngryBundleContainer bundle)
 		{
-			string guid = bundle.guid;
+			string guid = bundle.bundleData.bundleGuid;
 			if (guid.Length != 32)
 				return;
 
@@ -125,7 +127,7 @@ namespace AngryLevelLoader
 
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
-			return angryBundles.Values.Where(bundle => bundle.guid == guid).FirstOrDefault();
+			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
 		}
 
 		// This does NOT reload the files, only
@@ -133,30 +135,45 @@ namespace AngryLevelLoader
 		public static void ScanForLevels()
         {
             errorText.text = "";
-			string bundlePath = levelsPath;
-            if (!Directory.Exists(bundlePath))
+            if (!Directory.Exists(levelsPath))
             {
-                Debug.LogWarning("Could not find the Levels folder at " + bundlePath);
+                Debug.LogWarning("Could not find the Levels folder at " + levelsPath);
 				errorText.text = "<color=red>Error: </color>Levels folder not found";
 				return;
             }
 
-			foreach (string path in Directory.GetFiles(bundlePath))
+			foreach (string path in Directory.GetFiles(levelsPath))
 			{
-				if (angryBundles.TryGetValue(path, out AngryBundleContainer levelAsset))
+				AngryBundleData data = AngryFileUtils.TryGetAngryBundleData(path, out Exception error);
+				if (error != null)
 				{
-					levelAsset.rootPanel.interactable = true;
-					levelAsset.rootPanel.hidden = false;
-					continue;
+					Debug.LogError($"Could not load the bundle at {path}\n{error}");
+
+					if (!string.IsNullOrEmpty(errorText.text))
+						errorText.text += '\n';
+					errorText.text += $"<color=red>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
+
+                    continue;
 				}
 
-				AngryBundleContainer level = new AngryBundleContainer(path);
-				angryBundles[path] = level;
+				if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
+				{
+					bool newFile = bundle.pathToAngryBundle != path;
+					bundle.pathToAngryBundle = path;
+					bundle.rootPanel.interactable = true;
+					bundle.rootPanel.hidden = false;
+					
+					if (newFile)
+						bundle.UpdateScenes(false, false);
+
+                    continue;
+				}
+
+				AngryBundleContainer level = new AngryBundleContainer(path, data);
+				angryBundles[data.bundleGuid] = level;
+
 				try
 				{
-					// To prevent force load on preset reset
-					level.finalRankScore.defaultValue = 0;
-
                     // If rank score is not cached (invalid value) do not lazy load and calculate rank data
                     if (level.finalRankScore.value < 0)
                     {
@@ -176,6 +193,8 @@ namespace AngryLevelLoader
 					errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
 				}
 			}
+
+			OnlineLevelsManager.UpdateUI();
 		}
 
 		public static void SortBundles()
@@ -183,18 +202,18 @@ namespace AngryLevelLoader
 			int i = 0;
 			if (bundleSortingMode.value == BundleSorting.Alphabetically)
 			{
-				foreach (var bundle in angryBundles.Values.OrderBy(b => b.name))
+				foreach (var bundle in angryBundles.Values.OrderBy(b => b.bundleData.bundleName))
 					bundle.rootPanel.siblingIndex = i++;
 			}
 			else if (bundleSortingMode.value == BundleSorting.Author)
 			{
-				foreach (var bundle in angryBundles.Values.OrderBy(b => b.author))
+				foreach (var bundle in angryBundles.Values.OrderBy(b => b.bundleData.bundleAuthor))
 					bundle.rootPanel.siblingIndex = i++;
 			}
 			else if (bundleSortingMode.value == BundleSorting.LastPlayed)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (lastPlayed.TryGetValue(b.guid, out long time))
+					if (lastPlayed.TryGetValue(b.bundleData.bundleGuid, out long time))
 						return time;
 					return 0;
 				}))
@@ -225,7 +244,7 @@ namespace AngryLevelLoader
 				if (angryBundle.finalRankScore.value < 0)
 					angryBundle.UpdateScenes(false, false);
 				else
-					angryBundle.UpdateUI();
+					angryBundle.UpdateFinalRankUI();
 
                 foreach (LevelContainer level in angryBundle.levels.Values)
 				{
@@ -238,35 +257,35 @@ namespace AngryLevelLoader
         {
 			bool loaded = true;
 
-			var res = AttemptLoadScriptWithCertificate("AngryLoaderAPI.dll");
-			if (res == LoadScriptResult.NotFound)
+			var res = ScriptManager.AttemptLoadScriptWithCertificate("AngryLoaderAPI.dll");
+			if (res == ScriptManager.LoadScriptResult.NotFound)
 			{
 				Debug.LogError("Required script AngryLoaderAPI.dll not found");
 				loaded = false;
 			}
-			else if (res == LoadScriptResult.NoCertificate)
+			else if (res == ScriptManager.LoadScriptResult.NoCertificate)
 			{
 				Debug.LogError("Required script AngryLoaderAPI.dll has a missing certificate");
 				loaded = false;
 			}
-			else if (res == LoadScriptResult.InvalidCertificate)
+			else if (res == ScriptManager.LoadScriptResult.InvalidCertificate)
 			{
 				Debug.LogError("Required script AngryLoaderAPI.dll has an invalid certificate");
 				loaded = false;
 			}
 
-			res = AttemptLoadScriptWithCertificate("RudeLevelScripts.dll");
-			if (res == LoadScriptResult.NotFound)
+			res = ScriptManager.AttemptLoadScriptWithCertificate("RudeLevelScripts.dll");
+			if (res == ScriptManager.LoadScriptResult.NotFound)
 			{
 				Debug.LogError("Required script RudeLevelScripts.dll not found");
 				loaded = false;
 			}
-			else if (res == LoadScriptResult.NoCertificate)
+			else if (res == ScriptManager.LoadScriptResult.NoCertificate)
 			{
 				Debug.LogError("Required script RudeLevelScripts.dll has a missing certificate");
 				loaded = false;
 			}
-			else if (res == LoadScriptResult.InvalidCertificate)
+			else if (res == ScriptManager.LoadScriptResult.InvalidCertificate)
 			{
 				Debug.LogError("Required script RudeLevelScripts.dll has an invalid certificate");
 				loaded = false;
@@ -279,38 +298,7 @@ namespace AngryLevelLoader
 		public static Sprite notPlayedPreview;
 		public static Sprite lockedPreview;
 
-        public static bool isInCustomScene = false;
-        public static RudeLevelData currentLevelData;
-        public static LevelContainer currentLevelContainer;
-		public static AngryBundleContainer currentBundleContainer;
-		public static int selectedDifficulty;
-
-		internal static PropertyInfo SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty(nameof(SceneHelper.CurrentScene));
-        public static void CheckIsInCustomScene(Scene current)
-        {
-			foreach (AngryBundleContainer container in angryBundles.Values)
-			{
-				if (container.GetAllScenePaths().Contains(current.path))
-				{
-					isInCustomScene = true;
-					currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == current.path).First();
-					currentBundleContainer = container;
-					currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == current.path).First().uniqueIdentifier];
-					currentLevelContainer.discovered.value = true;
-					currentLevelContainer.UpdateUI();
-					SceneHelper_CurrentScene.SetValue(null, currentLevelData.uniqueIdentifier);
-					config.presetButtonInteractable = false;
-
-					return;
-				}
-			}
-
-			isInCustomScene = false;
-			currentBundleContainer = null;
-			currentLevelData = null;
-			currentLevelContainer = null;
-			config.presetButtonInteractable = true;
-		}
+        public static int selectedDifficulty;
 
         public static Harmony harmony;
         
@@ -343,51 +331,6 @@ namespace AngryLevelLoader
 		private static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
 		public static string workingDir;
-
-		private static List<string> loadedScripts = new List<string>();
-		public enum LoadScriptResult
-		{
-			Loaded,
-			NotFound,
-			NoCertificate,
-			InvalidCertificate,
-		}
-		
-		public static LoadScriptResult AttemptLoadScriptWithCertificate(string scriptName)
-		{
-			if (loadedScripts.Contains(scriptName))
-				return LoadScriptResult.Loaded;
-			
-			string scriptPath = Path.Combine(workingDir, "Scripts", scriptName);
-			if (!File.Exists(scriptPath))
-				return LoadScriptResult.NotFound;
-			if (!File.Exists(scriptPath + ".cert"))
-				return LoadScriptResult.NoCertificate;
-
-			if (!CryptographyUtils.VerifyFileCertificate(scriptPath, scriptPath + ".cert"))
-				return LoadScriptResult.InvalidCertificate;
-
-			Assembly a = Assembly.Load(File.ReadAllBytes(scriptPath));
-			loadedScripts.Add(scriptName);
-			return LoadScriptResult.Loaded;
-		}
-
-		public static void ForceLoadScript(string scriptName)
-		{
-			string scriptPath = Path.Combine(workingDir, "Scripts", scriptName);
-			Assembly.Load(File.ReadAllBytes(scriptPath));
-			loadedScripts.Add(scriptName);
-		}
-
-		public static bool ScriptLoaded(string scriptName)
-		{
-			return loadedScripts.Contains(scriptName);
-		}
-
-		public static bool ScriptExists(string scriptName)
-		{
-			return File.Exists(Path.Combine(workingDir, "Scripts", scriptName));
-		}
 
 		public static ButtonField changelog;
 
@@ -430,10 +373,9 @@ namespace AngryLevelLoader
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
 
-            SceneManager.activeSceneChanged += (before, after) =>
-            {
-                CheckIsInCustomScene(after);
-				if (isInCustomScene)
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (AngrySceneManager.isInCustomLevel)
 					AngrySceneManager.PostSceneLoad();
 			};
 
@@ -646,7 +588,7 @@ namespace AngryLevelLoader
 			if (reloadFileKeybind.value == KeyCode.None)
 				return;
 
-			if (!isInCustomScene)
+			if (!AngrySceneManager.isInCustomLevel)
 				return;
 
 			Event current = Event.current;
@@ -713,8 +655,8 @@ namespace AngryLevelLoader
 	
 		private void ReloadFileKeyPressed()
 		{
-			if (currentBundleContainer != null)
-				currentBundleContainer.UpdateScenes(false, false);
+			if (AngrySceneManager.currentBundleContainer != null)
+				AngrySceneManager.currentBundleContainer.UpdateScenes(false, false);
 		}
 	}
 
@@ -754,7 +696,7 @@ namespace AngryLevelLoader
 
         public static string GetCurrentLevelId()
         {
-            return Plugin.isInCustomScene ? Plugin.currentLevelData.uniqueIdentifier : "";
+            return AngrySceneManager.isInCustomLevel ? AngrySceneManager.currentLevelData.uniqueIdentifier : "";
         }
     }
 
@@ -762,13 +704,13 @@ namespace AngryLevelLoader
 	{
 		public static bool BundleExists(string bundleGuid)
 		{
-			return Plugin.angryBundles.Values.Where(bundle => bundle.guid == bundleGuid).FirstOrDefault() != null;
+			return Plugin.angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == bundleGuid).FirstOrDefault() != null;
 		}
 
 		public static string GetBundleBuildHash(string bundleGuid)
 		{
-			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.guid == bundleGuid).FirstOrDefault();
-			return bundle == null ? "" : bundle.hash;
+			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == bundleGuid).FirstOrDefault();
+			return bundle == null ? "" : bundle.bundleData.buildHash;
 		}
     }
 }

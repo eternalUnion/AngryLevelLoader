@@ -18,8 +18,8 @@ namespace AngryLevelLoader.Notifications
 {
     public class ScriptUpdateNotification : NotificationPanel.Notification
     {
-        private const string ASSET_PATH_PANEL = "AngryLevelLoader/ScriptUpdateNotification.prefab";
-        private const string ASSET_PATH_SCRIPT_INFO = "AngryLevelLoader/ScriptUpdateInfo.prefab";
+        private const string ASSET_PATH_PANEL = "AngryLevelLoader/Notifications/PluginUpdateNotification.prefab";
+        private const string ASSET_PATH_SCRIPT_INFO = "AngryLevelLoader/Notifications/ScriptUpdatePrefabs/ScriptUpdateInfo.prefab";
 
         private List<ScriptUpdateProgressField> fields = new List<ScriptUpdateProgressField>();
 
@@ -57,7 +57,7 @@ namespace AngryLevelLoader.Notifications
                 {
                     if (downloaded)
                     {
-                        if (Plugin.ScriptLoaded(scriptName))
+                        if (ScriptManager.ScriptLoaded(scriptName))
                             currentText += "<color=red>RESTART REQUIRED</color>";
                         else
                             currentText += "<color=lime>Installed!</color>";
@@ -236,7 +236,7 @@ namespace AngryLevelLoader.Notifications
                     field.caller = this;
                     if (ScriptCatalogLoader.TryGetScriptInfo(script, out var scriptInfo))
                     {
-                        if (Plugin.ScriptExists(script))
+                        if (ScriptManager.ScriptExists(script))
                             field.scriptStatus = ScriptUpdateProgressField.ScriptStatus.Update;
                         else
                             field.scriptStatus = ScriptUpdateProgressField.ScriptStatus.Download;

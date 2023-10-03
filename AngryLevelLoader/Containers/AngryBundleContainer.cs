@@ -20,19 +20,13 @@ using RudeLevelScripts.Essentials;
 using AngryLevelLoader.Fields;
 using PluginConfig.API.Fields;
 using AngryLevelLoader.Managers;
+using AngryLevelLoader.DataTypes;
+using System.Xml.Linq;
+using PluginConfig;
+using AngryLevelLoader.Notifications;
 
 namespace AngryLevelLoader.Containers
 {
-    public class BundleData
-    {
-        public string bundleName { get; set; }
-        public string bundleAuthor { get; set; }
-        public string bundleGuid { get; set; }
-        public string buildHash { get; set; }
-        public string bundleDataPath { get; set; }
-        public List<string> levelDataPaths;
-    }
-
     public class AngryBundleContainer
     {
         private class BundleManager : MonoBehaviour
@@ -56,11 +50,9 @@ namespace AngryLevelLoader.Containers
         public IResourceLocator locator = null;
         public string pathToTempFolder;
         public string pathToAngryBundle;
-        public string hash;
-        public string guid;
-        public string name;
-        public string author;
-        public List<string> dataPaths = new List<string>();
+
+        public AngryBundleData bundleData;
+
         public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
 
         public ConfigPanelForBundles rootPanel;
@@ -69,12 +61,7 @@ namespace AngryLevelLoader.Containers
         public IntField finalRankScore;
         public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
-        /// <summary>
-        /// Read .angry file and load the levels in memory
-        /// </summary>
-        /// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
-        /// <returns>Success</returns>
-        private bool ReloadBundle(bool forceReload, bool lazyLoad)
+        private void Unload()
         {
             // Release data handle
             foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
@@ -90,73 +77,68 @@ namespace AngryLevelLoader.Containers
                 Addressables.RemoveResourceLocator(locator);
                 Addressables.CleanBundleCache().WaitForCompletion();
             }
+        }
+
+        /// <summary>
+        /// Read .angry file and load the levels in memory
+        /// </summary>
+        /// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
+        /// <returns>Success</returns>
+        private bool ReloadBundle(bool forceReload, bool lazyLoad)
+        {
+            Unload();
 
             // Open the angry zip archive
-            string bundleDataAddress = "";
-            BundleData latestData = null;
+            AngryBundleData latestData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
             bool rewriteData = false;
-            using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read), ZipArchiveMode.Read))
+            bool unzip = true;
+
+            pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
+            
+            rootPanel.displayName = string.IsNullOrEmpty(latestData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : latestData.bundleName;
+            rootPanel.headerText = $"--{rootPanel.displayName}--";
+            if (!string.IsNullOrEmpty(latestData.bundleAuthor))
             {
-                var dataEntry = zip.GetEntry("data.json");
-                bool unzip = true;
+                rootPanel.displayName += $"\n<color=#909090>by {latestData.bundleAuthor}</color>";
+            }
 
-                if (dataEntry == null)
-                    return false;
+            if (string.IsNullOrEmpty(latestData.bundleName))
+            {
+                lazyLoad = false;
+                rewriteData = true;
+            }
 
-                using (TextReader dataReader = new StreamReader(dataEntry.Open()))
+            // If force reload is set to false, check if the build hashes match
+            // between unzipped bundle and the current angry file.
+            // Build hash is generated randomly every build so avoiding unzipping
+            if (!forceReload && Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
+            {
+                AngryBundleData previousData = JsonConvert.DeserializeObject<AngryBundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
+                if (previousData.buildHash == latestData.buildHash)
                 {
-                    latestData = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
-
-                    hash = latestData.buildHash;
-                    guid = latestData.bundleGuid;
-
-                    pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
-                    dataPaths = latestData.levelDataPaths;
-                    bundleDataAddress = latestData.bundleDataPath;
-
-                    rootPanel.displayName = name = string.IsNullOrEmpty(latestData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : latestData.bundleName;
-                    rootPanel.headerText = $"--{rootPanel.displayName}--";
-                    if (!string.IsNullOrEmpty(latestData.bundleAuthor))
-                    {
-                        rootPanel.displayName += $"\n<color=#909090>by {latestData.bundleAuthor}</color>";
-                        author = latestData.bundleAuthor;
-                    }
-
-                    if (string.IsNullOrEmpty(latestData.bundleName))
-                    {
-                        lazyLoad = false;
-                        rewriteData = true;
-                    }
-
-                    // If force reload is set to false, check if the build hashes match
-                    // between unzipped bundle and the current angry file.
-                    // Build hash is generated randomly every build so avoiding unzipping
-                    if (!forceReload && Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
-                    {
-                        BundleData previousData = JsonConvert.DeserializeObject<BundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
-                        if (previousData.buildHash == latestData.buildHash)
-                        {
-                            unzip = false;
-                        }
-                    }
-                }
-
-                if (unzip)
-                {
-                    if (Directory.Exists(pathToTempFolder))
-                        Directory.Delete(pathToTempFolder, true);
-                    Directory.CreateDirectory(pathToTempFolder);
-                    zip.ExtractToDirectory(pathToTempFolder);
-
-                    rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
-                }
-                else
-                {
-                    if (rootPanel.icon == null)
-                        rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
+                    unzip = false;
                 }
             }
 
+            if (unzip)
+            {
+                if (Directory.Exists(pathToTempFolder))
+                    Directory.Delete(pathToTempFolder, true);
+                Directory.CreateDirectory(pathToTempFolder);
+
+                using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read)))
+                    zip.ExtractToDirectory(pathToTempFolder);
+
+                bundleData = JsonConvert.DeserializeObject<AngryBundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
+                rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
+            }
+            else
+            {
+                if (rootPanel.icon == null)
+                    rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
+            }
+
+            // We don't need to load the bunde assets if all we need is the bundle interface
             if (lazyLoad)
                 return true;
 
@@ -164,35 +146,50 @@ namespace AngryLevelLoader.Containers
             locator = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false).WaitForCompletion();
 
             // Load the bundle name
-            if (bundleDataAddress != null && !string.IsNullOrEmpty(bundleDataAddress))
+            if (!string.IsNullOrEmpty(bundleData.bundleDataPath))
             {
-                AsyncOperationHandle<RudeBundleData> bundleHandle = Addressables.LoadAssetAsync<RudeBundleData>(bundleDataAddress);
+                AsyncOperationHandle<RudeBundleData> bundleHandle = Addressables.LoadAssetAsync<RudeBundleData>(bundleData.bundleDataPath);
                 bundleHandle.WaitForCompletion();
-                RudeBundleData bundleData = bundleHandle.Result;
+                RudeBundleData bundleDataObj = bundleHandle.Result;
 
-                if (bundleData != null)
+                if (bundleDataObj != null)
                 {
-                    rootPanel.displayName = name = bundleData.bundleName;
-                    if (!string.IsNullOrEmpty(bundleData.author))
+                    rootPanel.displayName = bundleDataObj.bundleName;
+                    if (!string.IsNullOrEmpty(bundleDataObj.author))
                     {
-                        rootPanel.displayName += $"\n<color=#909090>by {bundleData.author}</color>";
-                        author = bundleData.author;
+                        rootPanel.displayName += $"\n<color=#909090>by {bundleDataObj.author}</color>";
                     }
 
-                    rootPanel.headerText = $"--{bundleData.bundleName}--";
+                    rootPanel.headerText = $"--{bundleDataObj.bundleName}--";
 
-                    latestData.bundleName = bundleData.bundleName;
-                    latestData.bundleAuthor = bundleData.author;
+                    bundleData.bundleName = bundleDataObj.bundleName;
+                    bundleData.bundleAuthor = bundleDataObj.author;
                 }
 
-                bundleData = null;
+                bundleDataObj = null;
                 Addressables.Release(bundleHandle);
+            }
+
+            if (rewriteData)
+            {
+                using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
+                {
+                    ZipArchiveEntry dataEntry = angryFile.GetEntry("data.json");
+
+                    using (StreamWriter sw = new StreamWriter(dataEntry.Open()))
+                    {
+                        sw.BaseStream.SetLength(0);
+                        sw.BaseStream.Seek(0, SeekOrigin.Begin);
+                        sw.Write(JsonConvert.SerializeObject(bundleData));
+                        sw.Flush();
+                    }
+                }
             }
 
             // Load the level data
             statusText.text = "";
             statusText.hidden = true;
-            foreach (string path in dataPaths)
+            foreach (string path in bundleData.levelDataPaths)
             {
                 AsyncOperationHandle<RudeLevelData> handle = Addressables.LoadAssetAsync<RudeLevelData>(path);
                 handle.WaitForCompletion();
@@ -216,24 +213,6 @@ namespace AngryLevelLoader.Containers
                 Plugin.idDictionary[data.uniqueIdentifier] = data;
             }
 
-            if (rewriteData)
-            {
-                using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
-                {
-                    ZipArchiveEntry dataEntry = angryFile.GetEntry("data.json");
-
-                    using (Stream dataStream = dataEntry.Open())
-                    {
-                        dataStream.SetLength(0);
-                        dataStream.Seek(0, SeekOrigin.Begin);
-                        StreamWriter sw = new StreamWriter(dataStream);
-
-                        sw.Write(JsonConvert.SerializeObject(latestData));
-                        sw.Flush();
-                    }
-                }
-            }
-
             return true;
         }
 
@@ -251,6 +230,12 @@ namespace AngryLevelLoader.Containers
         private bool updating = false;
         private IEnumerator UpdateScenesInternal(bool forceReload, bool lazyLoad)
         {
+            if (!File.Exists(pathToAngryBundle))
+            {
+                statusText.text = "<color=red>Could not find the file</color>";
+                yield break;
+            }
+            
             updating = true;
             sceneDiv.interactable = false;
             sceneDiv.hidden = true;
@@ -266,87 +251,67 @@ namespace AngryLevelLoader.Containers
                 yield return SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene().name);
             }
 
-            Exception e = null;
             try
             {
-                if (!File.Exists(pathToAngryBundle))
-                {
-                    statusText.text = "<color=red>Could not find the file</color>";
-                }
-                else
-                {
-                    // Disable all level interfaces
-                    foreach (KeyValuePair<string, LevelContainer> pair in levels)
-                        pair.Value.field.forceHidden = true;
+                // Disable all level interfaces
+                foreach (KeyValuePair<string, LevelContainer> pair in levels)
+                    pair.Value.field.forceHidden = true;
 
-                    sceneDiv.interactable = false;
-                    sceneDiv.hidden = true;
-                    statusText.hidden = true;
-                    statusText.text = "";
-                    ReloadBundle(forceReload, lazyLoad);
+                sceneDiv.interactable = false;
+                sceneDiv.hidden = true;
+                statusText.hidden = true;
+                statusText.text = "";
+                ReloadBundle(forceReload, lazyLoad);
 
-                    int currentIndex = 0;
-                    foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+                int currentIndex = 0;
+                foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+                {
+                    if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
                     {
-                        if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
-                        {
-                            container.field.siblingIndex = currentIndex++;
-                            container.field.forceHidden = false;
-                            container.UpdateData(data);
-                        }
-                        else
-                        {
-                            LevelContainer levelContainer = new LevelContainer(sceneDiv, data);
-                            levelContainer.field.siblingIndex = currentIndex++;
-                            levelContainer.onLevelButtonPress += () =>
-                            {
-                                Plugin.currentBundleContainer = this;
-                                Plugin.currentLevelContainer = levelContainer;
-                                Plugin.currentLevelData = data;
-
-                                // AngrySceneManager.LoadLevel(this, levelContainer, data, data.scenePath);
-                                AngrySceneManager.LevelButtonPressed(this, levelContainer, data, data.scenePath);
-                            };
-
-                            levels[data.uniqueIdentifier] = levelContainer;
-                        }
+                        container.field.siblingIndex = currentIndex++;
+                        container.field.forceHidden = false;
+                        container.UpdateData(data);
                     }
+                    else
+                    {
+                        LevelContainer levelContainer = new LevelContainer(sceneDiv, this, data);
+                        levelContainer.field.siblingIndex = currentIndex++;
+                        levelContainer.onLevelButtonPress += () =>
+                        {
+                            AngrySceneManager.LevelButtonPressed(this, levelContainer, data, data.scenePath);
+                        };
 
-                    // Locked fix
-                    foreach (var level in levels.Values)
-                        level.UpdateUI();
+                        levels[data.uniqueIdentifier] = levelContainer;
+                    }
                 }
-            }
-            catch (Exception err)
-            {
-                e = err;
-            }
 
-            if (inTempScene)
+                // Locked fix
+                foreach (var level in levels.Values)
+                    level.UpdateUI();
+            }
+            finally
             {
-                if (GetAllScenePaths().Contains(previousPath))
+                updating = false;
+
+                if (inTempScene)
                 {
-                    yield return Addressables.LoadSceneAsync(previousName);
-                    AngrySceneManager.PostSceneLoad();
+                    if (GetAllScenePaths().Contains(previousPath))
+                    {
+                        Addressables.LoadSceneAsync(previousName).WaitForCompletion();
+                        AngrySceneManager.PostSceneLoad();
+                    }
+                    else
+                        Addressables.LoadSceneAsync("Main Menu").WaitForCompletion();
                 }
-                else
-                    yield return Addressables.LoadSceneAsync("Main Menu");
             }
-
-            updating = false;
-
-            if (e != null)
-            {
-                Debug.LogError($"Error while loading bundle {e}\n{e.StackTrace}");
-            }
-
+            
             sceneDiv.interactable = true;
             sceneDiv.hidden = false;
 
             // Update online field if there are any
-            if (OnlineLevelsManager.onlineLevels.TryGetValue(guid, out OnlineLevelField field))
+            if (OnlineLevelsManager.onlineLevels.TryGetValue(bundleData.bundleGuid, out OnlineLevelField field))
             {
-                if (field.bundleBuildHash == hash)
+                if (field.bundleBuildHash == bundleData.buildHash)
                 {
                     field.status = OnlineLevelField.OnlineLevelStatus.installed;
                 }
@@ -381,7 +346,7 @@ namespace AngryLevelLoader.Containers
                         continue;
                     }
 
-                    if (string.Compare(name, allBundles[order].name) == -1)
+                    if (string.Compare(bundleData.bundleName, allBundles[order].bundleData.bundleName) == -1)
                         break;
 
                     order += 1;
@@ -397,7 +362,7 @@ namespace AngryLevelLoader.Containers
                         continue;
                     }
 
-                    if (string.Compare(author, allBundles[order].author) == -1)
+                    if (string.Compare(bundleData.bundleAuthor, allBundles[order].bundleData.bundleAuthor) == -1)
                         break;
 
                     order += 1;
@@ -406,7 +371,7 @@ namespace AngryLevelLoader.Containers
             else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.LastPlayed)
             {
                 long lastTime = 0;
-                Plugin.lastPlayed.TryGetValue(guid, out lastTime);
+                Plugin.lastPlayed.TryGetValue(bundleData.bundleGuid, out lastTime);
 
                 while (order < allBundles.Length)
                 {
@@ -417,7 +382,7 @@ namespace AngryLevelLoader.Containers
                     }
 
                     long otherPlayime = 0;
-                    Plugin.lastPlayed.TryGetValue(allBundles[order].guid, out otherPlayime);
+                    Plugin.lastPlayed.TryGetValue(allBundles[order].bundleData.bundleGuid, out otherPlayime);
 
                     if (lastTime > otherPlayime)
                         break;
@@ -442,6 +407,7 @@ namespace AngryLevelLoader.Containers
         {
             if (updating)
                 return;
+
             BundleManager.instance.StartCoroutine(UpdateScenesInternal(forceReload, lazyLoad));
         }
 
@@ -464,10 +430,10 @@ namespace AngryLevelLoader.Containers
             }
 
             finalRankScore.value = totalRankScore <= 0 ? 0 : (int)(((float)currentRankScore / totalRankScore) * 6f);
-            UpdateUI();
+            UpdateFinalRankUI();
         }
 
-        public void UpdateUI()
+        public void UpdateFinalRankUI()
         {
             char finalRank = RankUtils.GetRankChar(finalRankScore.value);
             rootPanel.rankText = finalRank.ToString();
@@ -491,54 +457,53 @@ namespace AngryLevelLoader.Containers
             }
         }
 
-        public void Delete()
+        internal void DeleteBundle()
         {
+            Unload();
 
+            if (File.Exists(pathToAngryBundle))
+                File.Delete(pathToAngryBundle);
+
+            if (Directory.Exists(pathToTempFolder))
+                Directory.Delete(pathToTempFolder, true);
+
+            if (OnlineLevelsManager.onlineLevels.TryGetValue(bundleData.bundleGuid, out var onlineField))
+            {
+                onlineField.status = OnlineLevelField.OnlineLevelStatus.notInstalled;
+                onlineField.UpdateUI();
+            }
+
+            pathToAngryBundle = "";
+            pathToTempFolder = "";
+            rootPanel.hidden = true;
         }
 
-        public AngryBundleContainer(string path)
+        public void OpenDeletePanel()
+        {
+            NotificationPanel.Open(new DeleteBundleNotification(this));
+        }
+
+        public AngryBundleContainer(string path, AngryBundleData data)
         {
             Debug.Log($"Creating bundle container for {path}");
             pathToAngryBundle = path;
+            bundleData = data;
 
-            string guid = path;
-            try
-            {
-                using (ZipArchive zip = new ZipArchive(File.Open(path, FileMode.Open, FileAccess.Read)))
-                {
-                    var entry = zip.GetEntry("data.json");
-                    if (entry != null)
-                    {
-                        using (StreamReader dataReader = new StreamReader(entry.Open()))
-                        {
-                            BundleData data = JsonConvert.DeserializeObject<BundleData>(dataReader.ReadToEnd());
-                            guid = data.bundleGuid;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception thrown while reading guid from bundle {path}\n{e}");
-            }
-
-            rootPanel = new ConfigPanelForBundles(this, Plugin.bundleDivision, Path.GetFileNameWithoutExtension(guid), guid);
+            rootPanel = new ConfigPanelForBundles(this, Plugin.bundleDivision, data.bundleName, data.bundleGuid);
             rootPanel.onPannelOpenEvent += (external) =>
             {
                 if (locator == null)
                     UpdateScenes(false, false);
             };
-            guid = "";
-            hash = "";
-            name = rootPanel.displayName;
-            author = "";
 
             finalRankScore = new IntField(rootPanel, "final bundle rank", rootPanel.guid + "_finalRankCache", -1, true, false);
             finalRankScore.onValueChange += (e) =>
             {
                 finalRankScore.value = e.value;
-                UpdateUI();
+                UpdateFinalRankUI();
             };
+            // To prevent force load on preset reset
+            finalRankScore.defaultValue = 0;
 
             ButtonArrayField reloadButtons = new ButtonArrayField(rootPanel, rootPanel.guid + "_reloadButtons", 2, new float[2] { 0.5f, 0.5f }, new string[] { "Reload File", "Force Reload File" });
             reloadButtons.OnClickEventHandler(0).onClick += () => UpdateScenes(false, false);
@@ -550,8 +515,8 @@ namespace AngryLevelLoader.Containers
             statusText = new ConfigHeader(rootPanel, "", 16, TextAnchor.MiddleLeft);
             statusText.hidden = true;
             sceneDiv = new ConfigDivision(rootPanel, "sceneDiv_" + rootPanel.guid);
-
-            UpdateUI();
+            
+            UpdateFinalRankUI();
         }
     }
 }
