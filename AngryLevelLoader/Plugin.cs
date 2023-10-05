@@ -35,7 +35,7 @@ namespace AngryLevelLoader
     }
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.6.0")]
+	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.7.0")]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
@@ -520,7 +520,10 @@ namespace AngryLevelLoader
 			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
 			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
 			if (!devMode)
+			{
 				useDevelopmentBranch.hidden = true;
+				useDevelopmentBranch.value = false;
+			}
 			levelUpdateNotifierToggle = new BoolField(settingsPanel, "Notify on level updates", "s_levelUpdateNofify", true);
 			levelUpdateNotifierToggle.onValueChange += (e) =>
 			{

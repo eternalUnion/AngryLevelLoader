@@ -498,10 +498,19 @@ namespace AngryLevelLoader.Containers
             };
 
             finalRankScore = new IntField(rootPanel, "final bundle rank", rootPanel.guid + "_finalRankCache", -1, true, false);
-            finalRankScore.onValueChange += (e) =>
+            finalRankScore.postValueChangeEvent += (val) =>
             {
-                finalRankScore.value = e.value;
-                UpdateFinalRankUI();
+                if (val < 0)
+                {
+                    if (locator == null)
+                        UpdateScenes(false, false);
+                    else
+                        RecalculateFinalRank();
+                }
+                else
+                {
+                    UpdateFinalRankUI();
+                }
             };
             // To prevent force load on preset reset
             finalRankScore.defaultValue = 0;
