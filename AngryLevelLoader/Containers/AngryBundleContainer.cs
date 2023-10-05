@@ -298,10 +298,11 @@ namespace AngryLevelLoader.Containers
                     if (GetAllScenePaths().Contains(previousPath))
                     {
                         Addressables.LoadSceneAsync(previousName).WaitForCompletion();
-                        AngrySceneManager.PostSceneLoad();
                     }
                     else
+                    {
                         Addressables.LoadSceneAsync("Main Menu").WaitForCompletion();
+                    }
                 }
             }
             

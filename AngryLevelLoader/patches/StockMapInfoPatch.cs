@@ -23,7 +23,7 @@ namespace AngryLevelLoader.Patches
 			if (!AngrySceneManager.isInCustomLevel)
 				return;
 
-			StatsManager sman = GameObject.FindObjectOfType<StatsManager>();
+            StatsManager sman = GameObject.FindObjectOfType<StatsManager>();
 			if (sman != null)
 				sman.levelNumber = -1;
 

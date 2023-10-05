@@ -375,7 +375,7 @@ namespace AngryLevelLoader
 
 			SceneManager.sceneLoaded += (scene, mode) =>
 			{
-				if (AngrySceneManager.isInCustomLevel)
+                if (AngrySceneManager.isInCustomLevel)
 					AngrySceneManager.PostSceneLoad();
 			};
 
