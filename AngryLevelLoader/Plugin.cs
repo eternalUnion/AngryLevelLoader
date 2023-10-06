@@ -147,11 +147,21 @@ namespace AngryLevelLoader
 				AngryBundleData data = AngryFileUtils.TryGetAngryBundleData(path, out Exception error);
 				if (error != null)
 				{
-					Debug.LogError($"Could not load the bundle at {path}\n{error}");
+					if (AngryFileUtils.IsV1LegacyFile(path))
+					{
+                        if (!string.IsNullOrEmpty(errorText.text))
+                            errorText.text += '\n';
+                        errorText.text += $"<color=yellow>{Path.GetFileName(path)} is a V1 legacy file. Support for legacy files were dropped after 2.5.0</color>";
+                    }
+                    else
+					{
+						Debug.LogError($"Could not load the bundle at {path}\n{error}");
 
-					if (!string.IsNullOrEmpty(errorText.text))
-						errorText.text += '\n';
-					errorText.text += $"<color=red>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
+						if (!string.IsNullOrEmpty(errorText.text))
+							errorText.text += '\n';
+						errorText.text += $"<color=red>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
+					}
+
 
                     continue;
 				}
