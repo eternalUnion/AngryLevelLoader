@@ -32,6 +32,11 @@ namespace AngryLevelLoader.Managers
             {
                 _currentLevel = currentScene;
 
+                wasInCustomLevel = _isInCustomLevel;
+                lastBundleContainer = _currentBundleContainer;
+                lastLevelContainer = _currentLevelContainer;
+                lastLevelData = _currentLevelData;
+
                 foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
                 {
                     if (container.GetAllScenePaths().Contains(currentScene))
@@ -92,7 +97,15 @@ namespace AngryLevelLoader.Managers
                 return _currentLevelData;
             }
         }
-        
+
+        public static bool wasInCustomLevel { get; private set; } = false;
+
+        public static AngryBundleContainer lastBundleContainer { get; private set; } = null;
+
+        public static LevelContainer lastLevelContainer { get; private set; } = null;
+
+        public static RudeLevelData lastLevelData { get; private set; } = null;
+
         #endregion
 
         public static void LevelButtonPressed(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)

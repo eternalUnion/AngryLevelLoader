@@ -385,8 +385,14 @@ namespace AngryLevelLoader
 
 			SceneManager.sceneLoaded += (scene, mode) =>
 			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
                 if (AngrySceneManager.isInCustomLevel)
+				{
+					Logger.LogInfo("Running post scene load event");
 					AngrySceneManager.PostSceneLoad();
+				}
 			};
 
             notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
