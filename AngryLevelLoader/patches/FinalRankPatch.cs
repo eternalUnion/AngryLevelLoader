@@ -23,7 +23,7 @@ namespace AngryLevelLoader.Patches
 				Transform titleTrans = __instance.transform.Find("Title/Text");
 				if (titleTrans != null)
 				{
-					titleTrans.GetComponent<Text>().text = AngrySceneManager.currentLevelData.name;
+					titleTrans.GetComponent<Text>().text = AngrySceneManager.currentLevelData.levelName;
 				}
 				else
 				{
