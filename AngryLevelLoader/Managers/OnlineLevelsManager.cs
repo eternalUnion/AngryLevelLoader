@@ -551,6 +551,9 @@ namespace AngryLevelLoader.Managers
         {
             foreach (var levelField in onlineLevels.Values)
                 levelField.UpdateUI();
+
+            // Insertion sort not working properly for now
+            SortAll();
         }
 
         private static void PostCatalogLoad()

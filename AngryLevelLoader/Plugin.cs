@@ -204,6 +204,8 @@ namespace AngryLevelLoader
 				}
 			}
 
+			// Insertion sort not working properly for now
+			SortBundles();
 			OnlineLevelsManager.UpdateUI();
 		}
 
