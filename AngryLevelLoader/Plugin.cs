@@ -420,7 +420,7 @@ namespace AngryLevelLoader
 				{
 					newLevelNotifier.text = string.Join("\n", Plugin.newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
 					newLevelNotifier.hidden = false;
-					Plugin.newLevelNotifierLevels.value = "";
+					newLevelNotifierLevels.value = "";
 				}
 				newLevelToggle.value = false;
 			};
@@ -523,7 +523,7 @@ namespace AngryLevelLoader
 			};
 
             settingsPanel.hidden = true;
-			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.Alphabetically);
+			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
 			bundleSortingMode.onValueChange += (e) =>
 			{
 				bundleSortingMode.value = e.value;

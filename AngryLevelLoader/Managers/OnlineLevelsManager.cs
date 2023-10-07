@@ -311,7 +311,7 @@ namespace AngryLevelLoader.Managers
             showInstalledLevels = new BoolField(filterPanel, "Installed", "online_installedLevels", true);
             showNotInstalledLevels = new BoolField(filterPanel, "Not installed", "online_notInstalledLevels", true);
             showUpdateAvailableLevels = new BoolField(filterPanel, "Update available", "online_updateAvailableLevels", true);
-            sortFilter = new EnumField<SortFilter>(filterPanel, "Sort type", "sf_o_sortType", SortFilter.Name);
+            sortFilter = new EnumField<SortFilter>(filterPanel, "Sort type", "sf_o_sortType", SortFilter.LastUpdate);
             sortFilter.onValueChange += (e) =>
             {
                 sortFilter.value = e.value;
