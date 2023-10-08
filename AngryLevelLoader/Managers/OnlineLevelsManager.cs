@@ -283,7 +283,8 @@ namespace AngryLevelLoader.Managers
         {
             Name,
             Author,
-            LastUpdate
+            LastUpdate,
+            ReleaseDate
         }
 
         public static BoolField showInstalledLevels;
@@ -349,6 +350,14 @@ namespace AngryLevelLoader.Managers
                 foreach (var bundle in onlineLevels.Values.OrderByDescending(b => b.lastUpdate))
                 {
                     bundle.siblingIndex = i++;
+                }
+            }
+            else if (sortFilter.value == SortFilter.ReleaseDate)
+            {
+                for (int k = 0; k < catalog.Levels.Count; k++)
+                {
+                    if (onlineLevels.TryGetValue(catalog.Levels[k].Guid, out var level))
+                        level.siblingIndex = i++;
                 }
             }
         }
