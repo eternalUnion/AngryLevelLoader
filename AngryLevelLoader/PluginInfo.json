@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.5.0",
+  "latestVersion": "2.5.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -48,6 +48,10 @@
     {
       "version": "2.5.0",
       "updateText": "- Added average rank to bundle panel\n- Added delete bundle panel\n- Switched to addressable assets for ui creation\n- Fixed online levels saving downloaded files with the bundle name, causing bundles with unsafe path names to throw exceptions on download\n- Added validation and network error status to online level fields\n- Added changelog button to online fields\n- Added release date sorting to online levels\n- Prevented mouse buttons from being assigned to level reload keybind\n- Dropped legacy support and added warning text for legacy files"
+    },
+    {
+      "version": "2.5.1",
+      "updateText": "- Fixed script update notification soft locking the game\n- Prioritized setting up close notification buttons to avoid future soft locks from the notification panel"
     }
   ]
 }
