@@ -332,6 +332,7 @@ namespace AngryLevelLoader
 		public static StringMultilineField scriptCertificateIgnoreField;
 		public static BoolField useDevelopmentBranch;
 		public static BoolField scriptUpdateIgnoreCustom;
+
 		public enum BundleSorting
 		{
 			Alphabetically,

@@ -97,7 +97,7 @@ namespace AngryLevelLoader.Fields
                 rank = Addressables.InstantiateAsync(ASSET_PATH_RANK_ICON, currentMenu.transform).WaitForCompletion().GetComponentInChildren<Text>();
                 rank.text = _rankText;
                 rank.color = _rankTextColor;
-                rank.alignByGeometry = false;
+                rank.alignByGeometry = true;
                 rankBg = rank.transform.parent.GetComponent<Image>();
                 rankBg.color = _rankBgColor;
                 rankBg.fillCenter = _fillBgCenter;
