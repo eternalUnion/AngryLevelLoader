@@ -18,7 +18,7 @@ namespace AngryLevelLoader.Notifications
 {
     public class ScriptUpdateNotification : NotificationPanel.Notification
     {
-        private const string ASSET_PATH_PANEL = "AngryLevelLoader/Notifications/PluginUpdateNotification.prefab";
+        private const string ASSET_PATH_PANEL = "AngryLevelLoader/Notifications/ScriptUpdateNotification.prefab";
         private const string ASSET_PATH_SCRIPT_INFO = "AngryLevelLoader/Notifications/ScriptUpdatePrefabs/ScriptUpdateInfo.prefab";
 
         private List<ScriptUpdateProgressField> fields = new List<ScriptUpdateProgressField>();
@@ -272,16 +272,25 @@ namespace AngryLevelLoader.Notifications
         {
             ui = Addressables.InstantiateAsync(ASSET_PATH_PANEL, panel).WaitForCompletion().GetComponent<AngryScriptUpdateNotificationComponent>();
 
-            foreach (var field in fields)
-                field.OnUI(ui.content);
-
             ui.cancel.onClick.AddListener(() =>
             {
                 foreach (var field in fields)
-                    field.StopDownload();
+                {
+                    try
+                    {
+                        field.StopDownload();
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Exception thrown while stopping download of script update field\n{e}");
+                    }
+                }
 
                 Close();
             });
+
+            foreach (var field in fields)
+                field.OnUI(ui.content);
 
             ui.update.onClick.AddListener(() =>
             {

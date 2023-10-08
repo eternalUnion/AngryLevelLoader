@@ -46,6 +46,19 @@ namespace AngryLevelLoader.Notifications
 
             AngryPluginChangelogNotificationComponent ui = Addressables.InstantiateAsync(ASSET_PATH, panel).WaitForCompletion().GetComponent<AngryPluginChangelogNotificationComponent>();
 
+            ui.cancel.onClick.AddListener(() =>
+            {
+                Close();
+                Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
+            });
+
+            ui.ignoreUpdate.onClick.AddListener(() =>
+            {
+                Close();
+                Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
+                Plugin.ignoreUpdates.value = true;
+            });
+
             ui.header.text = "<color=cyan>Changelog</color>";
             if (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion))
                 ui.header.text = "<color=lime>UPDATE AVAILABLE</color>";
@@ -77,19 +90,6 @@ namespace AngryLevelLoader.Notifications
             }
 
             ui.text.text = updateTextBuilder.ToString();
-
-            ui.cancel.onClick.AddListener(() =>
-            {
-                Close();
-                Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
-            });
-
-            ui.ignoreUpdate.onClick.AddListener(() =>
-            {
-                Close();
-                Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
-                Plugin.ignoreUpdates.value = true;
-            });
         }
     }
 }

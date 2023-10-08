@@ -46,12 +46,6 @@ namespace AngryLevelLoader.Notifications
         {
             AngryDeleteBundleNotificationComponent ui = Addressables.InstantiateAsync(ASSET_PATH, panel).WaitForCompletion().GetComponent<AngryDeleteBundleNotificationComponent>();
 
-            ui.bundleIcon.sprite = container.rootPanel.icon;
-            ui.bundleName.text = container.rootPanel.displayName;
-
-            ui.body.text = $"Do you want to delete <color=aqua>{container.bundleData.bundleName}</color>?\n\nFile will be deleted permanently!\n\n(Level ranks will not be affected)";
-            ui.gameObject.AddComponent<DeleteButtonComponent>().ui = ui;
-
             ui.cancelButton.onClick.AddListener(() =>
             {
                 Close();
@@ -62,6 +56,12 @@ namespace AngryLevelLoader.Notifications
                 Close();
                 container.DeleteBundle();
             });
+
+            ui.bundleIcon.sprite = container.rootPanel.icon;
+            ui.bundleName.text = container.rootPanel.displayName;
+
+            ui.body.text = $"Do you want to delete <color=aqua>{container.bundleData.bundleName}</color>?\n\nFile will be deleted permanently!\n\n(Level ranks will not be affected)";
+            ui.gameObject.AddComponent<DeleteButtonComponent>().ui = ui;
         }
     }
 }

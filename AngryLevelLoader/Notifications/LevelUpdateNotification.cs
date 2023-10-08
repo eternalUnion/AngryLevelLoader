@@ -23,6 +23,17 @@ namespace AngryLevelLoader.Notifications
         {
             AngryLevelUpdateNotificationComponent ui = Addressables.InstantiateAsync(ASSET_PATH, panel).WaitForCompletion().GetComponent<AngryLevelUpdateNotificationComponent>();
 
+            ui.cancel.onClick.AddListener(() =>
+            {
+                Close();
+            });
+
+            ui.update.onClick.AddListener(() =>
+            {
+                callback.StartDownload();
+                Close();
+            });
+
             StringBuilder updateTextBuilder = new StringBuilder();
             bool firstTime = true;
 
@@ -51,15 +62,7 @@ namespace AngryLevelLoader.Notifications
             //	updateTextBuilder.Append("\n\n<color=red>End of updates, current version unknown</color>");
 
             ui.body.text = updateTextBuilder.ToString();
-            ui.cancel.onClick.AddListener(() =>
-            {
-                Close();
-            });
-            ui.update.onClick.AddListener(() =>
-            {
-                callback.StartDownload();
-                Close();
-            });
+            
             if (onlineInfo.Hash == currentHash)
                 ui.update.interactable = false;
         }
