@@ -527,9 +527,16 @@ namespace AngryLevelLoader.Managers
                 {
                     downloadThumbnail = true;
                 }
-                else if (!thumbnailHashes.TryGetValue(info.Guid, out string currentHash) || currentHash != info.ThumbnailHash)
+                else
                 {
-                    downloadThumbnail = true;
+                    if (!thumbnailHashes.TryGetValue(info.Guid, out string currentHash))
+                    {
+                        currentHash = CryptographyUtils.GetMD5String(File.ReadAllBytes(imageCachePath));
+                        thumbnailHashes.Add(info.Guid, currentHash);
+                    }
+                    
+                    if (currentHash != info.ThumbnailHash)
+                        downloadThumbnail = true;
                 }
 
                 if (downloadThumbnail)
@@ -540,7 +547,6 @@ namespace AngryLevelLoader.Managers
                     // thumbnail update
                     if (thumbnailExists)
                         File.Delete(imageCachePath);
-                    thumbnailHashes[info.Guid] = info.ThumbnailHash;
                     dirtyThumbnailCacheHashFile = true;
 
                     UnityWebRequest req = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, $"Levels/{info.Guid}/thumbnail.png"));
@@ -553,6 +559,7 @@ namespace AngryLevelLoader.Managers
                         {
                             if (req.isHttpError || req.isNetworkError)
                                 return;
+                            thumbnailHashes[info.Guid] = CryptographyUtils.GetMD5String(imageCachePath);
                             field.DownloadPreviewImage("file://" + imageCachePath, true);
                         }
                         finally
