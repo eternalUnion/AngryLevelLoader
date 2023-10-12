@@ -15,7 +15,6 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
-using static AngryLevelLoader.Plugin;
 
 namespace AngryLevelLoader.Managers
 {
@@ -62,88 +61,6 @@ namespace AngryLevelLoader.Managers
 
     #endregion
 
-    public class LoadingCircleField : CustomConfigField
-    {
-        public static Sprite loadingIcon;
-        private static bool init = false;
-        public static void Init()
-        {
-            if (init)
-                return;
-            init = true;
-
-            UnityWebRequest spriteReq = UnityWebRequestTexture.GetTexture("file://" + Path.Combine(workingDir, "loading-icon.png"));
-            var handle = spriteReq.SendWebRequest();
-            handle.completed += (e) =>
-            {
-                try
-                {
-                    if (spriteReq.isHttpError || spriteReq.isNetworkError)
-                        return;
-
-                    Texture2D texture = DownloadHandlerTexture.GetContent(spriteReq);
-                    loadingIcon = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                    if (currentImage != null)
-                        currentImage.sprite = loadingIcon;
-                }
-                finally
-                {
-                    spriteReq.Dispose();
-                }
-            };
-        }
-
-        private bool initialized = false;
-        public LoadingCircleField(ConfigPanel parentPanel) : base(parentPanel, 600, 60)
-        {
-            Init();
-            initialized = true;
-
-            if (currentContainer != null)
-                OnCreateUI(currentContainer);
-        }
-
-        internal class LoadingBarSpin : MonoBehaviour
-        {
-            private void Update()
-            {
-                transform.Rotate(Vector3.forward, Time.deltaTime * 360f);
-            }
-        }
-
-        private RectTransform currentContainer;
-        private GameObject currentUi;
-        private static Image currentImage;
-        protected override void OnCreateUI(RectTransform fieldUI)
-        {
-            currentContainer = fieldUI;
-            if (!initialized)
-                return;
-
-            GameObject loadingCircle = currentUi = new GameObject();
-            loadingCircle.transform.SetParent(fieldUI);
-            RectTransform loadingRect = loadingCircle.AddComponent<RectTransform>();
-            loadingRect.localScale = Vector3.one;
-            loadingRect.sizeDelta = new Vector2(60, 60);
-            loadingRect.anchorMin = loadingRect.anchorMax = new Vector2(0.5f, 0.5f);
-            loadingRect.pivot = new Vector2(0.5f, 0.5f);
-            loadingRect.anchoredPosition = Vector2.zero;
-
-            loadingRect.gameObject.AddComponent<LoadingBarSpin>();
-            currentImage = loadingRect.gameObject.AddComponent<Image>();
-            currentImage.sprite = loadingIcon;
-
-            if (hierarchyHidden)
-                currentContainer.gameObject.SetActive(false);
-        }
-
-        public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
-        {
-            if (currentContainer != null)
-                currentContainer.gameObject.SetActive(!hierarchyHidden);
-        }
-    }
-
     public static class ScriptCatalogLoader
     {
         public static ScriptCatalog scriptCatalog;
@@ -151,70 +68,76 @@ namespace AngryLevelLoader.Managers
         public static bool downloading { get; private set; }
         private static IEnumerator StartDownloadInternal()
         {
+            string newHash = "";
+            UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalogHash.txt"));
+            try
+            {
+                hashReq.downloadHandler = new DownloadHandlerBuffer();
+                yield return hashReq.SendWebRequest();
+
+                if (hashReq.isHttpError || hashReq.isNetworkError)
+                {
+                    Debug.LogError("Could not download the script catalog hash");
+                    yield break;
+                }
+
+                newHash = hashReq.downloadHandler.text;
+            }
+            finally
+            {
+                hashReq.Dispose();
+            }
+
+            string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "ScriptCatalog.json");
+            if (File.Exists(cachedCatalogPath))
+            {
+                string catalog = File.ReadAllText(cachedCatalogPath);
+                string hash = CryptographyUtils.GetMD5String(catalog);
+                if (hash == newHash)
+                {
+                    Debug.Log("Cached script catalog up to date");
+                    scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
+                    yield break;
+                }
+            }
+
+            UnityWebRequest updatedCatalogRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalog.json"));
+            try
+            {
+                updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();
+                yield return updatedCatalogRequest.SendWebRequest();
+
+                if (updatedCatalogRequest.isHttpError || updatedCatalogRequest.isNetworkError)
+                {
+                    Debug.LogError("Could not download the script catalog");
+                    yield break;
+                }
+
+                scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(updatedCatalogRequest.downloadHandler.text);
+                File.WriteAllText(cachedCatalogPath, updatedCatalogRequest.downloadHandler.text);
+                string currentHash = CryptographyUtils.GetMD5String(updatedCatalogRequest.downloadHandler.text);
+
+                if (currentHash != newHash)
+                {
+                    Debug.LogWarning($"New script catalog hash value does not match online catalog hash value, github page not cached yet (current hash is {currentHash}. online hash is {newHash})");
+                }
+            }
+            finally
+            {
+                updatedCatalogRequest.Dispose();
+            }
+        }
+
+        private static IEnumerator DownloadCoroutine()
+        {
             if (downloading)
                 yield break;
+
             downloading = true;
 
             try
             {
-                string newHash = "";
-                UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalogHash.txt"));
-                try
-                {
-                    hashReq.downloadHandler = new DownloadHandlerBuffer();
-                    yield return hashReq.SendWebRequest();
-
-                    if (hashReq.isHttpError || hashReq.isNetworkError)
-                    {
-                        Debug.LogError("Could not download the script catalog hash");
-                        yield break;
-                    }
-
-                    newHash = hashReq.downloadHandler.text;
-                }
-                finally
-                {
-                    hashReq.Dispose();
-                }
-
-                string cachedCatalogPath = Path.Combine(workingDir, "OnlineCache", "ScriptCatalog.json");
-                if (File.Exists(cachedCatalogPath))
-                {
-                    string catalog = File.ReadAllText(cachedCatalogPath);
-                    string hash = CryptographyUtils.GetMD5String(catalog);
-                    if (hash == newHash)
-                    {
-                        Debug.Log("Cached script catalog up to date");
-                        scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
-                        yield break;
-                    }
-                }
-
-                UnityWebRequest updatedCatalogRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalog.json"));
-                try
-                {
-                    updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();
-                    yield return updatedCatalogRequest.SendWebRequest();
-
-                    if (updatedCatalogRequest.isHttpError || updatedCatalogRequest.isNetworkError)
-                    {
-                        Debug.LogError("Could not download the script catalog");
-                        yield break;
-                    }
-
-                    scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(updatedCatalogRequest.downloadHandler.text);
-                    File.WriteAllText(cachedCatalogPath, updatedCatalogRequest.downloadHandler.text);
-                    string currentHash = CryptographyUtils.GetMD5String(updatedCatalogRequest.downloadHandler.text);
-
-                    if (currentHash != newHash)
-                    {
-                        Debug.LogWarning($"New script catalog hash value does not match online catalog hash value, github page not cached yet (current hash is {currentHash}. online hash is {newHash})");
-                    }
-                }
-                finally
-                {
-                    updatedCatalogRequest.Dispose();
-                }
+                yield return StartDownloadInternal();
             }
             finally
             {
@@ -226,7 +149,8 @@ namespace AngryLevelLoader.Managers
         {
             if (downloading)
                 return;
-            OnlineLevelsManager.instance.StartCoroutine(StartDownloadInternal());
+
+            OnlineLevelsManager.instance.StartCoroutine(DownloadCoroutine());
         }
 
         public static bool ScriptExistsInCatalog(string script)
@@ -260,7 +184,7 @@ namespace AngryLevelLoader.Managers
         public static string GetGithubURL(Repo repo, string path)
         {
             string branch = "release";
-            if (useDevelopmentBranch.value)
+            if (Plugin.useDevelopmentBranch.value)
                 branch = "dev";
 
             string repoName = "AngryLevels";
@@ -301,7 +225,7 @@ namespace AngryLevelLoader.Managers
                 DontDestroyOnLoad(instance);
             }
 
-            string cachedCatalogPath = Path.Combine(workingDir, "OnlineCache", "LevelCatalog.json");
+            string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
             if (File.Exists(cachedCatalogPath))
                 catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
 
@@ -371,7 +295,7 @@ namespace AngryLevelLoader.Managers
         {
             thumbnailHashes.Clear();
 
-            string thumbnailHashLocation = Path.Combine(workingDir, "OnlineCache", "thumbnailCacheHashes.txt");
+            string thumbnailHashLocation = Path.Combine(Plugin.workingDir, "OnlineCache", "thumbnailCacheHashes.txt");
             if (File.Exists(thumbnailHashLocation))
             {
                 using (StreamReader hashReader = new StreamReader(File.Open(thumbnailHashLocation, FileMode.Open, FileAccess.Read)))
@@ -394,7 +318,7 @@ namespace AngryLevelLoader.Managers
 
         public static void SaveThumbnailHashes()
         {
-            string thumbnailHashDir = Path.Combine(workingDir, "OnlineCache");
+            string thumbnailHashDir = Path.Combine(Plugin.workingDir, "OnlineCache");
             string thumbnailHashLocation = Path.Combine(thumbnailHashDir, "thumbnailCacheHashes.txt");
             if (!Directory.Exists(thumbnailHashDir))
                 Directory.CreateDirectory(thumbnailHashDir);
@@ -427,39 +351,48 @@ namespace AngryLevelLoader.Managers
 
             onlineLevelContainer.hidden = true;
             loadingCircle.hidden = false;
-            instance.StartCoroutine(instance.m_CheckCatalogVersion());
+            instance.StartCoroutine(instance.RefreshCoroutine());
+        }
+
+        private IEnumerator RefreshCoroutine()
+        {
+            if (downloadingCatalog)
+                yield break;
+
+            downloadingCatalog = true;
+
+            try
+            {
+                yield return m_CheckCatalogVersion();
+            }
+            finally
+            {
+                downloadingCatalog = false;
+                PostCatalogLoad();
+            }
         }
 
         private IEnumerator m_CheckCatalogVersion()
         {
             LevelCatalog prevCatalog = catalog;
             catalog = null;
-            downloadingCatalog = true;
 
             string newCatalogHash = "";
-            string cachedCatalogPath = Path.Combine(workingDir, "OnlineCache", "LevelCatalog.json");
+            string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
 
-            try
+            UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalogHash.txt"));
+            catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
+            yield return catalogVersionRequest.SendWebRequest();
+
+            if (catalogVersionRequest.isNetworkError || catalogVersionRequest.isHttpError)
             {
-                UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalogHash.txt"));
-                catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
-                yield return catalogVersionRequest.SendWebRequest();
-
-                if (catalogVersionRequest.isNetworkError || catalogVersionRequest.isHttpError)
-                {
-                    Debug.LogError("Could not download catalog version");
-                    downloadingCatalog = false;
-                    catalog = null;
-                    yield break;
-                }
-                else
-                {
-                    newCatalogHash = catalogVersionRequest.downloadHandler.text;
-                }
+                Debug.LogError("Could not download catalog version");
+                catalog = null;
+                yield break;
             }
-            finally
+            else
             {
-                downloadingCatalog = false;
+                newCatalogHash = catalogVersionRequest.downloadHandler.text;
             }
 
             if (File.Exists(cachedCatalogPath))
@@ -477,7 +410,6 @@ namespace AngryLevelLoader.Managers
                     }
 
                     Debug.Log("Current online level catalog is up to date, loading from cache");
-                    PostCatalogLoad();
                     yield break;
                 }
 
@@ -485,74 +417,63 @@ namespace AngryLevelLoader.Managers
             }
 
             Debug.Log("Current online level catalog is out of date, downloading from web");
-            downloadingCatalog = true;
-            instance.StartCoroutine(m_DownloadCatalog(newCatalogHash, prevCatalog));
+            yield return m_DownloadCatalog(newCatalogHash, prevCatalog);
         }
 
         private IEnumerator m_DownloadCatalog(string newHash, LevelCatalog prevCatalog)
         {
-            downloadingCatalog = true;
             catalog = null;
 
-            try
+            string catalogDir = Path.Combine(Plugin.workingDir, "OnlineCache");
+            if (!Directory.Exists(catalogDir))
+                Directory.CreateDirectory(catalogDir);
+            string catalogPath = Path.Combine(catalogDir, "LevelCatalog.json");
+
+            UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalog.json"));
+            catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
+            yield return catalogRequest.SendWebRequest();
+
+            if (catalogRequest.isNetworkError || catalogRequest.isHttpError)
             {
-                string catalogDir = Path.Combine(workingDir, "OnlineCache");
-                if (!Directory.Exists(catalogDir))
-                    Directory.CreateDirectory(catalogDir);
-                string catalogPath = Path.Combine(catalogDir, "LevelCatalog.json");
-
-                UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalog.json"));
-                catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
-                yield return catalogRequest.SendWebRequest();
-
-                if (catalogRequest.isNetworkError || catalogRequest.isHttpError)
+                Debug.LogError("Could not download catalog");
+                yield break;
+            }
+            else
+            {
+                while (ScriptCatalogLoader.downloading)
                 {
-                    Debug.LogError("Could not download catalog");
-                    downloadingCatalog = false;
-                    yield break;
+                    yield return null;
+                }
+
+                string cachedCatalog = File.ReadAllText(catalogPath);
+                string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+                catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+
+                if (catalogHash != newHash)
+                {
+                    Debug.LogWarning($"Catalog hash does not match, github did not cache the new catalog yet (current hash is {catalogHash}. online hash is {newHash})");
+                }
+
+                if (Plugin.newLevelNotifierToggle.value && prevCatalog != null)
+                {
+                    List<string> newLevels = catalog.Levels.Where(level => prevCatalog.Levels.Where(l => l.Guid == level.Guid).FirstOrDefault() == null).Select(level => level.Name).ToList();
+
+                    if (newLevels.Count != 0)
+                    {
+                        if (!string.IsNullOrEmpty(Plugin.newLevelNotifierLevels.value))
+                            newLevels.AddRange(Plugin.newLevelNotifierLevels.value.Split('`'));
+                        newLevels = newLevels.Distinct().ToList();
+                        Plugin.newLevelNotifierLevels.value = string.Join("`", newLevels);
+
+                        Plugin.newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
+                        Plugin.newLevelNotifier.hidden = false;
+                        Plugin.newLevelToggle.value = true;
+                    }
                 }
                 else
                 {
-                    while (ScriptCatalogLoader.downloading)
-                    {
-                        yield return null;
-                    }
-
-                    string cachedCatalog = File.ReadAllText(catalogPath);
-                    string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
-                    catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
-
-                    if (catalogHash != newHash)
-                    {
-                        Debug.LogWarning($"Catalog hash does not match, github did not cache the new catalog yet (current hash is {catalogHash}. online hash is {newHash})");
-                    }
-
-                    if (newLevelNotifierToggle.value && prevCatalog != null)
-                    {
-                        List<string> newLevels = catalog.Levels.Where(level => prevCatalog.Levels.Where(l => l.Guid == level.Guid).FirstOrDefault() == null).Select(level => level.Name).ToList();
-
-                        if (newLevels.Count != 0)
-                        {
-                            if (!string.IsNullOrEmpty(newLevelNotifierLevels.value))
-                                newLevels.AddRange(newLevelNotifierLevels.value.Split('`'));
-                            newLevels = newLevels.Distinct().ToList();
-                            newLevelNotifierLevels.value = string.Join("`", newLevels);
-
-                            newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
-                            newLevelNotifier.hidden = false;
-                            newLevelToggle.value = true;
-                        }
-                    }
-                    else
-                    {
-                        newLevelNotifier.hidden = true;
-                    }
+                    Plugin.newLevelNotifier.hidden = true;
                 }
-            }
-            finally
-            {
-                downloadingCatalog = false;
-                PostCatalogLoad();
             }
         }
 
@@ -595,7 +516,7 @@ namespace AngryLevelLoader.Managers
                 field.UpdateUI();
 
                 // Update thumbnail if not cahced or out of date
-                string imageCacheDir = Path.Combine(workingDir, "OnlineCache", "ThumbnailCache");
+                string imageCacheDir = Path.Combine(Plugin.workingDir, "OnlineCache", "ThumbnailCache");
                 if (!Directory.Exists(imageCacheDir))
                     Directory.CreateDirectory(imageCacheDir);
                 string imageCachePath = Path.Combine(imageCacheDir, $"{info.Guid}.png");
@@ -684,21 +605,21 @@ namespace AngryLevelLoader.Managers
 
         public static void CheckLevelUpdateText()
         {
-            if (!levelUpdateNotifierToggle.value)
+            if (!Plugin.levelUpdateNotifierToggle.value)
             {
-                levelUpdateNotifier.hidden = true;
+                Plugin.levelUpdateNotifier.hidden = true;
                 return;
             }
 
-            levelUpdateNotifier.text = "";
-            levelUpdateNotifier.hidden = true;
+            Plugin.levelUpdateNotifier.text = "";
+            Plugin.levelUpdateNotifier.hidden = true;
             foreach (OnlineLevelField field in onlineLevels.Values)
             {
                 if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
                 {
-                    if (levelUpdateIgnoreCustomBuilds.value)
+                    if (Plugin.levelUpdateIgnoreCustomBuilds.value)
                     {
-                        AngryBundleContainer container = GetAngryBundleByGuid(field.bundleGuid);
+                        AngryBundleContainer container = Plugin.GetAngryBundleByGuid(field.bundleGuid);
                         if (container != null)
                         {
                             LevelInfo info = catalog.Levels.Where(level => level.Guid == field.bundleGuid).First();
@@ -707,10 +628,10 @@ namespace AngryLevelLoader.Managers
                         }
                     }
 
-                    if (levelUpdateNotifier.text != "")
-                        levelUpdateNotifier.text += '\n';
-                    levelUpdateNotifier.text += $"<color=cyan>Update available for {field.bundleName}</color>";
-                    levelUpdateNotifier.hidden = false;
+                    if (Plugin.levelUpdateNotifier.text != "")
+                        Plugin.levelUpdateNotifier.text += '\n';
+                    Plugin.levelUpdateNotifier.text += $"<color=cyan>Update available for {field.bundleName}</color>";
+                    Plugin.levelUpdateNotifier.hidden = false;
                 }
             }
         }

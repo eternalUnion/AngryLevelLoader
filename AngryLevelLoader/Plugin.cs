@@ -130,6 +130,69 @@ namespace AngryLevelLoader
 			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
 		}
 
+		public static void ProcessPath(string path)
+		{
+            if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
+			{
+                if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
+                {
+                    bool newFile = bundle.pathToAngryBundle != path;
+                    bundle.pathToAngryBundle = path;
+                    bundle.rootPanel.interactable = true;
+                    bundle.rootPanel.hidden = false;
+
+                    if (newFile)
+                        bundle.UpdateScenes(false, false);
+
+                    return;
+                }
+
+                AngryBundleContainer newBundle = new AngryBundleContainer(path, data);
+                angryBundles[data.bundleGuid] = newBundle;
+                newBundle.UpdateOrder();
+
+                try
+                {
+                    // If rank score is not cached (invalid value) do not lazy load and calculate rank data
+                    if (newBundle.finalRankScore.value < 0)
+                    {
+                        Debug.LogWarning("Final rank score for the bundle not cached, skipping lazy reload");
+                        newBundle.UpdateScenes(false, false);
+                    }
+                    else
+                    {
+                        newBundle.UpdateScenes(false, true);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
+                    if (!string.IsNullOrEmpty(errorText.text))
+                        errorText.text += '\n';
+                    errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
+                }
+            }
+			else
+			{
+                if (AngryFileUtils.IsV1LegacyFile(path))
+                {
+                    if (!string.IsNullOrEmpty(errorText.text))
+                        errorText.text += '\n';
+                    errorText.text += $"<color=yellow>{Path.GetFileName(path)} is a V1 legacy file. Support for legacy files were dropped after 2.5.0</color>";
+                }
+                else
+                {
+                    Debug.LogError($"Could not load the bundle at {path}\n{error}");
+
+                    if (!string.IsNullOrEmpty(errorText.text))
+                        errorText.text += '\n';
+                    errorText.text += $"<color=red>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
+                }
+
+                return;
+            }
+        }
+
 		// This does NOT reload the files, only
 		// loads newly added angry levels
 		public static void ScanForLevels()
@@ -144,68 +207,9 @@ namespace AngryLevelLoader
 
 			foreach (string path in Directory.GetFiles(levelsPath))
 			{
-				AngryBundleData data = AngryFileUtils.TryGetAngryBundleData(path, out Exception error);
-				if (error != null)
-				{
-					if (AngryFileUtils.IsV1LegacyFile(path))
-					{
-                        if (!string.IsNullOrEmpty(errorText.text))
-                            errorText.text += '\n';
-                        errorText.text += $"<color=yellow>{Path.GetFileName(path)} is a V1 legacy file. Support for legacy files were dropped after 2.5.0</color>";
-                    }
-                    else
-					{
-						Debug.LogError($"Could not load the bundle at {path}\n{error}");
-
-						if (!string.IsNullOrEmpty(errorText.text))
-							errorText.text += '\n';
-						errorText.text += $"<color=red>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
-					}
-
-
-                    continue;
-				}
-
-				if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
-				{
-					bool newFile = bundle.pathToAngryBundle != path;
-					bundle.pathToAngryBundle = path;
-					bundle.rootPanel.interactable = true;
-					bundle.rootPanel.hidden = false;
-					
-					if (newFile)
-						bundle.UpdateScenes(false, false);
-
-                    continue;
-				}
-
-				AngryBundleContainer level = new AngryBundleContainer(path, data);
-				angryBundles[data.bundleGuid] = level;
-
-				try
-				{
-                    // If rank score is not cached (invalid value) do not lazy load and calculate rank data
-                    if (level.finalRankScore.value < 0)
-                    {
-                        Debug.LogWarning("Final rank score for the bundle not cached, skipping lazy reload");
-                        level.UpdateScenes(false, false);
-                    }
-					else
-					{
-						level.UpdateScenes(false, true);
-					}
-                }
-				catch (Exception e)
-				{
-					Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
-					if (!string.IsNullOrEmpty(errorText.text))
-						errorText.text += '\n';
-					errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
-				}
+				ProcessPath(path);
 			}
 
-			// Insertion sort not working properly for now
-			SortBundles();
 			OnlineLevelsManager.UpdateUI();
 		}
 

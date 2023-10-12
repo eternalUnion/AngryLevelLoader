@@ -271,19 +271,22 @@ namespace AngryLevelLoader
 
 	public static class AngryFileUtils
 	{
-        public static AngryBundleData TryGetAngryBundleData(string filePath, out Exception error)
+        public static bool TryGetAngryBundleData(string filePath, out AngryBundleData data, out Exception error)
 		{
 			error = null;
+			data = null;
 
 			try
 			{
-				return GetAngryBundleData(filePath);
+				data = GetAngryBundleData(filePath);
+				return true;
             }
 			catch (Exception e)
 			{
 				error = e;
-				return null;
 			}
+
+			return false;
 		}
 		
 		public static AngryBundleData GetAngryBundleData(string filePath)
