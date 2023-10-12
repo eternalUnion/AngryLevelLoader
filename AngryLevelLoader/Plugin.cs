@@ -73,7 +73,7 @@ namespace AngryLevelLoader
 		{
 			lastPlayed.Clear();
 
-			string path = Path.Combine(workingDir, "lastPlayedMap.txt");
+			string path = AngryPaths.LastPlayedMapPath;
 			if (!File.Exists(path))
 				return;
 
@@ -112,8 +112,9 @@ namespace AngryLevelLoader
 			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
 			lastPlayed[guid] = secondsNow;
 
-			string path = Path.Combine(workingDir, "lastPlayedMap.txt");
-			using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
+			string path = AngryPaths.LastPlayedMapPath;
+            IOUtils.TryCreateDirectoryForFile(path);
+            using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
 			{
 				writer.BaseStream.Seek(0, SeekOrigin.Begin);
 				writer.BaseStream.SetLength(0);
@@ -373,6 +374,8 @@ namespace AngryLevelLoader
             IOUtils.TryCreateDirectory(levelsPath);
             tempFolderPath = Path.Combine(dataPath, "LevelsUnpacked");
             IOUtils.TryCreateDirectory(tempFolderPath);
+
+			AngryPaths.TryCreateAllPaths();
 
             Addressables.InitializeAsync().WaitForCompletion();
 			angryCatalogPath = Path.Combine(workingDir, "Assets");

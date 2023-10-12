@@ -88,7 +88,7 @@ namespace AngryLevelLoader.Managers
                 hashReq.Dispose();
             }
 
-            string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "ScriptCatalog.json");
+            string cachedCatalogPath = AngryPaths.ScriptCatalogCachePath;
             if (File.Exists(cachedCatalogPath))
             {
                 string catalog = File.ReadAllText(cachedCatalogPath);
@@ -225,7 +225,7 @@ namespace AngryLevelLoader.Managers
                 DontDestroyOnLoad(instance);
             }
 
-            string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
+            string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
             if (File.Exists(cachedCatalogPath))
                 catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
 
@@ -295,7 +295,7 @@ namespace AngryLevelLoader.Managers
         {
             thumbnailHashes.Clear();
 
-            string thumbnailHashLocation = Path.Combine(Plugin.workingDir, "OnlineCache", "thumbnailCacheHashes.txt");
+            string thumbnailHashLocation = AngryPaths.ThumbnailCachePath;
             if (File.Exists(thumbnailHashLocation))
             {
                 using (StreamReader hashReader = new StreamReader(File.Open(thumbnailHashLocation, FileMode.Open, FileAccess.Read)))
@@ -318,10 +318,8 @@ namespace AngryLevelLoader.Managers
 
         public static void SaveThumbnailHashes()
         {
-            string thumbnailHashDir = Path.Combine(Plugin.workingDir, "OnlineCache");
-            string thumbnailHashLocation = Path.Combine(thumbnailHashDir, "thumbnailCacheHashes.txt");
-            if (!Directory.Exists(thumbnailHashDir))
-                Directory.CreateDirectory(thumbnailHashDir);
+            string thumbnailHashLocation = AngryPaths.ThumbnailCachePath;
+            IOUtils.TryCreateDirectoryForFile(thumbnailHashLocation);
 
             using (FileStream fs = File.Open(thumbnailHashLocation, FileMode.OpenOrCreate, FileAccess.Write))
             {
@@ -378,7 +376,8 @@ namespace AngryLevelLoader.Managers
             catalog = null;
 
             string newCatalogHash = "";
-            string cachedCatalogPath = Path.Combine(Plugin.workingDir, "OnlineCache", "LevelCatalog.json");
+            string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
+            IOUtils.TryCreateDirectoryForFile(cachedCatalogPath);
 
             UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalogHash.txt"));
             catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -424,10 +423,8 @@ namespace AngryLevelLoader.Managers
         {
             catalog = null;
 
-            string catalogDir = Path.Combine(Plugin.workingDir, "OnlineCache");
-            if (!Directory.Exists(catalogDir))
-                Directory.CreateDirectory(catalogDir);
-            string catalogPath = Path.Combine(catalogDir, "LevelCatalog.json");
+            string catalogPath = AngryPaths.LevelCatalogCachePath;
+            IOUtils.TryCreateDirectoryForFile(catalogPath);
 
             UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalog.json"));
             catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
@@ -516,9 +513,8 @@ namespace AngryLevelLoader.Managers
                 field.UpdateUI();
 
                 // Update thumbnail if not cahced or out of date
-                string imageCacheDir = Path.Combine(Plugin.workingDir, "OnlineCache", "ThumbnailCache");
-                if (!Directory.Exists(imageCacheDir))
-                    Directory.CreateDirectory(imageCacheDir);
+                string imageCacheDir = AngryPaths.ThumbnailCacheFolderPath;
+                IOUtils.TryCreateDirectory(imageCacheDir);
                 string imageCachePath = Path.Combine(imageCacheDir, $"{info.Guid}.png");
 
                 bool downloadThumbnail = false;

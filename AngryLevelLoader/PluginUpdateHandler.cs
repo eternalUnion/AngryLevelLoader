@@ -88,6 +88,46 @@ namespace AngryLevelLoader
                 }
             }
 
+            // Online cache moved to config on 2.5.x
+            string oldOnlineCachePath = Path.Combine(Plugin.workingDir, "OnlineCache");
+            if (Directory.Exists(oldOnlineCachePath))
+            {
+                Debug.LogWarning("Moving online cache folder to config (update 2.5.x)");
+
+                string newOnlineCachePath = AngryPaths.OnlineCacheFolderPath;
+                if (!Directory.Exists(newOnlineCachePath))
+                {
+                    IOUtils.TryCreateDirectoryForFile(newOnlineCachePath);
+
+                    IOUtils.DirectoryCopy(oldOnlineCachePath, newOnlineCachePath, true, true);
+                }
+                else
+                {
+                    Directory.Delete(oldOnlineCachePath, true);
+                }
+            }
+
+            // Last played map moved to config
+            string oldLastPlayedMapPath = Path.Combine(Plugin.workingDir, "lastPlayedMap.txt");
+            if (File.Exists(oldLastPlayedMapPath))
+            {
+                Debug.LogWarning("Moving last played map to config (update 2.5.x)");
+
+                string newLastPlayedMapPath = AngryPaths.LastPlayedMapPath;
+                if (!File.Exists(newLastPlayedMapPath))
+                {
+                    IOUtils.TryCreateDirectoryForFile(newLastPlayedMapPath);
+
+                    File.Move(oldLastPlayedMapPath, newLastPlayedMapPath);
+                }
+                else
+                {
+                    File.Delete(oldLastPlayedMapPath);
+                }
+
+                Plugin.LoadLastPlayedMap();
+            }
+
             // Reset ignore update on version change
             if (Plugin.PLUGIN_VERSION != Plugin.lastVersion.value)
                 Plugin.ignoreUpdates.value = false;

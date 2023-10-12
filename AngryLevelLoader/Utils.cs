@@ -158,6 +158,11 @@ namespace AngryLevelLoader
 			return true;
 		}
 
+		public static bool TryCreateDirectoryForFile(string path)
+		{
+			return TryCreateDirectory(Path.GetDirectoryName(path));
+		}
+
 		// Taken from msdn
         public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs, bool deleteSource)
         {
