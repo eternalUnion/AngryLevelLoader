@@ -352,6 +352,24 @@ namespace AngryLevelLoader
 
 		public static ButtonField changelog;
 
+		private static void DisableAllConfig()
+		{
+			Stack<ConfigField> toProcess = new Stack<ConfigField>(config.rootPanel.GetAllFields());
+
+			while (toProcess.Count != 0)
+			{
+				ConfigField field = toProcess.Pop();
+
+                if (field is ConfigPanel concretePanel)
+				{
+					foreach (var subField in concretePanel.GetAllFields())
+						toProcess.Push(subField);
+				}
+
+				field.interactable = false;
+			}
+		}
+
         private void Awake()
 		{
 			// Plugin startup logic
@@ -523,6 +541,8 @@ namespace AngryLevelLoader
                 dataInfo.text = "<color=red>RESTART REQUIRED</color>";
                 dataInfo.hidden = false;
 				configDataPath.value = newPath;
+
+				DisableAllConfig();
             };
 
             reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
