@@ -39,9 +39,15 @@ namespace AngryLevelLoader.Patches
             {
                 AngrySceneManager.SceneHelper_CurrentScene.SetValue(null, AngrySceneManager.currentLevelData.uniqueIdentifier);
             }
-            Addressables.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).WaitForCompletion();
+            Addressables.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).Completed += (scene) =>
+			{
+				if (SceneHelper.Instance.loadingBlocker != null)
+					SceneHelper.Instance.loadingBlocker.SetActive(false);
+			};
+			if (SceneHelper.Instance.loadingBlocker != null)
+				SceneHelper.Instance.loadingBlocker.SetActive(true);
 
-            return false;
+			return false;
 		}
 	}
 }
