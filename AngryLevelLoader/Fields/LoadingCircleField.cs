@@ -61,7 +61,7 @@ namespace AngryLevelLoader.Fields
         private RectTransform currentContainer;
         private GameObject currentUi;
         private static Image currentImage;
-        protected override void OnCreateUI(RectTransform fieldUI)
+		public override void OnCreateUI(RectTransform fieldUI)
         {
             currentContainer = fieldUI;
             if (!initialized)

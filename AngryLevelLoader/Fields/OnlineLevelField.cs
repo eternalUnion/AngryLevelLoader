@@ -278,7 +278,7 @@ namespace AngryLevelLoader.Fields
                 OnCreateUI(currentContainer);
         }
 
-        protected override void OnCreateUI(RectTransform fieldUI)
+		public override void OnCreateUI(RectTransform fieldUI)
         {
             currentContainer = fieldUI;
             if (!inited)

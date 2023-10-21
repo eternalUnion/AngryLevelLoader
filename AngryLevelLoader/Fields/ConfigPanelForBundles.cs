@@ -83,7 +83,7 @@ namespace AngryLevelLoader.Fields
             callback = creator;
         }
 
-        protected override GameObject CreateUI(Transform content)
+        public override GameObject CreateUI(Transform content)
         {
             base.CreateUI(content);
 

@@ -188,7 +188,7 @@ namespace AngryLevelLoader.Fields
             return rect;
         }
 
-        protected override void OnCreateUI(RectTransform fieldUI)
+		public override void OnCreateUI(RectTransform fieldUI)
         {
             container = fieldUI;
             if (!inited)

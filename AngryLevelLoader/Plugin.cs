@@ -26,6 +26,8 @@ using AngryLevelLoader.Fields;
 using PluginConfiguratorComponents;
 using System.Text;
 using AngryLevelLoader.Managers.ServerManager;
+using UnityEngine.UI;
+using AngryUiComponents;
 
 namespace AngryLevelLoader
 {
@@ -333,6 +335,16 @@ namespace AngryLevelLoader
 
 		// Settings panel
 		public static KeyCodeField reloadFileKeybind;
+		public enum CustomLevelButtonPosition
+		{
+			Top,
+			Bottom,
+			Disabled
+		}
+		public static EnumField<CustomLevelButtonPosition> customLevelButtonPosition;
+		public static ColorField customLevelButtonFrameColor;
+		public static ColorField customLevelButtonBackgroundColor;
+		public static ColorField customLevelButtonTextColor;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField checkForUpdates;
 		public static BoolField levelUpdateNotifierToggle;
@@ -354,6 +366,7 @@ namespace AngryLevelLoader
 		}
 		public static EnumField<BundleSorting> bundleSortingMode;
 
+		private static StringListField difficultySelect;
 		private static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 
 		public static string workingDir;
@@ -387,6 +400,130 @@ namespace AngryLevelLoader
 				OnlineLevelsManager.RefreshAsync();
 
 			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
+		}
+
+		private static bool GetUltrapainDifficultySet()
+		{
+			return Ultrapain.Plugin.ultrapainDifficulty;
+		}
+
+		private static bool GetHeavenOrHellDifficultySet()
+		{
+			return MyCoolMod.Plugin.isHeavenOrHell;
+		}
+
+		private const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
+		private static AngryCustomLevelButtonComponent currentCustomLevelButton;
+		private static RectTransform bossRushButton;
+		private static void OnMainMenu()
+		{
+			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
+			if (canvasObj == null)
+			{
+				Debug.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
+				return;
+			}
+
+			Transform chapterSelect = canvasObj.transform.Find("Chapter Select");
+			if (chapterSelect != null)
+			{
+				GameObject customLevelButtonObj = Addressables.InstantiateAsync(CUSTOM_LEVEL_BUTTON_ASSET_PATH, chapterSelect).WaitForCompletion();
+				Transform bossRush = chapterSelect.Find("Boss Rush Button");
+				if (bossRush != null)
+					bossRushButton = bossRush.gameObject.GetComponent<RectTransform>();
+				currentCustomLevelButton = customLevelButtonObj.GetComponent<AngryCustomLevelButtonComponent>();
+
+				currentCustomLevelButton.button.onClick = new Button.ButtonClickedEvent();
+				currentCustomLevelButton.button.onClick.AddListener(() =>
+				{
+					// Disable act selection panel
+					chapterSelect.gameObject.SetActive(false);
+
+					// Open the options menu
+					Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
+					if (optionsMenu == null)
+					{
+						Debug.LogError("Angry tried to find the options menu but failed!");
+						chapterSelect.gameObject.SetActive(true);
+						return;
+					}
+					optionsMenu.gameObject.SetActive(true);
+
+					// Open plugin config panel
+					Transform pluginConfigButton = optionsMenu.transform.Find("PluginConfiguratorButton(Clone)");
+					if (pluginConfigButton == null)
+						pluginConfigButton = optionsMenu.transform.Find("PluginConfiguratorButton");
+
+					if (pluginConfigButton == null)
+					{
+						Debug.LogError("Angry tried to find the plugin configurator button but failed!");
+						return;
+					}
+
+					// Click the plugin config button and open the main panel of angry
+					pluginConfigButton.gameObject.GetComponent<Button>().onClick.Invoke();
+					if (PluginConfiguratorController.activePanel != null)
+						PluginConfiguratorController.activePanel.SetActive(false);
+					PluginConfiguratorController.mainPanel.gameObject.SetActive(false);
+					config.rootPanel.OpenPanelInternally(false);
+					config.rootPanel.currentPanel.rect.normalizedPosition = new Vector2(0, 1);
+
+					// Set the difficulty based on the previously selected act
+					int difficulty = PrefsManager.Instance.GetInt("difficulty", 3);
+					switch (difficulty)
+					{
+						// Stock difficulties
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+							Debug.Log($"Angry setting difficulty to {difficultyList[difficulty]}");
+							difficultySelect.valueIndex = difficulty;
+							break;
+
+						// Possibly ultrapain
+						case 5:
+							if (ultrapainLoaded)
+							{
+								if (GetUltrapainDifficultySet())
+								{
+									difficultySelect.valueIndex = difficultyList.IndexOf("ULTRAPAIN");
+								}
+								else
+								{
+									Debug.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
+									difficultySelect.valueIndex = 3;
+								}
+							}
+							break;
+
+						// Possibly Heaven or Hell, or invalid difficulty
+						default:
+							if (heavenOrHellLoaded)
+							{
+								if (GetHeavenOrHellDifficultySet())
+								{
+									difficultySelect.valueIndex = difficultyList.IndexOf("HEAVEN OR HELL");
+								}
+								else
+								{
+									Debug.LogWarning("Unknown difficulty, defaulting to violent");
+									difficultySelect.valueIndex = 3;
+								}
+							}
+							break;
+					}
+				});
+
+				customLevelButtonPosition.TriggerPostValueChangeEvent();
+				customLevelButtonFrameColor.TriggerPostValueChangeEvent();
+				customLevelButtonBackgroundColor.TriggerPostValueChangeEvent();
+				customLevelButtonTextColor.TriggerPostValueChangeEvent();
+			}
+			else
+			{
+				Debug.LogWarning("Angry tried to find chapter select menu, but root canvas was not found!");
+			}
 		}
 
         private void Awake()
@@ -441,6 +578,10 @@ namespace AngryLevelLoader
 					Logger.LogInfo("Running post scene load event");
 					AngrySceneManager.PostSceneLoad();
 				}
+				else if (SceneHelper.CurrentScene == "Main Menu")
+				{
+					OnMainMenu();
+				}
 			};
 			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;
 
@@ -486,7 +627,7 @@ namespace AngryLevelLoader
 			};
 			OnlineLevelsManager.Init();
 
-			StringListField difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
+			difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
             difficultySelect.onValueChange += (e) =>
             {
                 selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
@@ -507,7 +648,9 @@ namespace AngryLevelLoader
             difficultySelect.TriggerValueChangeEvent();
 
 			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
+			settingsPanel.hidden = true;
 
+			// Settings panel
 			ButtonField openLevels = new ButtonField(settingsPanel, "Open Levels Folder", "openLevelsButton");
 			openLevels.onClick += () => Application.OpenURL(levelsPath);
 			changelog = new ButtonField(settingsPanel, "Changelog", "changelogButton");
@@ -517,55 +660,6 @@ namespace AngryLevelLoader
 				_ = PluginUpdateHandler.CheckPluginUpdate();
 			};
 
-			new SpaceField(settingsPanel, 5);
-			StringField dataPathInput = new StringField(settingsPanel, "Data Path", "s_dataPathInput", dataPath, false, false);
-			ButtonField changeDataPath = new ButtonField(settingsPanel, "Move Data", "s_changeDataPath");
-			ConfigHeader dataInfo = new ConfigHeader(settingsPanel, "<color=red>RESTART REQUIRED</color>", 18);
-            new SpaceField(settingsPanel, 5);
-            dataInfo.hidden = true;
-			changeDataPath.onClick += () =>
-			{
-				string newPath = dataPathInput.value;
-				if (newPath == configDataPath.value)
-					return;
-
-				if (!Directory.Exists(newPath))
-				{
-					dataInfo.text = "<color=red>Could not find the directory</color>";
-					dataInfo.hidden = false;
-					return;
-				}
-
-				string newLevelsFolder = Path.Combine(newPath, "Levels");
-				IOUtils.TryCreateDirectory(newLevelsFolder);
-				foreach (string levelFile in Directory.GetFiles(levelsPath))
-				{
-					File.Copy(levelFile, Path.Combine(newLevelsFolder, Path.GetFileName(levelFile)), true);
-					File.Delete(levelFile);
-				}
-				Directory.Delete(levelsPath, true);
-				levelsPath = newLevelsFolder;
-
-                string newLevelsUnpackedFolder = Path.Combine(newPath, "LevelsUnpacked");
-                IOUtils.TryCreateDirectory(newLevelsUnpackedFolder);
-                foreach (string unpackedLevelFolder in Directory.GetDirectories(tempFolderPath))
-                {
-					string dest = Path.Combine(newLevelsUnpackedFolder, Path.GetFileName(unpackedLevelFolder));
-					if (Directory.Exists(dest))
-						Directory.Delete(dest, true);
-
-					IOUtils.DirectoryCopy(unpackedLevelFolder, dest, true, true);
-                }
-                Directory.Delete(tempFolderPath, true);
-                tempFolderPath = newLevelsUnpackedFolder;
-
-                dataInfo.text = "<color=red>RESTART REQUIRED</color>";
-                dataInfo.hidden = false;
-				configDataPath.value = newPath;
-
-				DisableAllConfig();
-            };
-
             reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			reloadFileKeybind.onValueChange += (e) =>
 			{
@@ -573,7 +667,85 @@ namespace AngryLevelLoader
 					e.canceled = true;
 			};
 
-            settingsPanel.hidden = true;
+			customLevelButtonPosition = new EnumField<CustomLevelButtonPosition>(settingsPanel, "Custom level button position", "s_customLevelButtonPosition", CustomLevelButtonPosition.Bottom);
+			customLevelButtonPosition.postValueChangeEvent += (pos) =>
+			{
+				if (currentCustomLevelButton == null)
+					return;
+
+				currentCustomLevelButton.gameObject.SetActive(true);
+				switch (pos)
+				{
+					case CustomLevelButtonPosition.Disabled:
+						currentCustomLevelButton.gameObject.SetActive(false);
+						break;
+
+					case CustomLevelButtonPosition.Bottom:
+						currentCustomLevelButton.transform.localPosition = new Vector3(currentCustomLevelButton.transform.localPosition.x, -303, currentCustomLevelButton.transform.localPosition.z);
+						break;
+
+					case CustomLevelButtonPosition.Top:
+						currentCustomLevelButton.transform.localPosition = new Vector3(currentCustomLevelButton.transform.localPosition.x, 192, currentCustomLevelButton.transform.localPosition.z);
+						break;
+				}
+
+				if (bossRushButton != null)
+				{
+					if (pos == CustomLevelButtonPosition.Bottom)
+					{
+						currentCustomLevelButton.rect.sizeDelta = new Vector2((380f - 5) / 2, 50);
+						currentCustomLevelButton.transform.localPosition = new Vector3((380f + 5) / -4, currentCustomLevelButton.transform.localPosition.y, currentCustomLevelButton.transform.localPosition.z);
+
+						bossRushButton.sizeDelta = new Vector2((380f - 5) / 2, 50);
+						bossRushButton.transform.localPosition = new Vector3((380f + 5) / 4, -303, 0);
+					}
+					else
+					{
+						currentCustomLevelButton.rect.sizeDelta = new Vector2(380, 50);
+						currentCustomLevelButton.transform.localPosition = new Vector3(0, currentCustomLevelButton.transform.localPosition.y, currentCustomLevelButton.transform.localPosition.z);
+
+						bossRushButton.sizeDelta = new Vector2(380, 50);
+						bossRushButton.transform.localPosition = new Vector3(0, -303, 0);
+					}
+				}
+			};
+
+			customLevelButtonFrameColor = new ColorField(settingsPanel, "Custom level button frame color", "s_customLevelButtonFrameColor", Color.white);
+			customLevelButtonFrameColor.postValueChangeEvent += (clr) =>
+			{
+				if (currentCustomLevelButton == null)
+					return;
+
+				ColorBlock block = new ColorBlock();
+				block.colorMultiplier = 1f;
+				block.fadeDuration = 0.1f;
+				block.normalColor = clr;
+				block.selectedColor = clr;
+				block.highlightedColor = clr * 1.15f;
+				block.pressedColor = clr * 0.5f;
+				block.disabledColor = Color.gray;
+
+				currentCustomLevelButton.button.colors = block;
+			};
+
+			customLevelButtonBackgroundColor = new ColorField(settingsPanel, "Custom level button background color", "s_customLevelButtonBgColor", Color.black);
+			customLevelButtonBackgroundColor.postValueChangeEvent += (clr) =>
+			{
+				if (currentCustomLevelButton == null)
+					return;
+
+				currentCustomLevelButton.background.color = clr;
+			};
+
+			customLevelButtonTextColor = new ColorField(settingsPanel, "Custom level button text color", "s_customLevelButtonTextColor", Color.white);
+			customLevelButtonTextColor.postValueChangeEvent += (clr) =>
+			{
+				if (currentCustomLevelButton == null)
+					return;
+
+				currentCustomLevelButton.text.color = clr;
+			};
+
 			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
 			bundleSortingMode.onValueChange += (e) =>
 			{
@@ -616,7 +788,56 @@ namespace AngryLevelLoader
 			scriptUpdateIgnoreCustom = new BoolField(settingsPanel, "Ignore updates for custom builds", "s_scriptUpdateIgnoreCustom", false);
 			scriptCertificateIgnoreField = new StringMultilineField(settingsPanel, "Certificate ignore", "s_scriptCertificateIgnore", "", true);
 			scriptCertificateIgnore = scriptCertificateIgnoreField.value.Split('\n').ToList();
-			
+
+			new SpaceField(settingsPanel, 5);
+			new ConfigHeader(settingsPanel, "Danger Zone") { textColor = Color.red };
+			StringField dataPathInput = new StringField(settingsPanel, "Data Path", "s_dataPathInput", dataPath, false, false);
+			ButtonField changeDataPath = new ButtonField(settingsPanel, "Move Data", "s_changeDataPath");
+			ConfigHeader dataInfo = new ConfigHeader(settingsPanel, "<color=red>RESTART REQUIRED</color>", 18);
+			dataInfo.hidden = true;
+			changeDataPath.onClick += () =>
+			{
+				string newPath = dataPathInput.value;
+				if (newPath == configDataPath.value)
+					return;
+
+				if (!Directory.Exists(newPath))
+				{
+					dataInfo.text = "<color=red>Could not find the directory</color>";
+					dataInfo.hidden = false;
+					return;
+				}
+
+				string newLevelsFolder = Path.Combine(newPath, "Levels");
+				IOUtils.TryCreateDirectory(newLevelsFolder);
+				foreach (string levelFile in Directory.GetFiles(levelsPath))
+				{
+					File.Copy(levelFile, Path.Combine(newLevelsFolder, Path.GetFileName(levelFile)), true);
+					File.Delete(levelFile);
+				}
+				Directory.Delete(levelsPath, true);
+				levelsPath = newLevelsFolder;
+
+				string newLevelsUnpackedFolder = Path.Combine(newPath, "LevelsUnpacked");
+				IOUtils.TryCreateDirectory(newLevelsUnpackedFolder);
+				foreach (string unpackedLevelFolder in Directory.GetDirectories(tempFolderPath))
+				{
+					string dest = Path.Combine(newLevelsUnpackedFolder, Path.GetFileName(unpackedLevelFolder));
+					if (Directory.Exists(dest))
+						Directory.Delete(dest, true);
+
+					IOUtils.DirectoryCopy(unpackedLevelFolder, dest, true, true);
+				}
+				Directory.Delete(tempFolderPath, true);
+				tempFolderPath = newLevelsUnpackedFolder;
+
+				dataInfo.text = "<color=red>RESTART REQUIRED</color>";
+				dataInfo.hidden = false;
+				configDataPath.value = newPath;
+
+				DisableAllConfig();
+			};
+
 			ButtonArrayField settingsAndReload = new ButtonArrayField(config.rootPanel, "settingsAndReload", 2, new float[] { 0.5f, 0.5f }, new string[] { "Settings", "Scan For Levels" });
 			settingsAndReload.OnClickEventHandler(0).onClick += () =>
 			{
@@ -627,6 +848,7 @@ namespace AngryLevelLoader
 				ScanForLevels();
 			};
 
+			// Developer panel
 			ConfigPanel devPanel = new ConfigPanel(config.rootPanel, "Developer Panel", "devPanel", ConfigPanel.PanelFieldType.BigButton);
 			if (!devMode)
 				devPanel.hidden = true;

@@ -479,7 +479,10 @@ namespace AngryLevelLoader.Managers
 						field.voteCount = bundleVoteInfo.Value.upvotes - bundleVoteInfo.Value.downvotes;
 				}
 
-                AngryUser.UserInfoResult userInfo = await AngryUser.GetUserInfo(cancellationToken);
+				if (sortFilter.value == SortFilter.Votes)
+					SortAll();
+
+				AngryUser.UserInfoResult userInfo = await AngryUser.GetUserInfo(cancellationToken);
                 if (!userInfo.networkError && userInfo.status == AngryUser.UserInfoStatus.OK)
                 {
                     AngryUser.UserInfoData data = userInfo.result;
@@ -492,9 +495,6 @@ namespace AngryLevelLoader.Managers
                         else
                             field.Value.voteStatus = OnlineLevelField.VoteStatus.Cleared;
                     }
-
-                    if (sortFilter.value == SortFilter.Votes)
-                        SortAll();
                 }
                 else
                 {
