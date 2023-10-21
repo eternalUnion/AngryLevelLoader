@@ -8,7 +8,9 @@ namespace AngryLevelLoader
 {
     public static class AngryPaths
     {
-        public static void TryCreateAllPaths()
+		public const string SERVER_ROOT = "http://angry.dnzsoft.com";
+
+		public static void TryCreateAllPaths()
         {
             IOUtils.TryCreateDirectory(ConfigFolderPath);
             IOUtils.TryCreateDirectory(OnlineCacheFolderPath);

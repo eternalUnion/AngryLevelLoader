@@ -30,7 +30,7 @@ namespace AngryLevelLoader.Notifications
 
             ui.update.onClick.AddListener(() =>
             {
-                callback.StartDownload();
+                callback.Download();
                 Close();
             });
 

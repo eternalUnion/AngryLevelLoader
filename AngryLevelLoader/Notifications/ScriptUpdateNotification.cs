@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Networking;
@@ -111,22 +112,24 @@ namespace AngryLevelLoader.Notifications
                 SetStatusText();
             }
 
-            public bool downloading { get; private set; }
+            private Task downloadTask = null;
+            public bool downloading 
+            {
+                get => downloadTask != null && !downloadTask.IsCompleted;
+            }
 
             public void StartDownload()
             {
                 if (downloading || downloaded || scriptStatus == ScriptStatus.NotFound)
                     return;
 
-                downloading = true;
-                OnlineLevelsManager.instance.StartCoroutine(DownloadTask());
+				downloadTask = DownloadTask();
             }
 
             UnityWebRequest currentDllRequest;
             UnityWebRequest currentCertRequest;
-            private IEnumerator DownloadTask()
+            private async Task DownloadTask()
             {
-                downloading = true;
                 downloadError = false;
 
                 try
@@ -144,8 +147,8 @@ namespace AngryLevelLoader.Notifications
                     currentDllRequest.downloadHandler = new DownloadHandlerFile(tempDllPath);
                     currentCertRequest.downloadHandler = new DownloadHandlerFile(tempCertPath);
 
-                    currentDllRequest.SendWebRequest();
-                    currentCertRequest.SendWebRequest();
+                    _ = currentDllRequest.SendWebRequest();
+					_ = currentCertRequest.SendWebRequest();
 
                     while (true)
                     {
@@ -154,7 +157,7 @@ namespace AngryLevelLoader.Notifications
 
                         SetStatusText();
 
-                        yield return new WaitForSecondsRealtime(0.5f);
+                        await Task.Delay(500);
                     }
 
                     if (currentDllRequest.isNetworkError || currentDllRequest.isHttpError
@@ -180,7 +183,6 @@ namespace AngryLevelLoader.Notifications
                 }
                 finally
                 {
-                    downloading = false;
                     currentDllRequest = null;
                     currentCertRequest = null;
 

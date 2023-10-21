@@ -1,5 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.Fields;
+using AngryLevelLoader.Managers.ServerManager;
 using Newtonsoft.Json;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
@@ -11,6 +12,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -65,20 +68,19 @@ namespace AngryLevelLoader.Managers
     {
         public static ScriptCatalog scriptCatalog;
 
-        public static bool downloading { get; private set; }
-        private static IEnumerator StartDownloadInternal()
+        private static async Task DownloadTask()
         {
             string newHash = "";
             UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, "ScriptCatalogHash.txt"));
             try
             {
                 hashReq.downloadHandler = new DownloadHandlerBuffer();
-                yield return hashReq.SendWebRequest();
+                await hashReq.SendWebRequest();
 
                 if (hashReq.isHttpError || hashReq.isNetworkError)
                 {
                     Debug.LogError("Could not download the script catalog hash");
-                    yield break;
+                    return;
                 }
 
                 newHash = hashReq.downloadHandler.text;
@@ -97,7 +99,7 @@ namespace AngryLevelLoader.Managers
                 {
                     Debug.Log("Cached script catalog up to date");
                     scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
-                    yield break;
+                    return;
                 }
             }
 
@@ -105,12 +107,12 @@ namespace AngryLevelLoader.Managers
             try
             {
                 updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();
-                yield return updatedCatalogRequest.SendWebRequest();
+                await updatedCatalogRequest.SendWebRequest();
 
                 if (updatedCatalogRequest.isHttpError || updatedCatalogRequest.isNetworkError)
                 {
                     Debug.LogError("Could not download the script catalog");
-                    yield break;
+                    return;
                 }
 
                 scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(updatedCatalogRequest.downloadHandler.text);
@@ -128,29 +130,18 @@ namespace AngryLevelLoader.Managers
             }
         }
 
-        private static IEnumerator DownloadCoroutine()
+		private static Task downloadTask = null;
+		public static bool downloading
+		{
+			get => downloadTask != null && !downloadTask.IsCompleted;
+		}
+
+		public static Task Download()
         {
-            if (downloading)
-                yield break;
+            if (!downloading)
+                downloadTask = DownloadTask();
 
-            downloading = true;
-
-            try
-            {
-                yield return StartDownloadInternal();
-            }
-            finally
-            {
-                downloading = false;
-            }
-        }
-
-        public static void StartDownload()
-        {
-            if (downloading)
-                return;
-
-            OnlineLevelsManager.instance.StartCoroutine(DownloadCoroutine());
+            return downloadTask;
         }
 
         public static bool ScriptExistsInCatalog(string script)
@@ -168,7 +159,7 @@ namespace AngryLevelLoader.Managers
 
     }
 
-    public class OnlineLevelsManager : MonoBehaviour
+    public class OnlineLevelsManager
     {
         public static OnlineLevelsManager instance;
         public static ConfigPanel onlineLevelsPanel;
@@ -207,6 +198,7 @@ namespace AngryLevelLoader.Managers
         {
             Name,
             Author,
+            Votes,
             LastUpdate,
             ReleaseDate
         }
@@ -219,12 +211,6 @@ namespace AngryLevelLoader.Managers
 
         public static void Init()
         {
-            if (instance == null)
-            {
-                instance = new GameObject().AddComponent<OnlineLevelsManager>();
-                DontDestroyOnLoad(instance);
-            }
-
             string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
             if (File.Exists(cachedCatalogPath))
                 catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
@@ -269,12 +255,15 @@ namespace AngryLevelLoader.Managers
                 foreach (var bundle in onlineLevels.Values.OrderBy(b => b.author))
                     bundle.siblingIndex = i++;
             }
+            else if (sortFilter.value == SortFilter.Votes)
+            {
+				foreach (var bundle in onlineLevels.Values.OrderByDescending(b => b.voteCount))
+					bundle.siblingIndex = i++;
+			}
             else if (sortFilter.value == SortFilter.LastUpdate)
             {
                 foreach (var bundle in onlineLevels.Values.OrderByDescending(b => b.lastUpdate))
-                {
                     bundle.siblingIndex = i++;
-                }
             }
             else if (sortFilter.value == SortFilter.ReleaseDate)
             {
@@ -286,7 +275,14 @@ namespace AngryLevelLoader.Managers
             }
         }
 
-        private static bool downloadingCatalog = false;
+        private static Task downloadCatalogTask = null;
+        private static Task getVotesTask = null;
+        private static CancellationTokenSource getVotesTaskToken = null;
+		public static bool downloading
+        {
+            get => downloadCatalogTask != null && !downloadCatalogTask.IsCompleted;
+        }
+
         public static LevelCatalog catalog;
         public static Dictionary<string, OnlineLevelField> onlineLevels = new Dictionary<string, OnlineLevelField>();
         public static Dictionary<string, string> thumbnailHashes = new Dictionary<string, string>();
@@ -339,38 +335,46 @@ namespace AngryLevelLoader.Managers
 
         public static void RefreshAsync()
         {
-            ScriptCatalogLoader.StartDownload();
-
-            if (downloadingCatalog)
+            if (downloading)
                 return;
 
             foreach (var field in onlineLevels.Values)
+            {
                 field.hidden = true;
+                field.voteStatus = OnlineLevelField.VoteStatus.Disabled;
+            }
 
             onlineLevelContainer.hidden = true;
             loadingCircle.hidden = false;
-            instance.StartCoroutine(instance.RefreshCoroutine());
+            downloadCatalogTask = RefreshTask();
         }
 
-        private IEnumerator RefreshCoroutine()
+        private static async Task RefreshTask()
         {
-            if (downloadingCatalog)
-                yield break;
+            Task scriptCatalogTask = ScriptCatalogLoader.Download();
 
-            downloadingCatalog = true;
+            await DownloadCatalogWithHashCheck();
+			PostCatalogLoad();
 
-            try
+            if (getVotesTask != null)
             {
-                yield return m_CheckCatalogVersion();
-            }
-            finally
-            {
-                downloadingCatalog = false;
-                PostCatalogLoad();
-            }
-        }
+                if (getVotesTaskToken != null)
+                    getVotesTaskToken.Cancel();
+                await getVotesTask;
+                getVotesTask = null;
+                getVotesTaskToken = null;
+			}
 
-        private IEnumerator m_CheckCatalogVersion()
+            getVotesTaskToken = new CancellationTokenSource();
+			getVotesTask = DownloadAllVotes(getVotesTaskToken.Token).ContinueWith((task) => {
+                getVotesTask = null;
+                getVotesTaskToken = null;
+            });
+
+			await scriptCatalogTask;
+		}
+
+        private static async Task DownloadCatalogWithHashCheck()
         {
             LevelCatalog prevCatalog = catalog;
             catalog = null;
@@ -381,13 +385,13 @@ namespace AngryLevelLoader.Managers
 
             UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalogHash.txt"));
             catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
-            yield return catalogVersionRequest.SendWebRequest();
+            await catalogVersionRequest.SendWebRequest();
 
             if (catalogVersionRequest.isNetworkError || catalogVersionRequest.isHttpError)
             {
                 Debug.LogError("Could not download catalog version");
                 catalog = null;
-                yield break;
+                return;
             }
             else
             {
@@ -402,24 +406,18 @@ namespace AngryLevelLoader.Managers
 
                 if (catalogHash == newCatalogHash)
                 {
-                    // Wait for script catalog
-                    while (ScriptCatalogLoader.downloading)
-                    {
-                        yield return null;
-                    }
-
                     Debug.Log("Current online level catalog is up to date, loading from cache");
-                    yield break;
+                    return;
                 }
 
                 catalog = null;
             }
 
             Debug.Log("Current online level catalog is out of date, downloading from web");
-            yield return m_DownloadCatalog(newCatalogHash, prevCatalog);
+            await DownloadCatalog(newCatalogHash, prevCatalog);
         }
 
-        private IEnumerator m_DownloadCatalog(string newHash, LevelCatalog prevCatalog)
+        private static async Task DownloadCatalog(string newHash, LevelCatalog prevCatalog)
         {
             catalog = null;
 
@@ -428,20 +426,15 @@ namespace AngryLevelLoader.Managers
 
             UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalog.json"));
             catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
-            yield return catalogRequest.SendWebRequest();
+            await catalogRequest.SendWebRequest();
 
             if (catalogRequest.isNetworkError || catalogRequest.isHttpError)
             {
                 Debug.LogError("Could not download catalog");
-                yield break;
+                return;
             }
             else
             {
-                while (ScriptCatalogLoader.downloading)
-                {
-                    yield return null;
-                }
-
                 string cachedCatalog = File.ReadAllText(catalogPath);
                 string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
                 catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
@@ -474,6 +467,46 @@ namespace AngryLevelLoader.Managers
             }
         }
 
+        private static async Task DownloadAllVotes(CancellationToken cancellationToken = default(CancellationToken))
+        {
+			AngryVotes.GetAllVotesResult allVotesRes = await AngryVotes.GetAllVotesTask(cancellationToken);
+
+			if (!allVotesRes.networkError && allVotesRes.status == AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
+			{
+				foreach (var bundleVoteInfo in allVotesRes.result)
+				{
+					if (onlineLevels.TryGetValue(bundleVoteInfo.Key, out OnlineLevelField field))
+						field.voteCount = bundleVoteInfo.Value.upvotes - bundleVoteInfo.Value.downvotes;
+				}
+
+                AngryUser.UserInfoResult userInfo = await AngryUser.GetUserInfo(cancellationToken);
+                if (!userInfo.networkError && userInfo.status == AngryUser.UserInfoStatus.OK)
+                {
+                    AngryUser.UserInfoData data = userInfo.result;
+                    foreach (var field in onlineLevels)
+                    {
+                        if (data.upvotedBundles.Contains(field.Key))
+                            field.Value.voteStatus = OnlineLevelField.VoteStatus.Upvoted;
+                        else if (data.downvotedBundles.Contains(field.Key))
+                            field.Value.voteStatus = OnlineLevelField.VoteStatus.Downvoted;
+                        else
+                            field.Value.voteStatus = OnlineLevelField.VoteStatus.Cleared;
+                    }
+
+                    if (sortFilter.value == SortFilter.Votes)
+                        SortAll();
+                }
+                else
+                {
+					Debug.LogError($"Could not get user info while refreshing. Message: {userInfo.message}. Status: {userInfo.status}.");
+				}
+			}
+			else
+			{
+				Debug.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.message}. Status: {allVotesRes.status}.");
+			}
+		}
+
         public static void UpdateUI()
         {
             foreach (var levelField in onlineLevels.Values)
@@ -491,6 +524,7 @@ namespace AngryLevelLoader.Managers
                 return;
 
             bool dirtyThumbnailCacheHashFile = false;
+            List<UnityWebRequestAsyncOperation> thumbnailRequests = new List<UnityWebRequestAsyncOperation>();
             foreach (LevelInfo info in catalog.Levels)
             {
                 OnlineLevelField field;
@@ -529,7 +563,8 @@ namespace AngryLevelLoader.Managers
                     {
                         currentHash = CryptographyUtils.GetMD5String(File.ReadAllBytes(imageCachePath));
                         thumbnailHashes.Add(info.Guid, currentHash);
-                    }
+                        dirtyThumbnailCacheHashFile = true;
+					}
                     
                     if (currentHash != info.ThumbnailHash)
                         downloadThumbnail = true;
@@ -543,20 +578,28 @@ namespace AngryLevelLoader.Managers
                     // thumbnail update
                     if (thumbnailExists)
                         File.Delete(imageCachePath);
-                    dirtyThumbnailCacheHashFile = true;
 
                     UnityWebRequest req = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, $"Levels/{info.Guid}/thumbnail.png"));
                     req.downloadHandler = new DownloadHandlerFile(imageCachePath);
                     var handle = req.SendWebRequest();
 
-                    handle.completed += (e) =>
+					thumbnailRequests.Add(handle);
+					handle.completed += (e) =>
                     {
                         try
                         {
+                            thumbnailRequests.Remove(handle);
                             if (req.isHttpError || req.isNetworkError)
                                 return;
-                            thumbnailHashes[info.Guid] = CryptographyUtils.GetMD5String(imageCachePath);
-                            field.DownloadPreviewImage("file://" + imageCachePath, true);
+                            thumbnailHashes[info.Guid] = CryptographyUtils.GetMD5String(File.ReadAllBytes(imageCachePath));
+                            dirtyThumbnailCacheHashFile = true;
+							field.DownloadPreviewImage("file://" + imageCachePath, true);
+
+                            if (thumbnailRequests.Count == 0)
+                            {
+                                Debug.Log("All thumbnail requests completed. Saving hashes");
+                                SaveThumbnailHashes();
+                            }
                         }
                         finally
                         {
@@ -566,7 +609,8 @@ namespace AngryLevelLoader.Managers
                 }
                 else
                 {
-                    field.DownloadPreviewImage("file://" + imageCachePath, false);
+                    if (field.previewImage == null)
+                        field.DownloadPreviewImage("file://" + imageCachePath, false);
                 }
 
                 // Sort if just created

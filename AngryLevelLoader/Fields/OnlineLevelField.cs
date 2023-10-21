@@ -1,9 +1,11 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Managers;
+using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryUiComponents;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
@@ -15,6 +17,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -29,6 +33,15 @@ namespace AngryLevelLoader.Fields
     public class OnlineLevelField : CustomConfigField
     {
         private const string ASSET_PATH = "AngryLevelLoader/Fields/OnlineLevelField.prefab";
+
+        private static Sprite arrow;
+        private static Sprite arrowFilled;
+
+        static OnlineLevelField()
+        {
+            arrow = AssetManager.arrow;
+            arrowFilled = AssetManager.arrowFilled;
+        }
 
         public readonly string bundleGuid;
         public string bundleBuildHash;
@@ -191,6 +204,59 @@ namespace AngryLevelLoader.Fields
             currentUi.infoText.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
         }
 
+        public enum VoteStatus
+        {
+            Upvoted,
+            Downvoted,
+            Cleared,
+            Disabled
+        }
+
+        private VoteStatus _voteStatus = VoteStatus.Disabled;
+		public VoteStatus voteStatus
+        {
+            get => _voteStatus;
+            set
+            {
+                _voteStatus = value;
+                if (currentUi == null)
+                    return;
+
+                if (value == VoteStatus.Disabled)
+                {
+                    currentUi.upvoteButton.interactable = false;
+                    currentUi.downvoteButton.interactable = false;
+                    currentUi.votes.color = Color.gray;
+
+					currentUi.upvoteImage.sprite = arrowFilled;
+                    currentUi.downvoteImage.sprite = arrowFilled;
+				}
+                else
+                {
+					currentUi.upvoteButton.interactable = true;
+					currentUi.downvoteButton.interactable = true;
+					currentUi.votes.color = Color.white;
+
+					currentUi.upvoteImage.sprite = (value == VoteStatus.Upvoted) ? arrowFilled : arrow;
+                    currentUi.downvoteImage.sprite = (value == VoteStatus.Downvoted) ? arrowFilled : arrow;
+				}
+            }
+        }
+
+        private int _voteCount = 0;
+        public int voteCount
+        {
+            get => _voteCount;
+            set
+            {
+                _voteCount = value;
+                if (currentUi == null)
+                    return;
+
+                currentUi.votes.text = value.ToString();
+            }
+        }
+
         private bool installActive = false;
         private AngryOnlineLevelFieldComponent currentUi;
 
@@ -224,7 +290,7 @@ namespace AngryLevelLoader.Fields
             currentUi.thumbnail.texture = _previewImage;
             UpdateInfoText();
 
-            currentUi.install.onClick.AddListener(StartDownload);
+            currentUi.install.onClick.AddListener(Download);
             currentUi.install.gameObject.AddComponent<DisableWhenHidden>();
             UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.install,
                 (e) =>
@@ -237,7 +303,100 @@ namespace AngryLevelLoader.Fields
                     currentUi.install.gameObject.SetActive(false);
                 });
 
-            currentUi.changelog.onClick.AddListener(() =>
+            currentUi.upvoteButton.onClick.AddListener(() =>
+            {
+                AngryVotes.VoteOperation op = (voteStatus == VoteStatus.Upvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.UPVOTE;
+                voteStatus = VoteStatus.Disabled;
+
+                AngryVotes.VoteTask(bundleGuid, op).ContinueWith((resTask) =>
+                {
+                    var res = resTask.Result;
+
+                    if (res.status == AngryVotes.VoteStatus.VOTE_OK)
+                    {
+                        if (res.operation == AngryVotes.VoteOperation.UPVOTE)
+                            voteStatus = VoteStatus.Upvoted;
+                        else if (res.operation == AngryVotes.VoteOperation.DOWNVOTE)
+                            voteStatus = VoteStatus.Downvoted;
+                        else
+                            voteStatus = VoteStatus.Cleared;
+
+                        voteCount = res.upvotes - res.downvotes;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
+
+                        voteStatus = VoteStatus.Disabled;
+                        voteCount = 0;
+                    }
+                });
+            });
+            currentUi.upvoteButton.gameObject.AddComponent<DisableWhenHidden>();
+            currentUi.upvoteButton.gameObject.SetActive(false);
+			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.upvoteButton,
+                (e) => currentUi.upvoteButton.gameObject.SetActive(true),
+                (e) => currentUi.upvoteButton.gameObject.SetActive(false)
+                );
+
+			currentUi.downvoteButton.onClick.AddListener(() =>
+			{
+				AngryVotes.VoteOperation op = (voteStatus == VoteStatus.Downvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.DOWNVOTE;
+				voteStatus = VoteStatus.Disabled;
+
+				AngryVotes.VoteTask(bundleGuid, op).ContinueWith((resTask) =>
+				{
+                    var res = resTask.Result;
+
+					if (res.status == AngryVotes.VoteStatus.VOTE_OK)
+					{
+						if (res.operation == AngryVotes.VoteOperation.UPVOTE)
+							voteStatus = VoteStatus.Upvoted;
+						else if (res.operation == AngryVotes.VoteOperation.DOWNVOTE)
+							voteStatus = VoteStatus.Downvoted;
+						else
+							voteStatus = VoteStatus.Cleared;
+
+						voteCount = res.upvotes - res.downvotes;
+					}
+					else
+					{
+						Debug.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
+
+						voteStatus = VoteStatus.Disabled;
+						voteCount = 0;
+					}
+				});
+			});
+			currentUi.downvoteButton.gameObject.AddComponent<DisableWhenHidden>();
+			currentUi.downvoteButton.gameObject.SetActive(false);
+			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.downvoteButton,
+				(e) => currentUi.downvoteButton.gameObject.SetActive(true),
+				(e) => currentUi.downvoteButton.gameObject.SetActive(false)
+				);
+
+			if (voteStatus == VoteStatus.Disabled)
+			{
+				currentUi.upvoteButton.interactable = false;
+				currentUi.downvoteButton.interactable = false;
+				currentUi.votes.color = Color.gray;
+
+				currentUi.upvoteImage.sprite = arrowFilled;
+				currentUi.downvoteImage.sprite = arrowFilled;
+			}
+			else
+			{
+				currentUi.upvoteButton.interactable = true;
+				currentUi.downvoteButton.interactable = true;
+				currentUi.votes.color = Color.white;
+
+				currentUi.upvoteImage.sprite = (voteStatus == VoteStatus.Upvoted) ? arrowFilled : arrow;
+				currentUi.downvoteImage.sprite = (voteStatus == VoteStatus.Downvoted) ? arrowFilled : arrow;
+			}
+
+			currentUi.votes.text = voteCount.ToString();
+
+			currentUi.changelog.onClick.AddListener(() =>
             {
                 LevelInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
                 LevelUpdateNotification notification = new LevelUpdateNotification();
@@ -264,13 +423,13 @@ namespace AngryLevelLoader.Fields
 
                 if (onlineBundle.Updates == null)
                 {
-                    StartDownload();
+                    Download();
                 }
                 else
                 {
                     if (bundle == null || string.IsNullOrEmpty(bundle.pathToAngryBundle) || !File.Exists(bundle.pathToAngryBundle))
                     {
-                        StartDownload();
+                        Download();
                         return;
                     }
 
@@ -307,15 +466,15 @@ namespace AngryLevelLoader.Fields
                 status = OnlineLevelStatus.installed;
         }
 
-        public void UpdateUI()
+        public void UpdateUI(bool calledFromDownloadTask = false)
         {
             UpdateState();
             if (currentUi == null)
                 return;
 
-            currentUi.downloadContainer.gameObject.SetActive(downloading);
+            currentUi.downloadContainer.gameObject.SetActive(downloading && !calledFromDownloadTask);
 
-            if (!downloading)
+            if (!downloading || calledFromDownloadTask)
             {
                 if (status == OnlineLevelStatus.notInstalled)
                 {
@@ -350,40 +509,29 @@ namespace AngryLevelLoader.Fields
                 currentUi.gameObject.SetActive(!hierarchyHidden);
         }
 
-        public void StartDownload()
+        private Task downloadTask = null;
+        public bool downloading
+        {
+            get => downloadTask != null && !downloadTask.IsCompleted;
+        }
+
+        public void Download()
         {
             if (downloading)
                 return;
 
-            OnlineLevelsManager.instance.StartCoroutine(DownloadCoroutine());
-        }
-
-        public bool downloading = false;
-        public IEnumerator DownloadCoroutine()
-        {
-            if (downloading)
-                yield break;
-
-            downloading = true;
-            installActive = false;
-
-            try
+            downloadTask = DownloadTask().ContinueWith((res) =>
             {
-                yield return DownloadAsync();
-            }
-            finally
-            {
-                downloading = false;
-
-                UpdateUI();
+				UpdateUI(true);
                 OnlineLevelsManager.CheckLevelUpdateText();
-            }
+            });
         }
         
-        public IEnumerator DownloadAsync()
+        private async Task DownloadTask()
         {
             errorStatus = ErrorStatus.NoError;
 
+            installActive = false;
             if (currentUi != null)
             {
                 currentUi.changelog.gameObject.SetActive(false);
@@ -415,17 +563,15 @@ namespace AngryLevelLoader.Fields
                 req.downloadHandler = new DownloadHandlerFile(tempDownloadPath);
                 var handle = req.SendWebRequest();
 
-                bool aborted = false;
+                CancellationTokenSource abortToken = new CancellationTokenSource();
                 onCancel = new UnityEvent();
                 onCancel.AddListener(() =>
                 {
                     if (!downloading)
                         return;
 
-                    aborted = true;
                     req.Abort();
-                    downloading = false;
-                    UpdateUI();
+                    abortToken.Cancel();
                 });
 
                 while (!handle.isDone)
@@ -437,21 +583,21 @@ namespace AngryLevelLoader.Fields
                         currentUi.progressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB\n(Part {i + 1}/{partCount})";
                     }
 
-                    yield return new WaitForSecondsRealtime(0.5f);
+                    await Task.Delay(500, abortToken.Token);
                 }
 
                 onCancel = new UnityEvent();
 
                 if (req.isHttpError || req.isNetworkError)
                 {
-                    if (!aborted)
+                    if (!abortToken.Token.IsCancellationRequested)
                         errorStatus = ErrorStatus.NetworkError;
 
                     foreach (string part in downloadedParts)
                         if (File.Exists(part))
                             File.Delete(part);
 
-                    yield break;
+                    return;
                 }
 
                 downloadedBytes += req.downloadedBytes;
@@ -500,7 +646,7 @@ namespace AngryLevelLoader.Fields
             {
                 File.Delete(destinationFile);
                 errorStatus = ErrorStatus.ValidationError;
-                yield break;
+                return;
             }
 
             if (bundle == null || bundle.pathToAngryBundle != destinationFile)

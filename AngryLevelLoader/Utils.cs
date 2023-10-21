@@ -6,10 +6,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -237,6 +241,22 @@ namespace AngryLevelLoader
 
 	public static class CryptographyUtils
 	{
+		public static string AdminPrivateKey => Environment.GetEnvironmentVariable("ANGRY_ADMIN_KEY");
+
+		public static byte[] Encrypt(string data, string keyXml)
+		{
+			RSA rsa = RSA.Create();
+			rsa.FromXmlString(keyXml);
+			return rsa.Encrypt(Encoding.UTF8.GetBytes(data), RSAEncryptionPadding.Pkcs1);
+		}
+
+		public static byte[] Encrypt(byte[] data, string keyXml)
+		{
+			RSA rsa = RSA.Create();
+			rsa.FromXmlString(keyXml);
+			return rsa.Encrypt(data, RSAEncryptionPadding.Pkcs1);
+		}
+
 		public static bool VerifyFileCertificate(string filePath, string certificatePath)
 		{
 			const string angryPublicKey = "<RSAKeyValue><Modulus>+/ueeOpso05dA+5GjKbjQ0VpM+JAHmRRgYRw36G4dXqmpCGfVDNVdjjBBkVWO+6lJoSNaaG4Yprn4uQVslUQ7OYWAw6Y+9E0Ezvr1quWE7i0KGxG6weplRTsu9aO0/9gJgP/gWQxC0Cf83NwyvMPsThtCruAQFT+cW0LGghtFgrBr++aknI06SJI5ydrbZgEtU5i4FfjrV1ms4CRRojhydJglfGQfG8W3pTDge4jVdND+RGB6F01QGi0+Bnq5DfKdjvb3/Zh1ko7WocWgavDaIgLYj88AgbGdC0lidLMIgzdnGxkLyxbTzsgi/mvUpB2foy4uHoV22EaWMj+6H+oXQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
@@ -339,4 +359,64 @@ namespace AngryLevelLoader
             return false;
         }
     }
+
+	public static class AsyncExtensions
+	{
+		public static TaskAwaiter GetAwaiter(this AsyncOperation asyncOp)
+		{
+			/*if (asyncOp.isDone)
+			{
+				var instantReturn = new TaskCompletionSource<object>();
+				instantReturn.SetResult(null);
+				return ((Task)instantReturn.Task).GetAwaiter();
+			}*/
+
+			var tcs = new TaskCompletionSource<object>();
+			asyncOp.completed += obj => { tcs.SetResult(null); };
+			return ((Task)tcs.Task).GetAwaiter();
+		}
+
+		public static TaskAwaiter GetAwaiter<T>(this AsyncOperationHandle<T> asyncOp)
+		{
+			/*if (asyncOp.IsDone)
+			{
+				var instantReturn = new TaskCompletionSource<object>();
+				instantReturn.SetResult(null);
+				return ((Task)instantReturn.Task).GetAwaiter();
+			}*/
+
+			var tcs = new TaskCompletionSource<object>();
+			asyncOp.Completed += obj => { tcs.SetResult(null); };
+			return ((Task)tcs.Task).GetAwaiter();
+		}
+
+		public static TaskAwaiter GetAwaiter(this AsyncOperationHandle asyncOp)
+		{
+			/*if (asyncOp.IsDone)
+			{
+				var instantReturn = new TaskCompletionSource<object>();
+				instantReturn.SetResult(null);
+				return ((Task)instantReturn.Task).GetAwaiter();
+			}*/
+
+			var tcs = new TaskCompletionSource<object>();
+			asyncOp.Completed += obj => { tcs.SetResult(null); };
+			return ((Task)tcs.Task).GetAwaiter();
+		}
+
+		public static async Task TEST_InstantReturn()
+		{
+			var task = new UnityWebRequest(@"file://C:\Users\ROG\Downloads\CarcassEnemy.dll.cert");
+			task.downloadHandler = new DownloadHandlerBuffer();
+			var handle = task.SendWebRequest();
+
+			Debug.Log("First await start");
+			await handle;
+			Debug.Log("First await end");
+
+			Debug.Log("Second await start");
+			await handle;
+			Debug.Log("Second await end");
+		}
+	}
 }

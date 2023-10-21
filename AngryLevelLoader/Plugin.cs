@@ -23,6 +23,9 @@ using AngryLevelLoader.Containers;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Fields;
+using PluginConfiguratorComponents;
+using System.Text;
+using AngryLevelLoader.Managers.ServerManager;
 
 namespace AngryLevelLoader
 {
@@ -40,7 +43,7 @@ namespace AngryLevelLoader
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const bool devMode = false;
+		public const bool devMode = true;
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
@@ -319,6 +322,7 @@ namespace AngryLevelLoader
 
         public static Harmony harmony;
         
+		// Main panel
 		public static PluginConfigurator config;
 		public static ConfigHeader levelUpdateNotifier;
 		public static ConfigHeader newLevelNotifier;
@@ -327,6 +331,7 @@ namespace AngryLevelLoader
         public static ConfigHeader errorText;
 		public static ConfigDivision bundleDivision;
 
+		// Settings panel
 		public static KeyCodeField reloadFileKeybind;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField checkForUpdates;
@@ -337,6 +342,9 @@ namespace AngryLevelLoader
 		public static StringMultilineField scriptCertificateIgnoreField;
 		public static BoolField useDevelopmentBranch;
 		public static BoolField scriptUpdateIgnoreCustom;
+
+		// Developer panel
+		
 
 		public enum BundleSorting
 		{
@@ -370,6 +378,17 @@ namespace AngryLevelLoader
 			}
 		}
 
+		private static void RefreshCatalogOnMainMenu(Scene newScene, LoadSceneMode mode)
+		{
+			if (SceneHelper.CurrentScene != "Main Menu")
+				return;
+
+			if (refreshCatalogOnBoot.value)
+				OnlineLevelsManager.RefreshAsync();
+
+			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
+		}
+
         private void Awake()
 		{
 			// Plugin startup logic
@@ -398,6 +417,7 @@ namespace AngryLevelLoader
             Addressables.InitializeAsync().WaitForCompletion();
 			angryCatalogPath = Path.Combine(workingDir, "Assets");
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
+			AssetManager.Init();
 
             if (!LoadEssentialScripts())
 			{
@@ -422,8 +442,9 @@ namespace AngryLevelLoader
 					AngrySceneManager.PostSceneLoad();
 				}
 			};
+			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;
 
-            notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
+			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
 			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
 
 			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))
@@ -493,7 +514,7 @@ namespace AngryLevelLoader
 			changelog.onClick += () =>
 			{
 				changelog.interactable = false;
-				OnlineLevelsManager.instance.StartCoroutine(PluginUpdateHandler.CheckPluginUpdate());
+				_ = PluginUpdateHandler.CheckPluginUpdate();
 			};
 
 			new SpaceField(settingsPanel, 5);
@@ -606,6 +627,57 @@ namespace AngryLevelLoader
 				ScanForLevels();
 			};
 
+			ConfigPanel devPanel = new ConfigPanel(config.rootPanel, "Developer Panel", "devPanel", ConfigPanel.PanelFieldType.BigButton);
+			if (!devMode)
+				devPanel.hidden = true;
+
+			new ConfigHeader(devPanel, "Angry Server Interface");
+			ConfigHeader output = new ConfigHeader(devPanel, "Output", 18, TextAnchor.MiddleLeft);
+			ConfigDivision devDiv = new ConfigDivision(devPanel, "devDiv");
+			ButtonField addAllBundles = new ButtonField(devDiv, "Add All Bundles", "addAllBundles");
+			addAllBundles.onClick += async () =>
+			{
+				devDiv.interactable = false;
+
+				try
+				{
+					if (OnlineLevelsManager.catalog == null)
+					{
+						output.text = "Catalog is not loaded";
+						return;
+					}
+
+					output.text = "Adding all bundles...";
+				
+					foreach (var level in OnlineLevelsManager.catalog.Levels)
+					{
+						AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {level.Guid}");
+						output.text += $"\ncommand: add_bundle {level.Guid}";
+
+						if (res.networkError)
+						{
+							output.text += "\n<color=red>Network error</color>";
+							continue;
+						}
+
+						if (res.status == AngryAdmin.CommandStatus.OK)
+						{
+							output.text += $"\n{res.result}";
+						}
+						else
+						{
+							output.text += $"\n<color=red>{res.message}:{res.status}</color>";
+						}
+					}
+
+					output.text += $"\n<color=lime>done</color>";
+				}
+				finally
+				{
+					devDiv.interactable = true;
+				}
+			};
+
 			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
@@ -625,8 +697,6 @@ namespace AngryLevelLoader
 			PluginUpdateHandler.Check();
 
             ScanForLevels();
-			if (refreshCatalogOnBoot.value)
-				OnlineLevelsManager.RefreshAsync();
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }

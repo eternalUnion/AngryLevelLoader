@@ -30,6 +30,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>libs\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="Facepunch.Steamworks.Win64">
+      <HintPath>libs\Facepunch.Steamworks.Win64.dll</HintPath>
+    </Reference>
     <Reference Include="MyCoolMod">
       <HintPath>libs\HeavenOrHellDifficulty.dll</HintPath>
     </Reference>

@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -14,20 +15,18 @@ namespace AngryLevelLoader
 {
     public static class PluginUpdateHandler
     {
-        public static IEnumerator CheckPluginUpdate(bool userRequested = true)
+        public static async Task CheckPluginUpdate(bool userRequested = true)
         {
             UnityWebRequest infoReq = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
             infoReq.downloadHandler = new DownloadHandlerBuffer();
-
-            var handle = infoReq.SendWebRequest();
-            yield return handle;
+            await infoReq.SendWebRequest();
 
             if (infoReq.isHttpError || infoReq.isNetworkError)
             {
                 Debug.LogError("Could not download plugin data");
                 infoReq.Dispose();
                 Plugin.changelog.interactable = true;
-                yield break;
+                return;
             }
 
             string text = infoReq.downloadHandler.text;
@@ -41,7 +40,7 @@ namespace AngryLevelLoader
             if (!userRequested)
             {
                 if (!(Plugin.lastVersion.value != Plugin.PLUGIN_VERSION || (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion) && !Plugin.ignoreUpdates.value)))
-                    yield break;
+                    return;
             }
 
             PluginUpdateNotification notification = new PluginUpdateNotification(json);
@@ -134,7 +133,9 @@ namespace AngryLevelLoader
 
             // Show update notification
             if (Plugin.checkForUpdates.value)
-                OnlineLevelsManager.instance.StartCoroutine(CheckPluginUpdate(false));
-        }
+            {
+				_ = CheckPluginUpdate(false);
+			}
+		}
     }
 }

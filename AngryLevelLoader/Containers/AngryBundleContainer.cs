@@ -24,29 +24,12 @@ using AngryLevelLoader.DataTypes;
 using System.Xml.Linq;
 using PluginConfig;
 using AngryLevelLoader.Notifications;
+using System.Threading.Tasks;
 
 namespace AngryLevelLoader.Containers
 {
     public class AngryBundleContainer
     {
-        private class BundleManager : MonoBehaviour
-        {
-            private static BundleManager _instance;
-            public static BundleManager instance
-            {
-                get
-                {
-                    if (_instance == null)
-                    {
-                        _instance = new GameObject().AddComponent<BundleManager>();
-                        DontDestroyOnLoad(_instance);
-                    }
-
-                    return _instance;
-                }
-            }
-        }
-
         public IResourceLocator locator = null;
         public string pathToTempFolder;
         public string pathToAngryBundle;
@@ -62,7 +45,7 @@ namespace AngryLevelLoader.Containers
         public IntField finalRankScore;
         public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
-        private IEnumerator Unload()
+        private async Task Unload()
         {
             // Release data handle
             foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
@@ -76,8 +59,8 @@ namespace AngryLevelLoader.Containers
             if (locator != null)
             {
                 Addressables.RemoveResourceLocator(locator);
-                yield return Addressables.CleanBundleCache();
-            }
+                await AssetManager.CleanBundleCache();
+			}
         }
 
         /// <summary>
@@ -85,9 +68,9 @@ namespace AngryLevelLoader.Containers
         /// </summary>
         /// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
         /// <returns>Success</returns>
-        private IEnumerator ReloadBundle(bool forceReload, bool lazyLoad)
+        private async Task ReloadBundle(bool forceReload, bool lazyLoad)
         {
-            yield return Unload();
+            await Unload();
 
             // Open the angry zip archive
             AngryBundleData latestData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
@@ -141,18 +124,18 @@ namespace AngryLevelLoader.Containers
 
             // We don't need to load the bunde assets if all we need is the bundle interface
             if (lazyLoad)
-                yield break;
+                return;
 
             // Load the catalog
             var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
-            yield return addressableHandle;
+            await addressableHandle;
             locator = addressableHandle.Result;
 
             // Load the bundle name
             if (!string.IsNullOrEmpty(bundleData.bundleDataPath))
             {
                 AsyncOperationHandle<RudeBundleData> bundleHandle = Addressables.LoadAssetAsync<RudeBundleData>(bundleData.bundleDataPath);
-                yield return bundleHandle;
+                await bundleHandle;
                 RudeBundleData bundleDataObj = bundleHandle.Result;
 
                 if (bundleDataObj != null)
@@ -183,8 +166,8 @@ namespace AngryLevelLoader.Containers
                     {
                         sw.BaseStream.SetLength(0);
                         sw.BaseStream.Seek(0, SeekOrigin.Begin);
-                        sw.Write(JsonConvert.SerializeObject(bundleData));
-                        sw.Flush();
+                        await sw.WriteAsync(JsonConvert.SerializeObject(bundleData));
+                        await sw.FlushAsync();
                     }
                 }
             }
@@ -195,7 +178,7 @@ namespace AngryLevelLoader.Containers
             foreach (string path in bundleData.levelDataPaths)
             {
                 AsyncOperationHandle<RudeLevelData> handle = Addressables.LoadAssetAsync<RudeLevelData>(path);
-                yield return handle;
+                await handle;
                 RudeLevelData data = handle.Result;
 
                 if (data == null)
@@ -228,12 +211,19 @@ namespace AngryLevelLoader.Containers
             return GetAllLevelData().Select(data => data.scenePath);
         }
 
-        private IEnumerator UpdateScenesAsync(bool forceReload, bool lazyLoad)
+        private async Task UpdateScenesTask(bool forceReload, bool lazyLoad)
         {
             if (!File.Exists(pathToAngryBundle))
             {
                 statusText.text = "<color=red>Could not find the file</color>";
-                yield break;
+                return;
+            }
+
+            AngryBundleData fileData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
+            if (fileData.bundleGuid != bundleData.bundleGuid)
+            {
+                statusText.text = "<color=red>Target file has a different guid</color>";
+                return;
             }
             
             bool inTempScene = false;
@@ -244,15 +234,15 @@ namespace AngryLevelLoader.Containers
             {
                 tempScene = SceneManager.CreateScene("temp");
                 inTempScene = true;
-                yield return SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene().name);
+                await SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene().name);
             }
 
             // Disable all level interfaces
             foreach (KeyValuePair<string, LevelContainer> pair in levels)
                 pair.Value.field.forceHidden = true;
 
-            yield return ReloadBundle(forceReload, lazyLoad);
-
+            await ReloadBundle(forceReload, lazyLoad);
+            
             int currentIndex = 0;
             foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
             {
@@ -286,11 +276,11 @@ namespace AngryLevelLoader.Containers
 
                 if (GetAllScenePaths().Contains(previousPath))
                 {
-                    yield return Addressables.LoadSceneAsync(previousName);
+                    await Addressables.LoadSceneAsync(previousName);
                 }
                 else
                 {
-                    yield return Addressables.LoadSceneAsync("Main Menu");
+                    await Addressables.LoadSceneAsync("Main Menu");
                 }
 
                 if (SceneHelper.Instance != null && SceneHelper.Instance.loadingBlocker != null)
@@ -318,35 +308,10 @@ namespace AngryLevelLoader.Containers
                 RecalculateFinalRank();
         }
 
-        private bool updating = false;
-        private IEnumerator UpdateScenesCoroutine(bool forceReload, bool lazyLoad)
+        private Task updateTask = null;
+        public bool updating
         {
-            if (updating)
-                yield break;
-
-            updating = true;
-
-            try
-            {
-                loadingCircle.hidden = false;
-
-                sceneDiv.hidden = true;
-                sceneDiv.interactable = false;
-
-                statusText.hidden = true;
-                statusText.text = "";
-
-                yield return UpdateScenesAsync(forceReload, lazyLoad);
-            }
-            finally
-            {
-                updating = false;
-
-                loadingCircle.hidden = true;
-
-                sceneDiv.hidden = false;
-                sceneDiv.interactable = true;
-            }
+            get => updateTask != null && !updateTask.IsCompleted;
         }
 
         /// <summary>
@@ -358,7 +323,17 @@ namespace AngryLevelLoader.Containers
             if (updating)
                 return;
 
-            BundleManager.instance.StartCoroutine(UpdateScenesCoroutine(forceReload, lazyLoad));
+			loadingCircle.hidden = false;
+			sceneDiv.hidden = true;
+			sceneDiv.interactable = false;
+			statusText.hidden = true;
+			statusText.text = "";
+
+			updateTask = UpdateScenesTask(forceReload, lazyLoad).ContinueWith((task) => {
+				loadingCircle.hidden = true;
+				sceneDiv.hidden = false;
+				sceneDiv.interactable = true;
+			});
         }
 
         // Faster ordering since not all fields are moved, only this one
@@ -476,10 +451,8 @@ namespace AngryLevelLoader.Containers
             }
         }
 
-        internal void DeleteBundle()
+        internal async Task DeleteBundle()
         {
-            Unload();
-
             if (File.Exists(pathToAngryBundle))
                 File.Delete(pathToAngryBundle);
 
@@ -495,13 +468,16 @@ namespace AngryLevelLoader.Containers
             pathToAngryBundle = "";
             pathToTempFolder = "";
             rootPanel.hidden = true;
-        }
+
+            await Unload();
+		}
 
         public void OpenDeletePanel()
         {
             NotificationPanel.Open(new DeleteBundleNotification(this));
         }
 
+        private bool _loadedAfterPanelOpen = false;
         public AngryBundleContainer(string path, AngryBundleData data)
         {
             Debug.Log($"Creating bundle container for {path}");
@@ -511,8 +487,22 @@ namespace AngryLevelLoader.Containers
             rootPanel = new ConfigPanelForBundles(this, Plugin.bundleDivision, data.bundleName, data.bundleGuid);
             rootPanel.onPannelOpenEvent += (external) =>
             {
-                if (locator == null)
-                    UpdateScenes(false, false);
+                if (locator == null && !_loadedAfterPanelOpen)
+                {
+                    _loadedAfterPanelOpen = true;
+
+                    if (updating)
+                    {
+                        updateTask.ContinueWith((task) =>
+                        {
+                            UpdateScenes(false, false);
+                        });
+                    }
+                    else
+                    {
+                        UpdateScenes(false, false);
+                    }
+                }
             };
 
             finalRankScore = new IntField(rootPanel, "final bundle rank", rootPanel.guid + "_finalRankCache", -1, true, false);

@@ -53,8 +53,8 @@ namespace AngryLevelLoader.Notifications
 
             ui.deleteButton.onClick.AddListener(() =>
             {
-                Close();
                 container.DeleteBundle();
+                Close();
             });
 
             ui.bundleIcon.sprite = container.rootPanel.icon;
