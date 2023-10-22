@@ -526,7 +526,87 @@ namespace AngryLevelLoader
 			}
 		}
 
-        private void Awake()
+		private const string ANGRY_UI_PANEL_ASSET_PATH = "AngryLevelLoader/UI/AngryUIPanel.prefab";
+		public static AngryUIPanelComponent currentPanel;
+		private static void CreateAngryUI()
+		{
+			if (currentPanel != null)
+				return;
+
+			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
+			if (canvasObj == null)
+			{
+				Debug.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
+				return;
+			}
+
+			GameObject panelObj = Addressables.InstantiateAsync(ANGRY_UI_PANEL_ASSET_PATH, canvasObj.transform).WaitForCompletion();
+			currentPanel = panelObj.GetComponent<AngryUIPanelComponent>();
+
+			currentPanel.reloadBundlePrompt.MakeTransparent(true);
+		}
+
+		private static FileSystemWatcher watcher;
+		private static void InitializeFileWatcher()
+		{
+			if (watcher != null)
+				return;
+
+			watcher = new FileSystemWatcher(levelsPath);
+			watcher.SynchronizingObject = CrossThreadInvoker.Instance;
+			watcher.Changed += (sender, e) =>
+			{
+				// Notify the bundle that the file is outdated
+
+				string fullPath = e.FullPath;
+				foreach (var bundle in angryBundles.Values)
+				{
+					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					{
+						Debug.LogWarning($"Bundle {fullPath} was updated, container notified");
+						bundle.FileChanged();
+						return;
+					}
+				}
+			};
+			watcher.Renamed += (sender, e) =>
+			{
+				// Try to find if a bundle owns the file, then update its file path
+
+				string fullPath = e.FullPath;
+				foreach (var bundle in angryBundles.Values)
+				{
+					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					{
+						Debug.LogWarning($"Bundle {fullPath} was renamed, path updated");
+						bundle.pathToAngryBundle = fullPath;
+						return;
+					}
+				}
+			};
+			watcher.Deleted += (sender, e) =>
+			{
+				// Try to find if a bundle owns the file, then unlink it
+
+				string fullPath = e.FullPath;
+				foreach (var bundle in angryBundles.Values)
+				{
+					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					{
+						Debug.LogWarning($"Bundle {fullPath} was deleted, unlinked");
+						bundle.pathToAngryBundle = "";
+						return;
+					}
+				}
+			};
+
+			watcher.Filter = "*.*";
+
+			watcher.IncludeSubdirectories = false;
+			watcher.EnableRaisingEvents = true;
+		}
+
+		private void Awake()
 		{
 			// Plugin startup logic
 			instance = this;
@@ -551,7 +631,10 @@ namespace AngryLevelLoader
 
 			AngryPaths.TryCreateAllPaths();
 
-            Addressables.InitializeAsync().WaitForCompletion();
+			CrossThreadInvoker.Init();
+			InitializeFileWatcher();
+			
+			Addressables.InitializeAsync().WaitForCompletion();
 			angryCatalogPath = Path.Combine(workingDir, "Assets");
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 			AssetManager.Init();
@@ -577,6 +660,12 @@ namespace AngryLevelLoader
 				{
 					Logger.LogInfo("Running post scene load event");
 					AngrySceneManager.PostSceneLoad();
+
+					Logger.LogInfo("Creating UI panel");
+					CreateAngryUI();
+
+					Logger.LogInfo("Checking bundle file status");
+					AngrySceneManager.currentBundleContainer.CheckReloadPrompt();
 				}
 				else if (SceneHelper.CurrentScene == "Main Menu")
 				{

@@ -217,7 +217,9 @@ namespace AngryLevelLoader
                 }
             }
         }
-    }
+
+		public static bool PathEquals(string path1, string path2) => Path.GetFullPath(path1) == Path.GetFullPath(path2);
+	}
 
 	public static class UIUtils
 	{

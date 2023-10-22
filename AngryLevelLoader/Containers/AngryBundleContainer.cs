@@ -25,6 +25,7 @@ using System.Xml.Linq;
 using PluginConfig;
 using AngryLevelLoader.Notifications;
 using System.Threading.Tasks;
+using UnityEngine.UI;
 
 namespace AngryLevelLoader.Containers
 {
@@ -126,8 +127,10 @@ namespace AngryLevelLoader.Containers
             if (lazyLoad)
                 return;
 
-            // Load the catalog
-            var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
+			fileChangeDetected = false;
+
+			// Load the catalog
+			var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
             await addressableHandle;
             locator = addressableHandle.Result;
 
@@ -476,6 +479,61 @@ namespace AngryLevelLoader.Containers
         {
             NotificationPanel.Open(new DeleteBundleNotification(this));
         }
+
+        private bool fileChangeDetected = false;
+        public void FileChanged()
+        {
+            if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData updatedData, out Exception e))
+            {
+                // Different guid, would break the container
+                if (updatedData.bundleGuid != bundleData.bundleGuid)
+                {
+                    Debug.LogError($"File {Path.GetFileName(pathToAngryBundle)} was changed, but the new file's guid does not match its container! Unlinking");
+                    fileChangeDetected = false;
+                    pathToAngryBundle = "";
+                    return;
+				}
+
+                fileChangeDetected = updatedData.buildHash != bundleData.buildHash;
+                CheckReloadPrompt();
+			}
+        }
+
+        public void CheckReloadPrompt()
+        {
+			if (AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == this)
+			{
+				if (Plugin.currentPanel != null)
+				{
+					if (fileChangeDetected)
+					{
+                        Plugin.currentPanel.reloadBundlePrompt.audio.Play();
+						Plugin.currentPanel.reloadBundlePrompt.text.text = $"File update detected\nPress <color=orange>{Plugin.reloadFileKeybind.value}</color> to reload\n(Can be binded in the settings)";
+						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
+						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick.AddListener(() =>
+						{
+                            fileChangeDetected = false;
+							UpdateScenes(false, false);
+						});
+
+                        Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick = new Button.ButtonClickedEvent();
+						Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick.AddListener(() =>
+                        {
+							Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
+							Plugin.currentPanel.reloadBundlePrompt.GoUp(false);
+
+							fileChangeDetected = false;
+                        });
+
+						Plugin.currentPanel.reloadBundlePrompt.GoDown(false);
+					}
+					else
+					{
+						Plugin.currentPanel.reloadBundlePrompt.GoUp(false);
+					}
+				}
+			}
+		}
 
         private bool _loadedAfterPanelOpen = false;
         public AngryBundleContainer(string path, AngryBundleData data)
