@@ -336,7 +336,7 @@ namespace AngryLevelLoader.Containers
 				loadingCircle.hidden = true;
 				sceneDiv.hidden = false;
 				sceneDiv.interactable = true;
-			});
+			}, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         // Faster ordering since not all fields are moved, only this one
@@ -507,7 +507,8 @@ namespace AngryLevelLoader.Containers
 				{
 					if (fileChangeDetected)
 					{
-                        Plugin.currentPanel.reloadBundlePrompt.audio.Play();
+						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(true);
+						Plugin.currentPanel.reloadBundlePrompt.audio.Play();
 						Plugin.currentPanel.reloadBundlePrompt.text.text = $"File update detected\nPress <color=orange>{Plugin.reloadFileKeybind.value}</color> to reload\n(Can be binded in the settings)";
 						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
 						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick.AddListener(() =>
@@ -520,16 +521,14 @@ namespace AngryLevelLoader.Containers
 						Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick.AddListener(() =>
                         {
 							Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
-							Plugin.currentPanel.reloadBundlePrompt.GoUp(false);
+							Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(false);
 
 							fileChangeDetected = false;
                         });
-
-						Plugin.currentPanel.reloadBundlePrompt.GoDown(false);
 					}
 					else
 					{
-						Plugin.currentPanel.reloadBundlePrompt.GoUp(false);
+						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(false);
 					}
 				}
 			}
@@ -554,7 +553,7 @@ namespace AngryLevelLoader.Containers
                         updateTask.ContinueWith((task) =>
                         {
                             UpdateScenes(false, false);
-                        });
+                        }, TaskScheduler.FromCurrentSynchronizationContext());
                     }
                     else
                     {

@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers;
 using AngryUiComponents;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
@@ -150,7 +151,7 @@ namespace AngryLevelLoader.Fields
 
             if (locked)
             {
-                currentUi.levelThumbnail.sprite = Plugin.lockedPreview;
+                currentUi.levelThumbnail.sprite = AssetManager.lockedPreview;
                 currentUi.levelHeader.text = "???";
 
                 currentUi.statContainer.gameObject.SetActive(false);
@@ -160,7 +161,7 @@ namespace AngryLevelLoader.Fields
             {
                 currentUi.levelHeader.text = data.levelName;
                 if (!playedBefore)
-                    currentUi.levelThumbnail.sprite = Plugin.notPlayedPreview;
+                    currentUi.levelThumbnail.sprite = AssetManager.notPlayedPreview;
                 else
                     currentUi.levelThumbnail.sprite = data.levelPreviewImage;
             }

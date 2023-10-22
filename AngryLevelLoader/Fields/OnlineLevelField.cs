@@ -330,7 +330,7 @@ namespace AngryLevelLoader.Fields
                         voteStatus = VoteStatus.Disabled;
                         voteCount = 0;
                     }
-                });
+                }, TaskScheduler.FromCurrentSynchronizationContext());
             });
             currentUi.upvoteButton.gameObject.AddComponent<DisableWhenHidden>();
             currentUi.upvoteButton.gameObject.SetActive(false);
@@ -366,7 +366,7 @@ namespace AngryLevelLoader.Fields
 						voteStatus = VoteStatus.Disabled;
 						voteCount = 0;
 					}
-				});
+				}, TaskScheduler.FromCurrentSynchronizationContext());
 			});
 			currentUi.downvoteButton.gameObject.AddComponent<DisableWhenHidden>();
 			currentUi.downvoteButton.gameObject.SetActive(false);
@@ -524,7 +524,7 @@ namespace AngryLevelLoader.Fields
             {
 				UpdateUI(true);
                 OnlineLevelsManager.CheckLevelUpdateText();
-            });
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
         
         private async Task DownloadTask()
@@ -604,56 +604,88 @@ namespace AngryLevelLoader.Fields
                 req.Dispose();
             }
 
-            string destinationFolder = Plugin.levelsPath;
-            if (!Directory.Exists(destinationFolder))
-                Directory.CreateDirectory(destinationFolder);
-            string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, IOUtils.GetPathSafeName(bundleName) + ".angry"));
-            if (bundle != null && !string.IsNullOrEmpty(bundle.pathToAngryBundle) && File.Exists(bundle.pathToAngryBundle))
-                destinationFile = bundle.pathToAngryBundle;
+            string combinedFilePath = Path.Combine(tempDownloadDir, IOUtils.GetUniqueFileName(tempDownloadDir, "combined_file"));
+            using (FileStream str = File.Open(combinedFilePath, FileMode.OpenOrCreate, FileAccess.Write))
+			{
+				str.Position = 0;
+				str.SetLength(0);
 
-            using (FileStream str = File.Open(destinationFile, FileMode.OpenOrCreate, FileAccess.Write))
+				foreach (string part in downloadedParts)
+				{
+					using (FileStream fpart = File.Open(part, FileMode.Open, FileAccess.Read))
+					{
+						fpart.CopyTo(str);
+					}
+
+					File.Delete(part);
+				}
+			}
+
+			// Make sure the file is not messed up
+			bool valid = true;
+			if (AngryFileUtils.TryGetAngryBundleData(combinedFilePath, out AngryBundleData data, out Exception e))
+			{
+				if (data.bundleGuid != bundleGuid)
+					valid = false;
+				else if (data.buildHash != level.Hash)
+					Debug.LogWarning($"Downloaded bundle has hash {data.buildHash} but most recent one is {level.Hash}");
+			}
+			else
+			{
+				Debug.LogError($"Threw error while validating downloaded file\n{e}");
+				valid = false;
+			}
+
+			if (!valid)
+			{
+				File.Delete(combinedFilePath);
+				errorStatus = ErrorStatus.ValidationError;
+				return;
+			}
+
+			string destinationFolder = Plugin.levelsPath;
+			if (!Directory.Exists(destinationFolder))
+				Directory.CreateDirectory(destinationFolder);
+			string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, IOUtils.GetPathSafeName(bundleName) + ".angry"));
+			if (bundle != null && !string.IsNullOrEmpty(bundle.pathToAngryBundle) && File.Exists(bundle.pathToAngryBundle))
+				destinationFile = bundle.pathToAngryBundle;
+
+            if (File.Exists(destinationFile))
             {
-                str.Position = 0;
-                str.SetLength(0);
+				// Plugin.watcherChangedPathIgnoreList.Add(Path.GetFullPath(destinationFile));
 
-                foreach (string part in downloadedParts)
+				using (FileStream destStream = File.Open(destinationFile, FileMode.OpenOrCreate, FileAccess.Write))
                 {
-                    using (FileStream fpart = File.Open(part, FileMode.Open, FileAccess.Read))
+					destStream.Seek(0, SeekOrigin.Begin);
+                    destStream.SetLength(0);
+
+					using (FileStream srcStream = File.Open(combinedFilePath, FileMode.Open, FileAccess.Read))
                     {
-                        fpart.CopyTo(str);
+                        srcStream.CopyTo(destStream);
                     }
-
-                    File.Delete(part);
                 }
-            }
 
-            // Make sure the file is not messed up
-            bool valid = true;
-            if (AngryFileUtils.TryGetAngryBundleData(destinationFile, out AngryBundleData data, out Exception e))
-            {
-                if (data.bundleGuid != bundleGuid)
-                    valid = false;
-                else if (data.buildHash != level.Hash)
-                    Debug.LogWarning($"Downloaded bundle has hash {data.buildHash} but most recent one is {level.Hash}");
+                File.Delete(combinedFilePath);
             }
             else
             {
-                Debug.LogError($"Threw error while validating downloaded file\n{e}");
-                valid = false;
+                File.Move(combinedFilePath, destinationFile);
             }
 
-            if (!valid)
+			if (bundle == null || !IOUtils.PathEquals(bundle.pathToAngryBundle, destinationFile))
             {
-                File.Delete(destinationFile);
-                errorStatus = ErrorStatus.ValidationError;
-                return;
-            }
-
-            if (bundle == null || bundle.pathToAngryBundle != destinationFile)
                 Plugin.ProcessPath(destinationFile);
+			}
             else
-                bundle.UpdateScenes(false, false);
-        }
+            {
+                if (!(AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == bundle))
+                {
+					bundle.UpdateScenes(false, false);
+                }
+
+                // ELSE THERE WILL BE A PROMPT FROM FILE SYSTEM WATCHER
+            }
+		}
 
         // Update order for this field only, assuming every other field is ordered correctly
         public void UpdateOrder()
@@ -709,8 +741,24 @@ namespace AngryLevelLoader.Fields
                     order += 1;
                 }
             }
+			else if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.Votes)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
 
-            if (order < 0)
+					if (voteCount > allBundles[order].voteCount)
+						break;
+
+					order += 1;
+				}
+			}
+
+			if (order < 0)
                 order = 0;
             else if (order >= allBundles.Length)
                 order = allBundles.Length - 1;

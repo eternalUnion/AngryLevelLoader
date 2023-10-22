@@ -369,7 +369,7 @@ namespace AngryLevelLoader.Managers
 			getVotesTask = DownloadAllVotes(getVotesTaskToken.Token).ContinueWith((task) => {
                 getVotesTask = null;
                 getVotesTaskToken = null;
-            });
+            }, TaskScheduler.FromCurrentSynchronizationContext());
 
 			await scriptCatalogTask;
 		}

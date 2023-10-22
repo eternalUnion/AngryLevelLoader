@@ -16,7 +16,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 {
     public static class AngryUser
     {
+        // Angry uses the access token in queries of most of the api requests
         internal static string token = "";
+        // Steam id is also used in the requests
         internal static string steamId = "";
 
         #region Token Gen
@@ -81,7 +83,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 				result.message = response.message;
 				result.status = (TokengenStatus)response.status;
-                if (response.status == (int)TokengenStatus.OK)
+                if (result.status == TokengenStatus.OK)
                 {
 					result.token = token = response.token;
 					result.steamId = steamId = response.steamId;
@@ -184,7 +186,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 
             if (invalidToken)
             {
-                result.status = UserInfoStatus.INVALID_TOKEN;
+                result.message = "Angry failed to obtain a valid token";
+				result.status = UserInfoStatus.INVALID_TOKEN;
 
                 if (tokenRequested)
                     return result;

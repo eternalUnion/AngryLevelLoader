@@ -49,6 +49,7 @@ namespace AngryLevelLoader.Managers
                         _currentLevelContainer.UpdateUI();
                         SceneHelper_CurrentScene.SetValue(null, _currentLevelData.uniqueIdentifier);
                         Plugin.config.presetButtonInteractable = false;
+                        Plugin.difficultySelect.interactable = false;
 
                         return;
                     }
@@ -59,7 +60,8 @@ namespace AngryLevelLoader.Managers
                 _currentLevelData = null;
                 _currentLevelContainer = null;
                 Plugin.config.presetButtonInteractable = true;
-            }
+				Plugin.difficultySelect.interactable = true;
+			}
         }
 
         public static bool isInCustomLevel

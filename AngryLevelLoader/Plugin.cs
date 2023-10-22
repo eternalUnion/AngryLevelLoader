@@ -50,7 +50,8 @@ namespace AngryLevelLoader
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.5.1";
-		
+
+		public static string workingDir;
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
 		public static string tempFolderPath;
@@ -72,8 +73,9 @@ namespace AngryLevelLoader
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
-		public static Dictionary<string, long> lastPlayed = new Dictionary<string, long>();
 
+		// System which tracks when a bundle was played last in unix time
+		public static Dictionary<string, long> lastPlayed = new Dictionary<string, long>();
 		public static void LoadLastPlayedMap()
 		{
 			lastPlayed.Clear();
@@ -134,6 +136,20 @@ namespace AngryLevelLoader
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
 			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
+		}
+
+		public static LevelContainer GetLevel(string id)
+		{
+			foreach (AngryBundleContainer container in angryBundles.Values)
+			{
+				foreach (LevelContainer level in container.levels.Values)
+				{
+					if (level.field.data.uniqueIdentifier == id)
+						return level;
+				}
+			}
+
+			return null;
 		}
 
 		public static void ProcessPath(string path)
@@ -245,20 +261,6 @@ namespace AngryLevelLoader
 			}
 		}
 
-		public static LevelContainer GetLevel(string id)
-		{
-			foreach (AngryBundleContainer container in angryBundles.Values)
-			{
-				foreach (LevelContainer level in container.levels.Values)
-				{
-					if (level.field.data.uniqueIdentifier == id)
-						return level;
-				}
-			}
-
-			return null;
-		}
-
 		public static void UpdateAllUI()
 		{
 			foreach (AngryBundleContainer angryBundle in  angryBundles.Values)
@@ -285,15 +287,9 @@ namespace AngryLevelLoader
 				Debug.LogError("Required script AngryLoaderAPI.dll not found");
 				loaded = false;
 			}
-			else if (res == ScriptManager.LoadScriptResult.NoCertificate)
+			else
 			{
-				Debug.LogError("Required script AngryLoaderAPI.dll has a missing certificate");
-				loaded = false;
-			}
-			else if (res == ScriptManager.LoadScriptResult.InvalidCertificate)
-			{
-				Debug.LogError("Required script AngryLoaderAPI.dll has an invalid certificate");
-				loaded = false;
+				ScriptManager.ForceLoadScript("AngryLoaderAPI.dll");
 			}
 
 			res = ScriptManager.AttemptLoadScriptWithCertificate("RudeLevelScripts.dll");
@@ -302,28 +298,22 @@ namespace AngryLevelLoader
 				Debug.LogError("Required script RudeLevelScripts.dll not found");
 				loaded = false;
 			}
-			else if (res == ScriptManager.LoadScriptResult.NoCertificate)
+			else
 			{
-				Debug.LogError("Required script RudeLevelScripts.dll has a missing certificate");
-				loaded = false;
-			}
-			else if (res == ScriptManager.LoadScriptResult.InvalidCertificate)
-			{
-				Debug.LogError("Required script RudeLevelScripts.dll has an invalid certificate");
-				loaded = false;
+				ScriptManager.ForceLoadScript("RudeLevelScripts.dll");
 			}
 
 			return loaded;
 		}
 
-        // Game assets
-		public static Sprite notPlayedPreview;
-		public static Sprite lockedPreview;
+		// Defaults to violent
+        public static int selectedDifficulty = 3;
+		private static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+		public static StringListField difficultySelect;
+		
+		public static Harmony harmony;
 
-        public static int selectedDifficulty;
-
-        public static Harmony harmony;
-        
+		#region Config Fields
 		// Main panel
 		public static PluginConfigurator config;
 		public static ConfigHeader levelUpdateNotifier;
@@ -334,6 +324,7 @@ namespace AngryLevelLoader
 		public static ConfigDivision bundleDivision;
 
 		// Settings panel
+		public static ButtonField changelog;
 		public static KeyCodeField reloadFileKeybind;
 		public enum CustomLevelButtonPosition
 		{
@@ -354,10 +345,6 @@ namespace AngryLevelLoader
 		public static StringMultilineField scriptCertificateIgnoreField;
 		public static BoolField useDevelopmentBranch;
 		public static BoolField scriptUpdateIgnoreCustom;
-
-		// Developer panel
-		
-
 		public enum BundleSorting
 		{
 			Alphabetically,
@@ -365,14 +352,13 @@ namespace AngryLevelLoader
 			LastPlayed
 		}
 		public static EnumField<BundleSorting> bundleSortingMode;
+		
+		// Developer panel
 
-		private static StringListField difficultySelect;
-		private static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+		#endregion
 
-		public static string workingDir;
-
-		public static ButtonField changelog;
-
+		// Set every fields' interactable field to false
+		// Used by move data process to force a restart
 		private static void DisableAllConfig()
 		{
 			Stack<ConfigField> toProcess = new Stack<ConfigField>(config.rootPanel.GetAllFields());
@@ -391,6 +377,7 @@ namespace AngryLevelLoader
 			}
 		}
 
+		// Delayed refresh online catalog on boot
 		private static void RefreshCatalogOnMainMenu(Scene newScene, LoadSceneMode mode)
 		{
 			if (SceneHelper.CurrentScene != "Main Menu")
@@ -402,20 +389,23 @@ namespace AngryLevelLoader
 			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
 		}
 
+		// Is ultrapain difficulty enabled?
 		private static bool GetUltrapainDifficultySet()
 		{
 			return Ultrapain.Plugin.ultrapainDifficulty;
 		}
 
+		// Is Heaven or Hell difficulty enabled?
 		private static bool GetHeavenOrHellDifficultySet()
 		{
 			return MyCoolMod.Plugin.isHeavenOrHell;
 		}
 
+		// Create the shortcut in chapters menu
 		private const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
 		private static AngryCustomLevelButtonComponent currentCustomLevelButton;
 		private static RectTransform bossRushButton;
-		private static void OnMainMenu()
+		private static void CreateCustomLevelButtonOnMainMenu()
 		{
 			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
 			if (canvasObj == null)
@@ -526,6 +516,7 @@ namespace AngryLevelLoader
 			}
 		}
 
+		// Create the angry canvas
 		private const string ANGRY_UI_PANEL_ASSET_PATH = "AngryLevelLoader/UI/AngryUIPanel.prefab";
 		public static AngryUIPanelComponent currentPanel;
 		private static void CreateAngryUI()
@@ -546,7 +537,7 @@ namespace AngryLevelLoader
 			currentPanel.reloadBundlePrompt.MakeTransparent(true);
 		}
 
-		private static FileSystemWatcher watcher;
+		internal static FileSystemWatcher watcher;
 		private static void InitializeFileWatcher()
 		{
 			if (watcher != null)
@@ -606,87 +597,10 @@ namespace AngryLevelLoader
 			watcher.EnableRaisingEvents = true;
 		}
 
-		private void Awake()
+		private static void InitializeConfig()
 		{
-			// Plugin startup logic
-			instance = this;
-
-			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
-			internalConfig.hidden = true;
-			internalConfig.interactable = false;
-			internalConfig.presetButtonHidden = true;
-			internalConfig.presetButtonInteractable = false;
-
-            lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true);
-            ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false);
-			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"));
-
-            workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			dataPath = configDataPath.value;
-			IOUtils.TryCreateDirectory(dataPath);
-			levelsPath = Path.Combine(dataPath, "Levels");
-            IOUtils.TryCreateDirectory(levelsPath);
-            tempFolderPath = Path.Combine(dataPath, "LevelsUnpacked");
-            IOUtils.TryCreateDirectory(tempFolderPath);
-
-			AngryPaths.TryCreateAllPaths();
-
-			CrossThreadInvoker.Init();
-			InitializeFileWatcher();
-			
-			Addressables.InitializeAsync().WaitForCompletion();
-			angryCatalogPath = Path.Combine(workingDir, "Assets");
-			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
-			AssetManager.Init();
-
-            if (!LoadEssentialScripts())
-			{
-				Debug.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
-				enabled = false;
+			if (config != null)
 				return;
-			}
-
-			LoadLastPlayedMap();
-
-			harmony = new Harmony(PLUGIN_GUID);
-            harmony.PatchAll();
-
-			SceneManager.sceneLoaded += (scene, mode) =>
-			{
-				if (mode == LoadSceneMode.Additive)
-					return;
-
-                if (AngrySceneManager.isInCustomLevel)
-				{
-					Logger.LogInfo("Running post scene load event");
-					AngrySceneManager.PostSceneLoad();
-
-					Logger.LogInfo("Creating UI panel");
-					CreateAngryUI();
-
-					Logger.LogInfo("Checking bundle file status");
-					AngrySceneManager.currentBundleContainer.CheckReloadPrompt();
-				}
-				else if (SceneHelper.CurrentScene == "Main Menu")
-				{
-					OnMainMenu();
-				}
-			};
-			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;
-
-			notPlayedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png").WaitForCompletion();
-			lockedPreview = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png").WaitForCompletion();
-
-			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))
-			{
-				ultrapainLoaded = true;
-				difficultyList.Add("ULTRAPAIN");
-			}
-			if (Chainloader.PluginInfos.ContainsKey("com.heaven.orhell"))
-			{
-				heavenOrHellLoaded = true;
-				difficultyList.Add("HEAVEN OR HELL");
-			}
 
 			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
 			config.postPresetChangeEvent += (b, a) => UpdateAllUI();
@@ -717,15 +631,15 @@ namespace AngryLevelLoader
 			OnlineLevelsManager.Init();
 
 			difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
-            difficultySelect.onValueChange += (e) =>
-            {
-                selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
-                if (selectedDifficulty == -1)
-                {
-                    Debug.LogWarning("Invalid difficulty, setting to violent");
-                    selectedDifficulty = 3;
+			difficultySelect.onValueChange += (e) =>
+			{
+				selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
+				if (selectedDifficulty == -1)
+				{
+					Debug.LogWarning("Invalid difficulty, setting to violent");
+					selectedDifficulty = 3;
 					e.value = "VIOLENT";
-                }
+				}
 				else
 				{
 					if (e.value == "ULTRAPAIN")
@@ -733,8 +647,8 @@ namespace AngryLevelLoader
 					else if (e.value == "HEAVEN OR HELL")
 						selectedDifficulty = 5;
 				}
-            };
-            difficultySelect.TriggerValueChangeEvent();
+			};
+			difficultySelect.TriggerValueChangeEvent();
 
 			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
 			settingsPanel.hidden = true;
@@ -749,7 +663,7 @@ namespace AngryLevelLoader
 				_ = PluginUpdateHandler.CheckPluginUpdate();
 			};
 
-            reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
+			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			reloadFileKeybind.onValueChange += (e) =>
 			{
 				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
@@ -809,8 +723,8 @@ namespace AngryLevelLoader
 				block.colorMultiplier = 1f;
 				block.fadeDuration = 0.1f;
 				block.normalColor = clr;
-				block.selectedColor = clr;
-				block.highlightedColor = clr * 1.15f;
+				block.selectedColor = clr * 0.8f;
+				block.highlightedColor = clr * 0.8f;
 				block.pressedColor = clr * 0.5f;
 				block.disabledColor = Color.gray;
 
@@ -958,16 +872,16 @@ namespace AngryLevelLoader
 						return;
 					}
 
-					output.text = "Adding all bundles...";
-				
+					output.text = "<color=grey>Adding all bundles...</color>";
+
 					foreach (var level in OnlineLevelsManager.catalog.Levels)
 					{
 						AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {level.Guid}");
-						output.text += $"\ncommand: add_bundle {level.Guid}";
+						output.text += $"\n<color=grey>command: add_bundle {level.Guid}</color>";
 
 						if (res.networkError)
 						{
-							output.text += "\n<color=red>Network error</color>";
+							output.text += "\n<color=red>Network error, check connection</color>";
 							continue;
 						}
 
@@ -977,7 +891,7 @@ namespace AngryLevelLoader
 						}
 						else
 						{
-							output.text += $"\n<color=red>{res.message}:{res.status}</color>";
+							output.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
 						}
 					}
 
@@ -993,7 +907,97 @@ namespace AngryLevelLoader
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
 			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
+		}
+
+		private void Awake()
+		{
+			// Plugin startup logic
+			instance = this;
+
+			// Initialize internal config
+			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
+			internalConfig.hidden = true;
+			internalConfig.interactable = false;
+			internalConfig.presetButtonHidden = true;
+			internalConfig.presetButtonInteractable = false;
+
+            lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true);
+            ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false);
+			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"));
+
+			// Setup variable dependent paths
+            workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			dataPath = configDataPath.value;
+			IOUtils.TryCreateDirectory(dataPath);
+			levelsPath = Path.Combine(dataPath, "Levels");
+            IOUtils.TryCreateDirectory(levelsPath);
+            tempFolderPath = Path.Combine(dataPath, "LevelsUnpacked");
+            IOUtils.TryCreateDirectory(tempFolderPath);
+
+			AngryPaths.TryCreateAllPaths();
+
+			// To detect angry file changes in the levels folder
+			CrossThreadInvoker.Init();
+			InitializeFileWatcher();
 			
+			// Load the loader's assets
+			Addressables.InitializeAsync().WaitForCompletion();
+			angryCatalogPath = Path.Combine(workingDir, "Assets");
+			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
+			AssetManager.Init();
+
+			// These scripts are common among all the levels
+            if (!LoadEssentialScripts())
+			{
+				Debug.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
+				enabled = false;
+				return;
+			}
+
+			// Tracks when each bundle was last played in unix time
+			LoadLastPlayedMap();
+
+			harmony = new Harmony(PLUGIN_GUID);
+            harmony.PatchAll();
+
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
+                if (AngrySceneManager.isInCustomLevel)
+				{
+					Logger.LogInfo("Running post scene load event");
+					AngrySceneManager.PostSceneLoad();
+
+					Logger.LogInfo("Creating UI panel");
+					CreateAngryUI();
+
+					Logger.LogInfo("Checking bundle file status");
+					AngrySceneManager.currentBundleContainer.CheckReloadPrompt();
+				}
+				else if (SceneHelper.CurrentScene == "Main Menu")
+				{
+					CreateCustomLevelButtonOnMainMenu();
+				}
+			};
+			// Delay the catalog reload on boot until the main menu since steam must be initialized for the ticket request
+			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;
+
+			// See if custom difficulties are loaded. BepInEx soft dependency forces them to be loaded first
+			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))
+			{
+				ultrapainLoaded = true;
+				difficultyList.Add("ULTRAPAIN");
+			}
+			if (Chainloader.PluginInfos.ContainsKey("com.heaven.orhell"))
+			{
+				heavenOrHellLoaded = true;
+				difficultyList.Add("HEAVEN OR HELL");
+			}
+
+			InitializeConfig();
+
 			// TODO: Investigate further on this issue:
 			//
 			// if I don't do that, when I load an addressable scene (custom level)
@@ -1005,6 +1009,7 @@ namespace AngryLevelLoader
 			// bundles every addressable bundle is already in the memory like what?)
 			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
 
+			// Migrate from legacy versions, and check for a new version from web
 			PluginUpdateHandler.Check();
 
             ScanForLevels();

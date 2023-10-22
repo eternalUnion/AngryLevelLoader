@@ -76,6 +76,28 @@ namespace AngryLevelLoader.Managers
 			}
 		}
 
+		private static AsyncAddressableObject<Sprite> _notPlayedPreview;
+		public static Sprite notPlayedPreview
+		{
+			get
+			{
+				if (!_notPlayedPreview.completed)
+					_notPlayedPreview.WaitForCompletion();
+				return _notPlayedPreview.result;
+			}
+		}
+
+		private static AsyncAddressableObject<Sprite> _lockedPreview;
+		public static Sprite lockedPreview
+		{
+			get
+			{
+				if (!_lockedPreview.completed)
+					_lockedPreview.WaitForCompletion();
+				return _lockedPreview.result;
+			}
+		}
+
 		private static bool _inited = false;
 		public static void Init()
 		{
@@ -85,6 +107,8 @@ namespace AngryLevelLoader.Managers
 
 			_arrow = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/arrow.png");
 			_arrowFilled = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/arrow-filled.png");
+			_notPlayedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png");
+			_lockedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png");
 		}
 	}
 }

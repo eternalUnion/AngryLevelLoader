@@ -13,6 +13,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#region Command
 		public enum CommandStatus
 		{
+			MISSING_KEY = -3,
 			NETWORK_ERROR = -2,
 			OK = 0,
 			INVALID_TOKEN = 1,
@@ -32,15 +33,22 @@ namespace AngryLevelLoader.Managers.ServerManager
 		{
 			public bool networkError = false;
 
-			public string message = "";
-			public CommandStatus status;
-			public string result = "";
+			public string message;
+			public CommandStatus status = CommandStatus.NETWORK_ERROR;
+			public string result;
 		}
 
 		public static async Task<CommandResult> SendCommand(string cmd, bool tokenRequested = false)
 		{
 			CommandResult result = new CommandResult();
 			bool invalidToken = string.IsNullOrEmpty(AngryUser.token);
+
+			if (string.IsNullOrEmpty(CryptographyUtils.AdminPrivateKey))
+			{
+				result.message = "Angry failed to locate admin private key (env variable ANGRY_ADMIN_KEY)";
+				result.status = CommandStatus.MISSING_KEY;
+				return result;
+			}
 
 			if (!invalidToken)
 			{
@@ -74,6 +82,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		
 			if (invalidToken)
 			{
+				result.message = "Angry failed to obtain a valid token";
 				result.status = CommandStatus.INVALID_TOKEN;
 
 				if (tokenRequested)

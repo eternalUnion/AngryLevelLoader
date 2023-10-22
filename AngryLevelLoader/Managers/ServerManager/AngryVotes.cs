@@ -160,6 +160,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			if (invalidToken)
 			{
+				result.message = "Angry failed to obtain a valid token";
 				result.status = VoteStatus.VOTE_INVALID_TOKEN;
 				if (tokenRequested)
 					return result;
