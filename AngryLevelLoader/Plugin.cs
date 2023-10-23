@@ -872,12 +872,31 @@ namespace AngryLevelLoader
 						return;
 					}
 
-					output.text = "<color=grey>Adding all bundles...</color>";
+					output.text = "<color=grey>Fetching existing bundles...</color>";
 
-					foreach (var level in OnlineLevelsManager.catalog.Levels)
+					AngryVotes.GetAllVotesResult existingBundles = await AngryVotes.GetAllVotesTask();
+					if (existingBundles.networkError)
 					{
-						AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {level.Guid}");
-						output.text += $"\n<color=grey>command: add_bundle {level.Guid}</color>";
+						output.text += "\nNetwork error, check connection";
+						return;
+					}
+					if (existingBundles.httpError)
+					{
+						output.text += "\nHttp error, check server";
+						return;
+					}
+					if (existingBundles.status != AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
+					{
+						output.text += "\nStatus error: " + existingBundles.status;
+						return;
+					}
+
+					output.text += "\n<color=grey>Adding all bundles...</color>";
+
+					foreach (var bundle in OnlineLevelsManager.catalog.Levels.Where(level => !existingBundles.result.Keys.Where(existingBundle => existingBundle == level.Guid).Any()))
+					{
+						AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {bundle.Guid}");
+						output.text += $"\n<color=grey>command: add_bundle {bundle.Guid}</color>";
 
 						if (res.networkError)
 						{

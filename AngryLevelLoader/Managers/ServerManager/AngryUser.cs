@@ -43,6 +43,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class TokenGenResult
         {
             public bool networkError = false;
+            public bool httpError = false;
 
             public string message;
             public TokengenStatus status = TokengenStatus.NETWORK_ERROR;
@@ -73,9 +74,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 
                 TokenGenResult result = new TokenGenResult();
 
-				if (tokenReq.isNetworkError || tokenReq.isHttpError)
+				if (tokenReq.isNetworkError)
                 {
 					result.networkError = true;
+                    return result;
+                }
+                if (tokenReq.isHttpError)
+                {
+                    result.httpError = true;
                     return result;
                 }
 
@@ -135,6 +141,7 @@ namespace AngryLevelLoader.Managers.ServerManager
         public class UserInfoResult
         {
             public bool networkError = false;
+            public bool httpError = false;
 
             public string message;
             public UserInfoStatus status = UserInfoStatus.NETWORK_ERROR;
@@ -162,9 +169,14 @@ namespace AngryLevelLoader.Managers.ServerManager
                     return result;
                 }
 
-                if (req.isNetworkError || req.isHttpError)
+                if (req.isNetworkError)
                 {
                     result.networkError = true;
+                    return result;
+                }
+                if (req.isHttpError)
+                {
+                    result.httpError = true;
                     return result;
                 }
 

@@ -21,13 +21,27 @@ namespace AngryLevelLoader.Managers.ServerManager
 			GET_ALL_VOTES_OK = 0
 		}
 
+		public class GetAllVotesBundleInfo
+		{
+			public int upvotes { get; set; }
+			public int downvotes { get; set; }
+		}
+
+		private class GetAllVotesResponse
+		{
+			public string message { get; set; }
+			public int status { get; set; }
+			public Dictionary<string, GetAllVotesBundleInfo> bundles;
+		}
+
 		public class GetAllVotesResult
 		{
 			public bool networkError = false;
+			public bool httpError = false;
 
 			public string message;
 			public GetAllVotesStatus status = GetAllVotesStatus.NETWORK_ERROR;
-			public Dictionary<string, AngryServerBundleVoteInfo> result;
+			public Dictionary<string, GetAllVotesBundleInfo> result;
 		}
 
 		public static async Task<GetAllVotesResult> GetAllVotesTask(CancellationToken cancellationToken = default(CancellationToken))
@@ -48,13 +62,18 @@ namespace AngryLevelLoader.Managers.ServerManager
 				return result;
 			}
 
-			if (req.isNetworkError || req.isHttpError)
+			if (req.isNetworkError)
 			{
 				result.networkError = true;
 				return result;
 			}
+			if (req.isHttpError)
+			{
+				result.httpError = true;
+				return result;
+			}
 
-			AngryServerBundleVotes votes = JsonConvert.DeserializeObject<AngryServerBundleVotes>(req.downloadHandler.text);
+			GetAllVotesResponse votes = JsonConvert.DeserializeObject<GetAllVotesResponse>(req.downloadHandler.text);
 			result.message = votes.message;
 			result.status = (GetAllVotesStatus)votes.status;
 			if (result.status == GetAllVotesStatus.GET_ALL_VOTES_OK)
@@ -86,7 +105,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			VOTE_INVALID_OPERATION = 3,
 		}
 
-		public class VoteResponse
+		private class VoteResponse
 		{
 			public string message { get; set; }
 			public int status { get; set; }
@@ -100,6 +119,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class VoteResult
 		{
 			public bool networkError = false;
+			public bool httpError = false;
 
 			public string message;
 			public VoteStatus status = VoteStatus.NETWORK_ERROR;
@@ -127,9 +147,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 				req.downloadHandler = new DownloadHandlerBuffer();
 				await req.SendWebRequest();
 
-				if (req.isNetworkError || req.isHttpError)
+				if (req.isNetworkError)
 				{
 					result.networkError = true;
+					return result;
+				}
+				if (req.isHttpError)
+				{
+					result.httpError = true;
 					return result;
 				}
 

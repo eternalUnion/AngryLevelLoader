@@ -19,7 +19,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_TOKEN = 1,
 			ACCESS_DENIED = 2,
 			DECRYPTION_ERROR = 3,
-			MISSING_COMMAND = 4
+			MISSING_COMMAND = 4,
+			VERIFICATION_ERROR = 5
 		}
 
 		private class CommandResponse
@@ -32,6 +33,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class CommandResult
 		{
 			public bool networkError = false;
+			public bool httpError = false;
 
 			public string message;
 			public CommandStatus status = CommandStatus.NETWORK_ERROR;
@@ -57,9 +59,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 				req.downloadHandler = new DownloadHandlerBuffer();
 				await req.SendWebRequest();
 
-				if (req.isNetworkError || req.isHttpError)
+				if (req.isNetworkError)
 				{
 					result.networkError = true;
+					return result;
+				}
+				if (req.isHttpError)
+				{
+					result.httpError = true;
 					return result;
 				}
 
