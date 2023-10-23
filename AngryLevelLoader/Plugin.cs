@@ -28,6 +28,7 @@ using System.Text;
 using AngryLevelLoader.Managers.ServerManager;
 using UnityEngine.UI;
 using AngryUiComponents;
+using Unity.Audio;
 
 namespace AngryLevelLoader
 {
@@ -158,7 +159,19 @@ namespace AngryLevelLoader
 			{
                 if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
                 {
-                    bool newFile = bundle.pathToAngryBundle != path;
+					// Duplicate file check
+					if (File.Exists(bundle.pathToAngryBundle) && !IOUtils.PathEquals(path, bundle.pathToAngryBundle))
+					{
+						Debug.LogError($"Duplicate angry files. Original: {Path.GetFileName(bundle.pathToAngryBundle)}. Duplicate: {Path.GetFileName(path)}");
+
+						if (!string.IsNullOrEmpty(errorText.text))
+							errorText.text += '\n';
+						errorText.text += $"<color=red>Error loading {Path.GetFileName(path)}</color> Duplicate file, original is {Path.GetFileName(bundle.pathToAngryBundle)}";
+
+						return;
+					}
+
+					bool newFile = !IOUtils.PathEquals(bundle.pathToAngryBundle, path);
                     bundle.pathToAngryBundle = path;
                     bundle.rootPanel.interactable = true;
                     bundle.rootPanel.hidden = false;
@@ -208,7 +221,7 @@ namespace AngryLevelLoader
 
                     if (!string.IsNullOrEmpty(errorText.text))
                         errorText.text += '\n';
-                    errorText.text += $"<color=red>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
+                    errorText.text += $"<color=yellow>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
                 }
 
                 return;
@@ -590,8 +603,27 @@ namespace AngryLevelLoader
 					}
 				}
 			};
+			watcher.Created += (sender, e) =>
+			{
+				// Try to find a bundle matching the file's guid
 
-			watcher.Filter = "*.*";
+				string fullPath = e.FullPath;
+				if (!AngryFileUtils.TryGetAngryBundleData(fullPath, out AngryBundleData data, out Exception exp))
+					return;
+
+				if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
+				{
+					if (bundle.bundleData.bundleGuid == data.bundleGuid && !File.Exists(bundle.pathToAngryBundle))
+					{
+						Debug.LogWarning($"Bundle {fullPath} was just added, and a container with the same guid had no file linked. Linked, container notified");
+						bundle.pathToAngryBundle = fullPath;
+						bundle.FileChanged();
+						return;
+					}
+				}
+			};
+
+			watcher.Filter = "*";
 
 			watcher.IncludeSubdirectories = false;
 			watcher.EnableRaisingEvents = true;
