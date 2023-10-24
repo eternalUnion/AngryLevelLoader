@@ -23,7 +23,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			VERIFICATION_ERROR = 5
 		}
 
-		private class CommandResponse
+		public class CommandResponse
 		{
 			public string message { get; set; }
 			public int status { get; set; }
@@ -34,10 +34,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 		{
 			public bool networkError = false;
 			public bool httpError = false;
-
-			public string message;
 			public CommandStatus status = CommandStatus.NETWORK_ERROR;
-			public string result;
+
+			public CommandResponse response;
 		}
 
 		public static async Task<CommandResult> SendCommand(string cmd, bool tokenRequested = false)
@@ -47,7 +46,6 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			if (string.IsNullOrEmpty(CryptographyUtils.AdminPrivateKey))
 			{
-				result.message = "Angry failed to locate admin private key (env variable ANGRY_ADMIN_KEY)";
 				result.status = CommandStatus.MISSING_KEY;
 				return result;
 			}
@@ -71,25 +69,21 @@ namespace AngryLevelLoader.Managers.ServerManager
 				}
 
 				CommandResponse response = JsonConvert.DeserializeObject<CommandResponse>(req.downloadHandler.text);
-				
+				result.response = response;
+				result.status = (CommandStatus)response.status;
+
 				if (response.status == (int)CommandStatus.INVALID_TOKEN)
 				{
 					invalidToken = true;
 				}
 				else
 				{
-					result.message = response.message;
-					result.status = (CommandStatus)response.status;
-					if (result.status == CommandStatus.OK)
-						result.result = response.result;
-
 					return result;
 				}
 			}
 		
 			if (invalidToken)
 			{
-				result.message = "Angry failed to obtain a valid token";
 				result.status = CommandStatus.INVALID_TOKEN;
 
 				if (tokenRequested)
@@ -97,7 +91,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 				AngryUser.TokenGenResult tokenRes = await AngryUser.GenerateToken();
 
-				if (tokenRes.networkError || tokenRes.status != AngryUser.TokengenStatus.OK)
+				if (tokenRes.networkError || tokenRes.httpError || tokenRes.status != AngryUser.TokengenStatus.OK)
 					return result;
 
 				return await SendCommand(cmd, true);

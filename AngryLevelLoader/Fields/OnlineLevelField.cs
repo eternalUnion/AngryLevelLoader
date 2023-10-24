@@ -312,7 +312,7 @@ namespace AngryLevelLoader.Fields
                 {
                     var res = resTask.Result;
 
-                    if (res.status == AngryVotes.VoteStatus.VOTE_OK)
+                    if (!res.networkError && !res.httpError && res.status == AngryVotes.VoteStatus.VOTE_OK)
                     {
                         if (res.operation == AngryVotes.VoteOperation.UPVOTE)
                             voteStatus = VoteStatus.Upvoted;
@@ -321,11 +321,11 @@ namespace AngryLevelLoader.Fields
                         else
                             voteStatus = VoteStatus.Cleared;
 
-                        voteCount = res.upvotes - res.downvotes;
+                        voteCount = res.response.upvotes - res.response.downvotes;
                     }
                     else
                     {
-                        Debug.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
+                        Debug.LogError($"Could not vote! Message: {res.response?.message}. Status: {res.status}.");
 
                         voteStatus = VoteStatus.Disabled;
                         voteCount = 0;
@@ -348,7 +348,7 @@ namespace AngryLevelLoader.Fields
 				{
                     var res = resTask.Result;
 
-					if (res.status == AngryVotes.VoteStatus.VOTE_OK)
+					if (!res.networkError && !res.httpError && res.status == AngryVotes.VoteStatus.VOTE_OK)
 					{
 						if (res.operation == AngryVotes.VoteOperation.UPVOTE)
 							voteStatus = VoteStatus.Upvoted;
@@ -357,11 +357,11 @@ namespace AngryLevelLoader.Fields
 						else
 							voteStatus = VoteStatus.Cleared;
 
-						voteCount = res.upvotes - res.downvotes;
+						voteCount = res.response.upvotes - res.response.downvotes;
 					}
 					else
 					{
-						Debug.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
+						Debug.LogError($"Could not vote! Message: {res.response?.message}. Status: {res.status}.");
 
 						voteStatus = VoteStatus.Disabled;
 						voteCount = 0;

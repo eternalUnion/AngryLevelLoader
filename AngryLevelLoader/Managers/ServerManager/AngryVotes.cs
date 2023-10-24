@@ -27,7 +27,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public int downvotes { get; set; }
 		}
 
-		private class GetAllVotesResponse
+		public class GetAllVotesResponse
 		{
 			public string message { get; set; }
 			public int status { get; set; }
@@ -39,9 +39,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public bool networkError = false;
 			public bool httpError = false;
 
-			public string message;
 			public GetAllVotesStatus status = GetAllVotesStatus.NETWORK_ERROR;
-			public Dictionary<string, GetAllVotesBundleInfo> result;
+			public GetAllVotesResponse response;
 		}
 
 		public static async Task<GetAllVotesResult> GetAllVotesTask(CancellationToken cancellationToken = default(CancellationToken))
@@ -73,11 +72,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 				return result;
 			}
 
-			GetAllVotesResponse votes = JsonConvert.DeserializeObject<GetAllVotesResponse>(req.downloadHandler.text);
-			result.message = votes.message;
-			result.status = (GetAllVotesStatus)votes.status;
-			if (result.status == GetAllVotesStatus.GET_ALL_VOTES_OK)
-				result.result = votes.bundles;
+			GetAllVotesResponse response = JsonConvert.DeserializeObject<GetAllVotesResponse>(req.downloadHandler.text);
+			result.status = (GetAllVotesStatus)response.status;
+			result.response = response;
 
 			return result;
 		}
@@ -92,7 +89,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 		{
 			UPVOTE,
 			DOWNVOTE,
-			CLEAR
+			CLEAR,
+			UNKNOWN
 		}
 
 		public enum VoteStatus
@@ -105,7 +103,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			VOTE_INVALID_OPERATION = 3,
 		}
 
-		private class VoteResponse
+		public class VoteResponse
 		{
 			public string message { get; set; }
 			public int status { get; set; }
@@ -121,13 +119,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public bool networkError = false;
 			public bool httpError = false;
 
-			public string message;
 			public VoteStatus status = VoteStatus.NETWORK_ERROR;
-
-			public string bundleGuid;
 			public VoteOperation operation;
-			public int upvotes;
-			public int downvotes;
+			public VoteResponse response;
 		}
 
 		public static async Task<VoteResult> VoteTask(string bundleGuid, VoteOperation operation, bool tokenRequested = false)
@@ -159,8 +153,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 				}
 
 				VoteResponse response = JsonConvert.DeserializeObject<VoteResponse>(req.downloadHandler.text);
-				result.message = response.message;
+				result.response = response;
 				result.status = (VoteStatus)response.status;
+				
 				if (response.status == (int)VoteStatus.VOTE_INVALID_TOKEN)
 				{
 					invalidToken = true;
@@ -169,14 +164,11 @@ namespace AngryLevelLoader.Managers.ServerManager
 				{
 					if (response.status == (int)VoteStatus.VOTE_OK)
 					{
-						result.bundleGuid = response.bundleGuid;
 						result.operation = VoteOperation.CLEAR;
 						if (response.operation == VOTE_OP_UPVOTE)
 							result.operation = VoteOperation.UPVOTE;
 						else if (response.operation == VOTE_OP_DOWNVOTE)
 							result.operation = VoteOperation.DOWNVOTE;
-						result.upvotes = response.upvotes;
-						result.downvotes = response.downvotes;
 					}
 
 					return result;
@@ -185,17 +177,16 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			if (invalidToken)
 			{
-				result.message = "Angry failed to obtain a valid token";
 				result.status = VoteStatus.VOTE_INVALID_TOKEN;
 				if (tokenRequested)
 					return result;
 
-                AngryUser.TokenGenResult token = await AngryUser.GenerateToken();
+                AngryUser.TokenGenResult tokenRes = await AngryUser.GenerateToken();
 
-				if (!string.IsNullOrEmpty(AngryUser.token))
-					return await VoteTask(bundleGuid, operation, true);
-				else
+				if (tokenRes.networkError || tokenRes.httpError || tokenRes.status != AngryUser.TokengenStatus.OK)
 					return result;
+
+				return await VoteTask(bundleGuid, operation, true);
 			}
 
 			return result;

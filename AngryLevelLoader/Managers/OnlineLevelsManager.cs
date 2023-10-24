@@ -471,9 +471,9 @@ namespace AngryLevelLoader.Managers
         {
 			AngryVotes.GetAllVotesResult allVotesRes = await AngryVotes.GetAllVotesTask(cancellationToken);
 
-			if (!allVotesRes.networkError && allVotesRes.status == AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
+			if (!allVotesRes.networkError && !allVotesRes.httpError && allVotesRes.status == AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
 			{
-				foreach (var bundleVoteInfo in allVotesRes.result)
+				foreach (var bundleVoteInfo in allVotesRes.response.bundles)
 				{
 					if (onlineLevels.TryGetValue(bundleVoteInfo.Key, out OnlineLevelField field))
 						field.voteCount = bundleVoteInfo.Value.upvotes - bundleVoteInfo.Value.downvotes;
@@ -482,10 +482,10 @@ namespace AngryLevelLoader.Managers
 				if (sortFilter.value == SortFilter.Votes)
 					SortAll();
 
-				AngryUser.UserInfoResult userInfo = await AngryUser.GetUserInfo(cancellationToken);
-                if (!userInfo.networkError && userInfo.status == AngryUser.UserInfoStatus.OK)
+				AngryUser.UserInfoResult userInfoReq = await AngryUser.GetUserInfo(cancellationToken);
+                if (!userInfoReq.networkError && !userInfoReq.httpError && userInfoReq.status == AngryUser.UserInfoStatus.OK)
                 {
-                    AngryUser.UserInfoData data = userInfo.result;
+                    AngryUser.UserInfoData data = userInfoReq.response.info;
                     foreach (var field in onlineLevels)
                     {
                         if (data.upvotedBundles.Contains(field.Key))
@@ -498,12 +498,26 @@ namespace AngryLevelLoader.Managers
                 }
                 else
                 {
-					Debug.LogError($"Could not get user info while refreshing. Message: {userInfo.message}. Status: {userInfo.status}.");
+                    if (userInfoReq.networkError)
+                    {
+                        Debug.LogError("Network error while requesting user info. Check connection");
+                    }
+                    else if (userInfoReq.httpError)
+                    {
+                        Debug.LogError("Http error while requesting user info. Check server");
+                    }
+                    else
+                    {
+                        if (userInfoReq.response != null)
+                            Debug.LogError($"Could not get user info while refreshing. Message: {userInfoReq.response.message}. Status: {userInfoReq.status}.");
+                        else
+                            Debug.LogError($"Encountered unknown error while requesting user info. Status: {userInfoReq.status}");
+                    }
 				}
 			}
 			else
 			{
-				Debug.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.message}. Status: {allVotesRes.status}.");
+				Debug.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.response?.message}. Status: {allVotesRes.status}.");
 			}
 		}
 

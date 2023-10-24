@@ -919,30 +919,35 @@ namespace AngryLevelLoader
 					}
 					if (existingBundles.status != AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
 					{
-						output.text += "\nStatus error: " + existingBundles.status;
+						output.text += $"\nStatus error: {existingBundles.response.message}:{existingBundles.status}";
 						return;
 					}
 
 					output.text += "\n<color=grey>Adding all bundles...</color>";
 
-					foreach (var bundle in OnlineLevelsManager.catalog.Levels.Where(level => !existingBundles.result.Keys.Where(existingBundle => existingBundle == level.Guid).Any()))
+					foreach (var bundle in OnlineLevelsManager.catalog.Levels.Where(level => !existingBundles.response.bundles.Keys.Where(existingBundle => existingBundle == level.Guid).Any()))
 					{
-						AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {bundle.Guid}");
 						output.text += $"\n<color=grey>command: add_bundle {bundle.Guid}</color>";
-
-						if (res.networkError)
-						{
-							output.text += "\n<color=red>Network error, check connection</color>";
-							continue;
-						}
+						AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {bundle.Guid}");
 
 						if (res.status == AngryAdmin.CommandStatus.OK)
 						{
-							output.text += $"\n{res.result}";
+							output.text += $"\n{res.response.result}";
+						}
+						else if (res.networkError)
+						{
+							output.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
+						}
+						else if (res.httpError)
+						{
+							output.text += $"\n<color=red>HTTP ERROR</color> Check server";
 						}
 						else
 						{
-							output.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
+							if (res.response != null)
+								output.text += $"\n<color=red>ERROR: </color>{res.response.message}:{res.status}";
+							else
+								output.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
 						}
 					}
 

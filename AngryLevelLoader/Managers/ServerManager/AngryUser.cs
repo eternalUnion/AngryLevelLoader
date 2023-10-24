@@ -32,7 +32,7 @@ namespace AngryLevelLoader.Managers.ServerManager
             TICKET_EXPIRED = 3,
         }
 
-		private class TokenGenResponse
+		public class TokenGenResponse
 		{
 			public string message { get; set; }
 			public int status { get; set; }
@@ -44,12 +44,10 @@ namespace AngryLevelLoader.Managers.ServerManager
         {
             public bool networkError = false;
             public bool httpError = false;
-
-            public string message;
             public TokengenStatus status = TokengenStatus.NETWORK_ERROR;
-            public string token;
-            public string steamId;
-        }
+
+            public TokenGenResponse response;
+		}
 
 		private static Task<TokenGenResult> currentTokenGenTask = null;
 		private static async Task<TokenGenResult> TokenGenTask()
@@ -87,14 +85,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 
                 TokenGenResponse response = JsonConvert.DeserializeObject<TokenGenResponse>(tokenReq.downloadHandler.text);
 
-				result.message = response.message;
+				result.response = response;
 				result.status = (TokengenStatus)response.status;
+
                 if (result.status == TokengenStatus.OK)
                 {
-					result.token = token = response.token;
-					result.steamId = steamId = response.steamId;
+                    steamId = response.steamId;
+                    token = response.token;
                 }
-
                 return result;
             }
             finally
@@ -131,7 +129,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public string[] downvotedBundles;
 		}
 
-		private class UserInfoResponse
+		public class UserInfoResponse
         {
             public string message { get; set; }
             public int status { get; set; }
@@ -142,10 +140,9 @@ namespace AngryLevelLoader.Managers.ServerManager
         {
             public bool networkError = false;
             public bool httpError = false;
-
-            public string message;
             public UserInfoStatus status = UserInfoStatus.NETWORK_ERROR;
-            public UserInfoData result;
+
+            public UserInfoResponse response;
 		}
 
         public static async Task<UserInfoResult> GetUserInfo(CancellationToken cancellationToken = default(CancellationToken), bool tokenRequested = false)
@@ -181,24 +178,21 @@ namespace AngryLevelLoader.Managers.ServerManager
                 }
 
                 UserInfoResponse response = JsonConvert.DeserializeObject<UserInfoResponse>(req.downloadHandler.text);
-                result.message = response.message;
+                result.response = response;
                 result.status = (UserInfoStatus)response.status;
+
                 if (result.status == UserInfoStatus.INVALID_TOKEN)
                 {
                     invalidToken = true;
                 }
                 else
                 {
-                    if (result.status == UserInfoStatus.OK)
-                        result.result = response.info;
-
                     return result;
                 }
             }
 
             if (invalidToken)
             {
-                result.message = "Angry failed to obtain a valid token";
 				result.status = UserInfoStatus.INVALID_TOKEN;
 
                 if (tokenRequested)
@@ -206,7 +200,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
                 var generatedToken = await GenerateToken();
 
-				if (generatedToken.status != TokengenStatus.OK)
+				if (generatedToken.networkError || generatedToken.httpError || generatedToken.status != TokengenStatus.OK)
 					return result;
 
                 return await GetUserInfo(cancellationToken, true);
