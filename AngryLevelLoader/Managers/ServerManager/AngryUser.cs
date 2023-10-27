@@ -129,83 +129,24 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public string[] downvotedBundles;
 		}
 
-		public class UserInfoResponse
+		public class UserInfoResponse : AngryResponse
         {
-            public string message { get; set; }
-            public int status { get; set; }
             public UserInfoData info;
 		}
 
-        public class UserInfoResult
+        public class UserInfoResult : AngryResult<UserInfoResponse, UserInfoStatus>
         {
-            public bool networkError = false;
-            public bool httpError = false;
-            public UserInfoStatus status = UserInfoStatus.NETWORK_ERROR;
 
-            public UserInfoResponse response;
 		}
 
-        public static async Task<UserInfoResult> GetUserInfo(CancellationToken cancellationToken = default(CancellationToken), bool tokenRequested = false)
+        public static async Task<UserInfoResult> GetUserInfo(CancellationToken cancellationToken = default)
         {
 			UserInfoResult result = new UserInfoResult();
-            bool invalidToken = string.IsNullOrEmpty(token);
+            string url = AngryPaths.SERVER_ROOT + $"/user/info?";
 
-            if (!invalidToken)
-            {
-				UnityWebRequest req = new UnityWebRequest(AngryPaths.SERVER_ROOT + $"/user/info?steamId={steamId}&token={token}");
-                req.downloadHandler = new DownloadHandlerBuffer();
-                cancellationToken.Register(() =>
-                {
-                    if (!req.isDone)
-                        req.Abort();
-                });
-                await req.SendWebRequest();
+            await AngryRequest.MakeRequestWithToken(url, result, UserInfoStatus.INVALID_TOKEN, cancellationToken);
 
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return result;
-                }
-
-                if (req.isNetworkError)
-                {
-                    result.networkError = true;
-                    return result;
-                }
-                if (req.isHttpError)
-                {
-                    result.httpError = true;
-                    return result;
-                }
-
-                UserInfoResponse response = JsonConvert.DeserializeObject<UserInfoResponse>(req.downloadHandler.text);
-                result.response = response;
-                result.status = (UserInfoStatus)response.status;
-
-                if (result.status == UserInfoStatus.INVALID_TOKEN)
-                {
-                    invalidToken = true;
-                }
-                else
-                {
-                    return result;
-                }
-            }
-
-            if (invalidToken)
-            {
-				result.status = UserInfoStatus.INVALID_TOKEN;
-
-                if (tokenRequested)
-                    return result;
-
-                var generatedToken = await GenerateToken();
-
-				if (generatedToken.networkError || generatedToken.httpError || generatedToken.status != TokengenStatus.OK)
-					return result;
-
-                return await GetUserInfo(cancellationToken, true);
-			}
-
+            result.completed = true;
             return result;
 		}
 		#endregion

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
+using UnityEngine.Networking.Match;
 
 namespace AngryLevelLoader.Managers.ServerManager
 {
@@ -27,55 +28,24 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public int downvotes { get; set; }
 		}
 
-		public class GetAllVotesResponse
+		public class GetAllVotesResponse : AngryResponse
 		{
-			public string message { get; set; }
-			public int status { get; set; }
 			public Dictionary<string, GetAllVotesBundleInfo> bundles;
 		}
 
-		public class GetAllVotesResult
+		public class GetAllVotesResult : AngryResult<GetAllVotesResponse, GetAllVotesStatus>
 		{
-			public bool networkError = false;
-			public bool httpError = false;
 
-			public GetAllVotesStatus status = GetAllVotesStatus.NETWORK_ERROR;
-			public GetAllVotesResponse response;
 		}
 
-		public static async Task<GetAllVotesResult> GetAllVotesTask(CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<GetAllVotesResult> GetAllVotesTask(CancellationToken cancellationToken = default)
 		{
 			GetAllVotesResult result = new GetAllVotesResult();
+			string url = AngryPaths.SERVER_ROOT + $"/votes";
 
-			UnityWebRequest req = new UnityWebRequest(AngryPaths.SERVER_ROOT + $"/votes");
-			req.downloadHandler = new DownloadHandlerBuffer();
-			cancellationToken.Register(() =>
-			{
-				if (!req.isDone)
-					req.Abort();
-			});
-			await req.SendWebRequest();
+			await AngryRequest.MakeRequest(url, result, cancellationToken);
 
-			if (cancellationToken.IsCancellationRequested)
-			{
-				return result;
-			}
-
-			if (req.isNetworkError)
-			{
-				result.networkError = true;
-				return result;
-			}
-			if (req.isHttpError)
-			{
-				result.httpError = true;
-				return result;
-			}
-
-			GetAllVotesResponse response = JsonConvert.DeserializeObject<GetAllVotesResponse>(req.downloadHandler.text);
-			result.status = (GetAllVotesStatus)response.status;
-			result.response = response;
-
+			result.completed = true;
 			return result;
 		}
 		#endregion
@@ -103,92 +73,42 @@ namespace AngryLevelLoader.Managers.ServerManager
 			VOTE_INVALID_OPERATION = 3,
 		}
 
-		public class VoteResponse
+		public class VoteResponse : AngryResponse
 		{
-			public string message { get; set; }
-			public int status { get; set; }
-
 			public string bundleGuid { get; set; }
 			public string operation { get; set; }
 			public int upvotes { get; set; }
 			public int downvotes { get; set; }
 		}
 
-		public class VoteResult
+		public class VoteResult : AngryResult<VoteResponse, VoteStatus>
 		{
-			public bool networkError = false;
-			public bool httpError = false;
-
-			public VoteStatus status = VoteStatus.NETWORK_ERROR;
 			public VoteOperation operation;
-			public VoteResponse response;
 		}
 
-		public static async Task<VoteResult> VoteTask(string bundleGuid, VoteOperation operation, bool tokenRequested = false)
+		public static async Task<VoteResult> VoteTask(string bundleGuid, VoteOperation operation, CancellationToken cancellationToken = default)
 		{
 			VoteResult result = new VoteResult();
 
-			bool invalidToken = string.IsNullOrEmpty(AngryUser.token);
-			if (!invalidToken)
+			string op = VOTE_OP_CLEAR;
+			if (operation == VoteOperation.UPVOTE)
+				op = VOTE_OP_UPVOTE;
+			else if (operation == VoteOperation.DOWNVOTE)
+				op = VOTE_OP_DOWNVOTE;
+
+			string url = AngryPaths.SERVER_ROOT + $"/user/vote?bundleGuid={bundleGuid}&op={op}";
+			await AngryRequest.MakeRequestWithToken(url, result, VoteStatus.VOTE_INVALID_TOKEN, cancellationToken);
+
+			result.operation = VoteOperation.CLEAR;
+			if (result.completedSuccessfully && result.response != null)
 			{
-				string op = VOTE_OP_CLEAR;
-				if (operation == VoteOperation.UPVOTE)
-					op = VOTE_OP_UPVOTE;
-				else if (operation == VoteOperation.DOWNVOTE)
-					op = VOTE_OP_DOWNVOTE;
-
-				UnityWebRequest req = new UnityWebRequest(AngryPaths.SERVER_ROOT + $"/user/vote?steamId={AngryUser.steamId}&token={AngryUser.token}&bundleGuid={bundleGuid}&op={op}");
-				req.downloadHandler = new DownloadHandlerBuffer();
-				await req.SendWebRequest();
-
-				if (req.isNetworkError)
-				{
-					result.networkError = true;
-					return result;
-				}
-				if (req.isHttpError)
-				{
-					result.httpError = true;
-					return result;
-				}
-
-				VoteResponse response = JsonConvert.DeserializeObject<VoteResponse>(req.downloadHandler.text);
-				result.response = response;
-				result.status = (VoteStatus)response.status;
-				
-				if (response.status == (int)VoteStatus.VOTE_INVALID_TOKEN)
-				{
-					invalidToken = true;
-				}
-				else
-				{
-					if (response.status == (int)VoteStatus.VOTE_OK)
-					{
-						result.operation = VoteOperation.CLEAR;
-						if (response.operation == VOTE_OP_UPVOTE)
-							result.operation = VoteOperation.UPVOTE;
-						else if (response.operation == VOTE_OP_DOWNVOTE)
-							result.operation = VoteOperation.DOWNVOTE;
-					}
-
-					return result;
-				}
+				if (result.response.operation == VOTE_OP_UPVOTE)
+					result.operation = VoteOperation.UPVOTE;
+				else if (result.response.operation == VOTE_OP_DOWNVOTE)
+					result.operation = VoteOperation.DOWNVOTE;
 			}
 
-			if (invalidToken)
-			{
-				result.status = VoteStatus.VOTE_INVALID_TOKEN;
-				if (tokenRequested)
-					return result;
-
-                AngryUser.TokenGenResult tokenRes = await AngryUser.GenerateToken();
-
-				if (tokenRes.networkError || tokenRes.httpError || tokenRes.status != AngryUser.TokengenStatus.OK)
-					return result;
-
-				return await VoteTask(bundleGuid, operation, true);
-			}
-
+			result.completed = true;
 			return result;
 		}
 		#endregion

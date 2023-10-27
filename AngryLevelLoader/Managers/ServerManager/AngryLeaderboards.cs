@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
 
@@ -83,47 +84,71 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_COUNT = 15,
 		}
 
-		public class GetRecordsResponse
+		public class GetRecordsResponse : AngryResponse
 		{
-			public string message { get; set; }
-			public int status { get; set; }
 			public int offset { get; set; }
 			public RecordInfo[] records;
 			public int totalCount { get; set; }
 		}
 
-		public class GetRecordsResult
+		public class GetRecordsResult : AngryResult<GetRecordsResponse, GetRecordsStatus>
 		{
-			public bool networkError = false;
-			public bool httpError = false;
 
-			public GetRecordsStatus status = GetRecordsStatus.NETWORK_ERROR;
-			public GetRecordsResponse response;
 		}
 
-		public static async Task<GetRecordsResult> GetRecordsTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string levelId, int offset, int count)
+		public static async Task<GetRecordsResult> GetRecordsTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string levelId, int offset, int count, CancellationToken cancellationToken = default)
 		{
 			GetRecordsResult result = new GetRecordsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getRecords?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&levelId={levelId}&offset={offset}&count={count}";
 
-			UnityWebRequest req = new UnityWebRequest(AngryPaths.SERVER_ROOT + $"/leaderboards/getRecords?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&levelId={levelId}&offset={offset}&count={count}");
-			req.downloadHandler = new DownloadHandlerBuffer();
-			await req.SendWebRequest();
+			await AngryRequest.MakeRequest(url, result, cancellationToken);
 
-			if (req.isNetworkError)
-			{
-				result.networkError = true;
-				return result;
-			}
-			if (req.isHttpError)
-			{
-				result.httpError = true;
-				return result;
-			}
+			result.completed = true;
+			return result;
+		}
+		#endregion
 
-			GetRecordsResponse response = JsonConvert.DeserializeObject<GetRecordsResponse>(req.downloadHandler.text);
+		#region Post Record
+		public enum PostRecordStatus
+		{
+			NETWORK_ERROR = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+			INVALID_TOKEN = 1,
+			MISSING_TIME = 2,
+			INVALID_TIME = 3,
+			MISSING_CATEGORY = 4,
+			INVALID_CATEGORY = 5,
+			MISSING_DIFFICULTY = 6,
+			INVALID_DIFFICULTY = 7,
+			MISSING_BUNDLE = 8,
+			INVALID_BUNDLE = 9,
+			MISSING_ID = 10,
+			INVALID_ID = 11,
+			MISSING_HASH = 12,
+			INVALID_HASH = 13,
+			BANNED = 14,
+		}
 
-			result.response = response;
-			result.status = (GetRecordsStatus)response.status;
+		public class PostRecordResponse : AngryResponse
+		{
+			public int ranking { get; set; }
+			public bool newBest { get; set; }
+		}
+
+		public class PostRecordResult : AngryResult<PostRecordResponse, PostRecordStatus>
+		{
+
+		}
+
+		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, float time, CancellationToken cancellationToken)
+		{
+			PostRecordResult result = new PostRecordResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/postRecord?steamId={AngryUser.steamId}&token={AngryUser.token}&category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&hash={hash}&levelId={levelId}&time={time}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, PostRecordStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
 			return result;
 		}
 		#endregion
