@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using BepInEx;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -143,7 +145,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 		}
 
-		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, float time, CancellationToken cancellationToken)
+		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, float time, CancellationToken cancellationToken = default)
 		{
 			PostRecordResult result = new PostRecordResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/postRecord?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&hash={hash}&levelId={levelId}&time={time}";
@@ -154,6 +156,159 @@ namespace AngryLevelLoader.Managers.ServerManager
 			if (!result.completedSuccessfully)
 				result.status = PostRecordStatus.FAILED;
 			return result;
+		}
+		#endregion
+
+		#region Get User Record
+		public enum GetUserRecordStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			MISSING_CATEGORY = 4,
+			INVALID_CATEGORY = 5,
+			MISSING_DIFFICULTY = 6,
+			INVALID_DIFFICULTY = 7,
+			MISSING_BUNDLE = 8,
+			INVALID_BUNDLE = 9,
+			MISSING_ID = 10,
+			INVALID_ID = 11,
+			MISSING_TARGET_USER_ID = 12,
+		}
+
+		public class GetUserRecordResponse : AngryResponse
+		{
+			public int ranking { get; set; }
+			public float time { get; set; }
+		}
+
+		public class GetUserRecordResult : AngryResult<GetUserRecordResponse, GetUserRecordStatus>
+		{
+
+		}
+
+		public static async Task<GetUserRecordResult> GetUserRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string levelId, string targetUserId, CancellationToken cancellationToken = default)
+		{
+			GetUserRecordResult result = new GetUserRecordResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserRecord?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&levelId={levelId}&targetUserId={targetUserId}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, GetUserRecordStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetUserRecordStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Get User Records
+		public enum GetUserRecordsStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			MISSING_CATEGORY = 4,
+			INVALID_CATEGORY = 5,
+			MISSING_DIFFICULTY = 6,
+			INVALID_DIFFICULTY = 7,
+			MISSING_BUNDLE = 8,
+			INVALID_BUNDLE = 9,
+			MISSING_ID = 10,
+			INVALID_ID = 11,
+			MISSING_JSON_BODY = 12,
+		}
+
+		public class UserRecord
+		{
+			public string steamId { get; set; }
+			public float time { get; set; }
+			public int globalRank { get; set; }
+		}
+
+		public class GetUserRecordsResponse : AngryResponse
+		{
+			public UserRecord[] records;
+		}
+
+		public class GetUserRecordsResult : AngryResult<GetUserRecordsResponse, GetUserRecordsStatus>
+		{
+
+		}
+
+		private class GetUserRecordsBodyObject
+		{
+			public string[] targetUserIds;
+		}
+
+		public static async Task<GetUserRecordsResult> GetUserRecordsTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string levelId, IEnumerable<string> targetUserIds, CancellationToken cancellationToken = default)
+		{
+			GetUserRecordsResult result = new GetUserRecordsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserRecords?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&levelId={levelId}";
+			
+			GetUserRecordsBodyObject bodyObj = new GetUserRecordsBodyObject();
+			bodyObj.targetUserIds = targetUserIds.ToArray();
+			string body = JsonConvert.SerializeObject(bodyObj);
+
+			await AngryRequest.MakeRequestWithToken(url, result, GetUserRecordsStatus.INVALID_TOKEN, cancellationToken, method: "POST", body: body, contentType: AngryRequest.CONTENT_TYPE_JSON);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetUserRecordsStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Check For Banned Mods
+		public enum CheckForBannedModsState
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			BANNED_MOD = 1,
+			MISSING_JSON = 2,
+			MISSING_MODS_ARR = 3,
+		}
+
+		public class CheckForBannedModsResponse : AngryResponse
+		{
+			public string[] mods;
+		}
+
+		public class CheckForBannedModsResult : AngryResult<CheckForBannedModsResponse, CheckForBannedModsState>
+		{
+
+		}
+
+		private class CheckForBannedModsBodyObject
+		{
+			public string[] mods;
+		}
+		
+		public static async Task<CheckForBannedModsResult> CheckForBannedModsTask(IEnumerable<string> mods, CancellationToken cancellationToken = default)
+		{
+			CheckForBannedModsResult result = new CheckForBannedModsResult();
+			string url = AngryPaths.SERVER_ROOT + "/leaderboards/checkForBannedMods";
+
+			CheckForBannedModsBodyObject bodyObject = new CheckForBannedModsBodyObject();
+			bodyObject.mods = mods.ToArray();
+			string body = JsonConvert.SerializeObject(bodyObject);
+
+			await AngryRequest.MakeRequest(url, result, cancellationToken, method: "POST", body: body, contentType: AngryRequest.CONTENT_TYPE_JSON);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = CheckForBannedModsState.FAILED;
+			return result;
+		}
+
+		public static Task<CheckForBannedModsResult> CheckForBannedModsTask(CancellationToken cancellationToken = default)
+		{
+			return CheckForBannedModsTask(BepInEx.Bootstrap.Chainloader.PluginInfos.Keys, cancellationToken);
 		}
 		#endregion
 	}

@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
-using static AngryLevelLoader.Managers.ServerManager.AngryAdmin;
 
 namespace AngryLevelLoader.Managers.ServerManager
 {
@@ -37,6 +36,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 	public static class AngryRequest
 	{
+		public const string CONTENT_TYPE_JSON = "application/json";
+
 		/// <summary>
 		/// Generic method to make a request to the angry api which requires user token as one of the parameters. New token is generated if the token was not requested yet or the API returned an INVALID_TOKEN status code.
 		/// </summary>
@@ -46,20 +47,31 @@ namespace AngryLevelLoader.Managers.ServerManager
 		/// <param name="invalidTokenStatus">Status code for invalid token</param>
 		/// <param name="tokenRequested">Set to true by the method if it is called recursively after requesting a new token</param>
 		/// <returns>Result object passed as the parameter</returns>
-		public static async Task<AngryResult<Resp, Stat>> MakeRequestWithToken<Resp, Stat>(string url, AngryResult<Resp, Stat> result, Stat invalidTokenStatus, CancellationToken cancellationToken = default, bool tokenRequested = false) where Resp : AngryResponse where Stat : Enum
+		public static async Task<AngryResult<Resp, Stat>> MakeRequestWithToken<Resp, Stat>(string url, AngryResult<Resp, Stat> result, Stat invalidTokenStatus, CancellationToken cancellationToken = default, string method = "GET", string body = null, string contentType = null, bool tokenRequested = false) where Resp : AngryResponse where Stat : Enum
 		{
 			bool invalidToken = string.IsNullOrEmpty(AngryUser.token);
 
 			if (!invalidToken || tokenRequested)
 			{
 				string urlWithToken = (url.EndsWith("?") ? url + $"steamId={AngryUser.steamId}&token={AngryUser.token}" : url + $"&steamId={AngryUser.steamId}&token={AngryUser.token}");
-				UnityWebRequest req = new UnityWebRequest(urlWithToken);
+				UnityWebRequest req = new UnityWebRequest(urlWithToken, method);
 				req.downloadHandler = new DownloadHandlerBuffer();
+				if (body != null)
+				{
+					req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+				}
+				if (contentType != null)
+				{
+					req.SetRequestHeader("Content-Type", contentType);
+					if (req.uploadHandler != null)
+						req.uploadHandler.contentType = contentType;
+				}
 				cancellationToken.Register(() =>
 				{
 					if (req != null && !req.isDone)
 						req.Abort();
 				});
+
 				await req.SendWebRequest();
 
 				if (req.isNetworkError)
@@ -99,7 +111,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 				}
 
 				await AngryUser.GenerateToken();
-				return await MakeRequestWithToken<Resp, Stat>(url, result, invalidTokenStatus, cancellationToken, true);
+				return await MakeRequestWithToken<Resp, Stat>(url, result, invalidTokenStatus, cancellationToken, method, body, contentType, true);
 			}
 
 			return result;
@@ -112,10 +124,20 @@ namespace AngryLevelLoader.Managers.ServerManager
 		/// <typeparam name="Stat">Status code enum</typeparam>
 		/// <param name="url">URL to be made web request to</param>
 		/// <returns>Result object passed as the parameter</returns>
-		public static async Task<AngryResult<Resp, Stat>> MakeRequest<Resp, Stat>(string url, AngryResult<Resp, Stat> result, CancellationToken cancellationToken = default) where Resp : AngryResponse where Stat : Enum
+		public static async Task<AngryResult<Resp, Stat>> MakeRequest<Resp, Stat>(string url, AngryResult<Resp, Stat> result, CancellationToken cancellationToken = default, string method = "GET", string body = null, string contentType = null) where Resp : AngryResponse where Stat : Enum
 		{
-			UnityWebRequest req = new UnityWebRequest(url);
+			UnityWebRequest req = new UnityWebRequest(url, method);
 			req.downloadHandler = new DownloadHandlerBuffer();
+			if (body != null)
+			{
+				req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+			}
+			if (contentType != null)
+			{
+				req.SetRequestHeader("Content-Type", contentType);
+				if (req.uploadHandler != null)
+					req.uploadHandler.contentType = contentType;
+			}
 			cancellationToken.Register(() =>
 			{
 				if (req != null && !req.isDone)
@@ -144,7 +166,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			return result;
 		}
 
-		public static async Task<AngryResult<Resp, Stat>> MakeRequestWithAdminToken<Resp, Stat>(string url, AngryResult<Resp, Stat> result, Stat invalidTokenStatus, Stat missingKeyStatus, CancellationToken cancellationToken = default, bool tokenRequested = false) where Resp : AngryResponse where Stat : Enum
+		public static async Task<AngryResult<Resp, Stat>> MakeRequestWithAdminToken<Resp, Stat>(string url, AngryResult<Resp, Stat> result, Stat invalidTokenStatus, Stat missingKeyStatus, CancellationToken cancellationToken = default, string method = "GET", string body = null, string contentType = null, bool tokenRequested = false) where Resp : AngryResponse where Stat : Enum
 		{
 			if (string.IsNullOrEmpty(CryptographyUtils.AdminPrivateKey))
 			{
@@ -159,8 +181,18 @@ namespace AngryLevelLoader.Managers.ServerManager
 			{
 				string encryptedToken = Convert.ToBase64String(CryptographyUtils.Encrypt(AngryUser.token, CryptographyUtils.AdminPrivateKey));
 				string urlWithToken = (url.EndsWith("?") ? url + $"steamId={AngryUser.steamId}&token={encryptedToken}" : url + $"&steamId={AngryUser.steamId}&token={encryptedToken}");
-				UnityWebRequest req = new UnityWebRequest(urlWithToken);
+				UnityWebRequest req = new UnityWebRequest(urlWithToken, method);
 				req.downloadHandler = new DownloadHandlerBuffer();
+				if (body != null)
+				{
+					req.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(body));
+				}
+				if (contentType != null)
+				{
+					req.SetRequestHeader("Content-Type", contentType);
+					if (req.uploadHandler != null)
+						req.uploadHandler.contentType = contentType;
+				}
 				cancellationToken.Register(() =>
 				{
 					if (req != null && !req.isDone)
@@ -205,7 +237,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 				}
 
 				await AngryUser.GenerateToken();
-				return await MakeRequestWithToken<Resp, Stat>(url, result, invalidTokenStatus, cancellationToken, true);
+				return await MakeRequestWithToken<Resp, Stat>(url, result, invalidTokenStatus, cancellationToken, method, body, contentType, true);
 			}
 
 			return result;
