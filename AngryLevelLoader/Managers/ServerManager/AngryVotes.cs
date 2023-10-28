@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#region Get All Votes
 		public enum GetAllVotesStatus
 		{
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			RATE_LIMITED = -1,
 			GET_ALL_VOTES_OK = 0
 		}
@@ -46,6 +46,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			await AngryRequest.MakeRequest(url, result, cancellationToken);
 
 			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetAllVotesStatus.FAILED;
 			return result;
 		}
 		#endregion
@@ -65,7 +67,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 		public enum VoteStatus
 		{
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			RATE_LIMITED = -1,
 			VOTE_OK = 0,
 			VOTE_INVALID_TOKEN = 1,
@@ -109,6 +111,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			}
 
 			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = VoteStatus.FAILED;
 			return result;
 		}
 		#endregion

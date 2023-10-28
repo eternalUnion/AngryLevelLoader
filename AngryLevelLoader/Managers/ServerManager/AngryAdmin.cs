@@ -15,7 +15,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public enum CommandStatus
 		{
 			MISSING_KEY = -3,
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			OK = 0,
 			INVALID_TOKEN = 1,
 			ACCESS_DENIED = 2,
@@ -42,6 +42,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			await AngryRequest.MakeRequestWithAdminToken(url, result, CommandStatus.INVALID_TOKEN, CommandStatus.MISSING_KEY, cancellationToken);
 
 			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = CommandStatus.FAILED;
 			return result;
 		}
 		#endregion

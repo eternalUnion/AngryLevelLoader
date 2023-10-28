@@ -471,7 +471,7 @@ namespace AngryLevelLoader.Managers
         {
 			AngryVotes.GetAllVotesResult allVotesRes = await AngryVotes.GetAllVotesTask(cancellationToken);
 
-			if (!allVotesRes.networkError && !allVotesRes.httpError && allVotesRes.status == AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
+			if (allVotesRes.completedSuccessfully && allVotesRes.status == AngryVotes.GetAllVotesStatus.GET_ALL_VOTES_OK)
 			{
 				foreach (var bundleVoteInfo in allVotesRes.response.bundles)
 				{
@@ -483,7 +483,7 @@ namespace AngryLevelLoader.Managers
 					SortAll();
 
 				AngryUser.UserInfoResult userInfoReq = await AngryUser.GetUserInfo(cancellationToken);
-                if (!userInfoReq.networkError && !userInfoReq.httpError && userInfoReq.status == AngryUser.UserInfoStatus.OK)
+                if (userInfoReq.completedSuccessfully && userInfoReq.status == AngryUser.UserInfoStatus.OK)
                 {
                     AngryUser.UserInfoData data = userInfoReq.response.info;
                     foreach (var field in onlineLevels)
@@ -509,7 +509,7 @@ namespace AngryLevelLoader.Managers
                     else
                     {
                         if (userInfoReq.response != null)
-                            Debug.LogError($"Could not get user info while refreshing. Message: {userInfoReq.response.message}. Status: {userInfoReq.status}.");
+                            Debug.LogError($"Could not get user info while refreshing. Message: {userInfoReq.message}. Status: {userInfoReq.status}.");
                         else
                             Debug.LogError($"Encountered unknown error while requesting user info. Status: {userInfoReq.status}");
                     }
@@ -517,7 +517,7 @@ namespace AngryLevelLoader.Managers
 			}
 			else
 			{
-				Debug.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.response?.message}. Status: {allVotesRes.status}.");
+				Debug.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.message}. Status: {allVotesRes.status}.");
 			}
 		}
 

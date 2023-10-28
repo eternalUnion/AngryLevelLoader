@@ -71,7 +71,7 @@ namespace AngryLevelLoader.Patches
 			}
 			if (result.status != AngryLeaderboards.GetRecordsStatus.OK)
 			{
-				Debug.LogError($"Status error while getting all records. message: {result.response.message}, status: {result.status}");
+				Debug.LogError($"Status error while getting all records. message: {result.message}, status: {result.status}");
 				
 				switch (result.status)
 				{

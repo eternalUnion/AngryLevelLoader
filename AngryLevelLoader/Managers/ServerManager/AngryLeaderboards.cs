@@ -66,7 +66,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#region Get Records
 		public enum GetRecordsStatus
 		{
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			RATE_LIMITED = -1,
 			OK = 0,
 
@@ -104,6 +104,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			await AngryRequest.MakeRequest(url, result, cancellationToken);
 
 			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetRecordsStatus.FAILED;
 			return result;
 		}
 		#endregion
@@ -111,7 +113,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#region Post Record
 		public enum PostRecordStatus
 		{
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			RATE_LIMITED = -1,
 			OK = 0,
 			INVALID_TOKEN = 1,
@@ -144,11 +146,13 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, float time, CancellationToken cancellationToken)
 		{
 			PostRecordResult result = new PostRecordResult();
-			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/postRecord?steamId={AngryUser.steamId}&token={AngryUser.token}&category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&hash={hash}&levelId={levelId}&time={time}";
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/postRecord?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&hash={hash}&levelId={levelId}&time={time}";
 
 			await AngryRequest.MakeRequestWithToken(url, result, PostRecordStatus.INVALID_TOKEN, cancellationToken);
 
 			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = PostRecordStatus.FAILED;
 			return result;
 		}
 		#endregion

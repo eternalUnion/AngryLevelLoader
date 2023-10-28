@@ -24,7 +24,7 @@ namespace AngryLevelLoader.Managers.ServerManager
         #region Token Gen
         public enum TokengenStatus
         {
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			RATE_LIMITED = -1,
             OK = 0,
             INVALID_TICKET = 1,
@@ -44,7 +44,7 @@ namespace AngryLevelLoader.Managers.ServerManager
         {
             public bool networkError = false;
             public bool httpError = false;
-            public TokengenStatus status = TokengenStatus.NETWORK_ERROR;
+            public TokengenStatus status = TokengenStatus.FAILED;
 
             public TokenGenResponse response;
 		}
@@ -117,7 +117,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#region User Info
         public enum UserInfoStatus
         {
-			NETWORK_ERROR = -2,
+			FAILED = -2,
 			RATE_LIMITED = -1,
             OK = 0,
 			INVALID_TOKEN = 1,
@@ -147,6 +147,8 @@ namespace AngryLevelLoader.Managers.ServerManager
             await AngryRequest.MakeRequestWithToken(url, result, UserInfoStatus.INVALID_TOKEN, cancellationToken);
 
             result.completed = true;
+            if (!result.completedSuccessfully)
+                result.status = UserInfoStatus.FAILED;
             return result;
 		}
 		#endregion
