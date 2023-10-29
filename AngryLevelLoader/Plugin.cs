@@ -654,7 +654,8 @@ namespace AngryLevelLoader
 			newLevelNotifier.hidden = true;
 			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=lime>Level updates available!</color>", 16);
 			levelUpdateNotifier.hidden = true;
-			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(config.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
+			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
+			new ConfigBridge(OnlineLevelsManager.onlineLevelsPanel, config.rootPanel);
 			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(workingDir, "online-icon.png"));
 			OnlineLevelsManager.onlineLevelsPanel.onPannelOpenEvent += (e) =>
 			{
@@ -662,7 +663,8 @@ namespace AngryLevelLoader
 			};
 			OnlineLevelsManager.Init();
 
-			difficultySelect = new StringListField(config.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
+			difficultySelect = new StringListField(internalConfig.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
+			new ConfigBridge(difficultySelect, config.rootPanel);
 			difficultySelect.onValueChange += (e) =>
 			{
 				selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
@@ -682,7 +684,8 @@ namespace AngryLevelLoader
 			};
 			difficultySelect.TriggerValueChangeEvent();
 
-			ConfigPanel settingsPanel = new ConfigPanel(config.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
+			ConfigPanel settingsPanel = new ConfigPanel(internalConfig.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
+			new ConfigBridge(settingsPanel, config.rootPanel);
 			settingsPanel.hidden = true;
 
 			// Settings panel
