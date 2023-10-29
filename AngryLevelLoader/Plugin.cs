@@ -54,7 +54,7 @@ namespace AngryLevelLoader
 	[BepInDependency(UltraCoinsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(UltraFunGunsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(FasterPunchSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(AtlasWeapons.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(AtlasWeaponsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
 		public const bool devMode = true;

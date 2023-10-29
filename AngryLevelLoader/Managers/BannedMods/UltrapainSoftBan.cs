@@ -17,9 +17,9 @@ namespace AngryLevelLoader.Managers.BannedMods
 		public static SoftBanCheckResult Check()
 		{
 			if (Ultrapain.Plugin.ultrapainDifficulty)
-				return new SoftBanCheckResult(true, "Ultrapain is not allowed in the leaderboards") { pluginName = "UltraPain" };
+				return new SoftBanCheckResult(true, "Ultrapain is not allowed in the leaderboards");
 
-			return new SoftBanCheckResult() { pluginName = "UltraPain" };
+			return new SoftBanCheckResult();
 		}
 	}
 }

@@ -34,7 +34,6 @@ namespace AngryLevelLoader.Managers.BannedMods
 			};
 
 			SoftBanCheckResult result = new SoftBanCheckResult();
-			result.pluginName = "UltraTweaker";
 
 			foreach (var tweak in UltraTweaker.UltraTweaker.AllTweaks)
 			{

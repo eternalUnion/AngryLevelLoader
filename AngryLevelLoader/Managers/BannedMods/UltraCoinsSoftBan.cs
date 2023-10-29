@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 		// Amount of coins is not configurable
 		public static SoftBanCheckResult Check()
 		{
-			return new SoftBanCheckResult(true, "UltraCoins is banned") { pluginName = "UltraCoins" };
+			return new SoftBanCheckResult(true, "UltraCoins is banned");
 		}
 	}
 }

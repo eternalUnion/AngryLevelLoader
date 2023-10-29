@@ -17,7 +17,6 @@ namespace AngryLevelLoader.Managers.BannedMods
 		public static SoftBanCheckResult Check()
 		{
 			SoftBanCheckResult result = new SoftBanCheckResult();
-			result.pluginName = "UltraFunGuns";
 
 			var loadout = UltraFunGuns.Data.Loadout.Data;
 			foreach (var slot in loadout.slots)

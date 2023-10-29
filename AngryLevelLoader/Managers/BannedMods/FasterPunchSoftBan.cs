@@ -17,7 +17,6 @@ namespace AngryLevelLoader.Managers.BannedMods
 		public static SoftBanCheckResult Check()
 		{
 			SoftBanCheckResult result = new SoftBanCheckResult();
-			result.pluginName = "FasterPunch";
 
 			if (FasterPunch.ConfigManager.StandardEnabled.value)
 			{

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace AngryLevelLoader.Managers.BannedMods
 {
-	public static class AtlasWeapons
+	public static class AtlasWeaponsSoftBan
 	{
 		public const string PLUGIN_GUID = "waffle.ultrakill.atlas";
 

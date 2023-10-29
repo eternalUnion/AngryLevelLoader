@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 		// This mod has no configuration
 		public static SoftBanCheckResult Check()
 		{
-			return new SoftBanCheckResult(true, "Dual wield punches is banned") { pluginName = "DualWieldPunches" };
+			return new SoftBanCheckResult(true, "Dual wield punches is banned");
 		}
 	}
 }

@@ -6,8 +6,6 @@ namespace AngryLevelLoader.Managers.BannedMods
 {
 	public struct SoftBanCheckResult
 	{
-		public string pluginName;
-
 		public bool banned;
 		public string message;
 
@@ -29,6 +27,17 @@ namespace AngryLevelLoader.Managers.BannedMods
 		public const string HYDRA_LIB_GUID = "Hydraxous.HydraDynamics";
 
 		public static Dictionary<string, Func<SoftBanCheckResult>> checkers = new Dictionary<string, Func<SoftBanCheckResult>>();
+		public static Dictionary<string, string> guidToName = new Dictionary<string, string>()
+		{
+			{ AtlasWeaponsSoftBan.PLUGIN_GUID, "Atlas" },
+			{ DualWieldPunchesSoftBan.PLUGIN_GUID, "DualWieldPunches" },
+			{ FasterPunchSoftBan.PLUGIN_GUID, "FasterPunches" },
+			{ MovementPlusSoftBan.PLUGIN_GUID, "Movement+" },
+			{ UltraCoinsSoftBan.PLUGIN_GUID, "UltraCoins" },
+			{ UltraFunGunsSoftBan.PLUGIN_GUID, "UltraFunGuns" },
+			{ UltrapainSoftBan.PLUGIN_GUID, "UltraPain" },
+			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" }
+		};
 
 		public static void Init()
 		{
@@ -74,10 +83,10 @@ namespace AngryLevelLoader.Managers.BannedMods
 					checkers.Add(FasterPunchSoftBan.PLUGIN_GUID, FasterPunchSoftBan.Check);
 			}
 
-			if (AtlasWeapons.AtlasLoaded)
+			if (AtlasWeaponsSoftBan.AtlasLoaded)
 			{
 				Plugin.logger.LogInfo("Detected AtlasLib, adding soft ban check for leaderboards");
-				checkers.Add(AtlasWeapons.PLUGIN_GUID, AtlasWeapons.Check);
+				checkers.Add(AtlasWeaponsSoftBan.PLUGIN_GUID, AtlasWeaponsSoftBan.Check);
 			}
 		}
 
@@ -96,8 +105,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 				}
 				catch (Exception e)
 				{
-					Plugin.logger.LogError($"Exception thrown while checking for soft ban for {checker.Key}\n{e}");
-					bans.Add(new SoftBanCheckResult(true, $"Encountered an error while checking for {checker.Key}") { pluginName = checker.Key });
+					Plugin.logger.LogError($"Exception thrown while checking for soft ban for {guidToName[checker.Key]}\n{e}");
+					bans.Add(new SoftBanCheckResult(true, $"Encountered an error while checking for {guidToName[checker.Key]}"));
 				}
 			}
 
