@@ -41,7 +41,7 @@ namespace AngryLevelLoader
     }
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.7.0")]
+	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.8.0")]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
