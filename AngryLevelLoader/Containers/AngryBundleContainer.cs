@@ -189,7 +189,7 @@ namespace AngryLevelLoader.Containers
 
                 if (Plugin.idDictionary.ContainsKey(data.uniqueIdentifier))
                 {
-                    Debug.LogWarning($"Duplicate or invalid unique id {data.scenePath}");
+                    Plugin.logger.LogWarning($"Duplicate or invalid unique id {data.scenePath}");
                     statusText.hidden = false;
                     if (!string.IsNullOrEmpty(statusText.text))
                         statusText.text += '\n';
@@ -488,7 +488,7 @@ namespace AngryLevelLoader.Containers
                 // Different guid, would break the container
                 if (updatedData.bundleGuid != bundleData.bundleGuid)
                 {
-                    Debug.LogError($"File {Path.GetFileName(pathToAngryBundle)} was changed, but the new file's guid does not match its container! Unlinking");
+                    Plugin.logger.LogError($"File {Path.GetFileName(pathToAngryBundle)} was changed, but the new file's guid does not match its container! Unlinking");
                     fileChangeDetected = false;
                     pathToAngryBundle = "";
                     return;
@@ -537,7 +537,7 @@ namespace AngryLevelLoader.Containers
         private bool _loadedAfterPanelOpen = false;
         public AngryBundleContainer(string path, AngryBundleData data)
         {
-            Debug.Log($"Creating bundle container for {path}");
+            Plugin.logger.LogInfo($"Creating bundle container for {path}");
             pathToAngryBundle = path;
             bundleData = data;
 

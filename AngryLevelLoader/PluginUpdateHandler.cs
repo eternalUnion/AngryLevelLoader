@@ -23,7 +23,7 @@ namespace AngryLevelLoader
 
             if (infoReq.isHttpError || infoReq.isNetworkError)
             {
-                Debug.LogError("Could not download plugin data");
+                Plugin.logger.LogError("Could not download plugin data");
                 infoReq.Dispose();
                 Plugin.changelog.interactable = true;
                 return;
@@ -54,7 +54,7 @@ namespace AngryLevelLoader
 
             if (Directory.Exists(oldLevelsPath))
             {
-                Debug.LogWarning("Version 2.3.0 migration: Moving levels from working dir to data folder");
+                Plugin.logger.LogWarning("Version 2.3.0 migration: Moving levels from working dir to data folder");
 
                 foreach (string levelFile in Directory.GetFiles(oldLevelsPath))
                 {
@@ -63,7 +63,7 @@ namespace AngryLevelLoader
                         File.Delete(levelFile);
                     else
                     {
-                        Debug.Log($"{levelFile} => {destinationFile}");
+                        Plugin.logger.LogInfo($"{levelFile} => {destinationFile}");
                         File.Move(levelFile, destinationFile);
                     }
                 }
@@ -79,7 +79,7 @@ namespace AngryLevelLoader
                             Directory.Delete(unpackedLevel, true);
                         else
                         {
-                            Debug.Log($"{unpackedLevel} => {destinationDir}");
+                            Plugin.logger.LogInfo($"{unpackedLevel} => {destinationDir}");
                             IOUtils.DirectoryCopy(unpackedLevel, destinationDir, true, true);
                         }
                     }
@@ -91,7 +91,7 @@ namespace AngryLevelLoader
             string oldOnlineCachePath = Path.Combine(Plugin.workingDir, "OnlineCache");
             if (Directory.Exists(oldOnlineCachePath))
             {
-                Debug.LogWarning("Moving online cache folder to config (update 2.5.x)");
+                Plugin.logger.LogWarning("Moving online cache folder to config (update 2.5.x)");
 
                 string newOnlineCachePath = AngryPaths.OnlineCacheFolderPath;
                 if (!Directory.Exists(newOnlineCachePath))
@@ -110,7 +110,7 @@ namespace AngryLevelLoader
             string oldLastPlayedMapPath = Path.Combine(Plugin.workingDir, "lastPlayedMap.txt");
             if (File.Exists(oldLastPlayedMapPath))
             {
-                Debug.LogWarning("Moving last played map to config (update 2.5.x)");
+                Plugin.logger.LogWarning("Moving last played map to config (update 2.5.x)");
 
                 string newLastPlayedMapPath = AngryPaths.LastPlayedMapPath;
                 if (!File.Exists(newLastPlayedMapPath))

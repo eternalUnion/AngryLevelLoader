@@ -31,7 +31,7 @@ namespace AngryLevelLoader.Patches
 			public int framesTilDestruction = defaultFrameTime;
 			private void LateUpdate ()
 			{
-				// Debug.Log("Late update");
+				// Plugin.logger.LogInfo("Late update");
 
 				if (framesTilDestruction != 0)
 				{
@@ -49,7 +49,7 @@ namespace AngryLevelLoader.Patches
 
 			private void Activate()
 			{
-				// Debug.Log($"Late final rotation: {transform.eulerAngles}");
+				// Plugin.logger.LogInfo($"Late final rotation: {transform.eulerAngles}");
 
 				transform.rotation = targetRot;
 			}
@@ -69,7 +69,7 @@ namespace AngryLevelLoader.Patches
 			if (NewMovement.instance.TryGetComponent(out LateRotationSetter rot))
 			{
 				rot.framesTilDestruction = 5;
-				// Debug.Log("Reset activasion");
+				// Plugin.logger.LogInfo("Reset activasion");
 			}
 			else
 			{
@@ -77,7 +77,7 @@ namespace AngryLevelLoader.Patches
 					return true;
 
 				NewMovement.instance.gameObject.AddComponent<LateRotationSetter>().targetRot = NewMovement.instance.transform.rotation;
-				// Debug.Log($"Rotation before: {NewMovement.instance.transform.eulerAngles}");
+				// Plugin.logger.LogInfo($"Rotation before: {NewMovement.instance.transform.eulerAngles}");
 			}
 
 			return true;

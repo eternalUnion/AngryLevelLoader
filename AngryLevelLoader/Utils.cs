@@ -424,13 +424,13 @@ namespace AngryLevelLoader
 			task.downloadHandler = new DownloadHandlerBuffer();
 			var handle = task.SendWebRequest();
 
-			Debug.Log("First await start");
+			Plugin.logger.LogInfo("First await start");
 			await handle;
-			Debug.Log("First await end");
+			Plugin.logger.LogInfo("First await end");
 
-			Debug.Log("Second await start");
+			Plugin.logger.LogInfo("Second await start");
 			await handle;
-			Debug.Log("Second await end");
+			Plugin.logger.LogInfo("Second await end");
 		}
 	}
 }

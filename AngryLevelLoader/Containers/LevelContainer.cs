@@ -63,7 +63,7 @@ namespace AngryLevelLoader.Containers
             int currentSecretCount = secrets.value.Length;
             if (currentSecretCount != data.secretCount)
             {
-                Debug.LogWarning("Inconsistent secrets data detected");
+                Plugin.logger.LogWarning("Inconsistent secrets data detected");
                 string secretsStr = secrets.value;
 
                 if (currentSecretCount < data.secretCount)
@@ -116,7 +116,7 @@ namespace AngryLevelLoader.Containers
             secrets = new StringField(panel, "", $"l_{data.uniqueIdentifier}_secrets", defaultSecretText, true, true, false) { hidden = true };
             if (secrets.value.Length != data.secretCount)
             {
-                Debug.LogWarning($"Secret orb count does not match for {data.scenePath}, resetting");
+                Plugin.logger.LogWarning($"Secret orb count does not match for {data.scenePath}, resetting");
                 secrets.value = defaultSecretText;
             }
 

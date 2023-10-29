@@ -172,7 +172,7 @@ namespace RudeLevelScript
 
 		public void OnBeforeSerialize()
 		{
-			//Debug.Log($"Pre serialize {layersAndLevels == null}");
+			//Plugin.logger.LogInfo($"Pre serialize {layersAndLevels == null}");
 
 			levelSizes.Clear();
 			layerNames.Clear();
@@ -208,7 +208,7 @@ namespace RudeLevelScript
 
 		public void OnAfterDeserialize()
 		{
-			//Debug.Log("Deserialize");
+			//Plugin.logger.LogInfo("Deserialize");
 
 			/*layersAndLevels.Clear();
 			int levelIndex = 0;

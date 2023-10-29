@@ -113,7 +113,7 @@ namespace AngryLevelLoader.Fields
                     if (callback != null)
                         callback.OpenDeletePanel();
                     else
-                        Debug.LogError("Delete bundle button pressed but callback is null");
+                        Plugin.logger.LogError("Delete bundle button pressed but callback is null");
                 });
 
                 return currentMenu.gameObject;

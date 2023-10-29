@@ -138,7 +138,7 @@ namespace AngryLevelLoader.Patches
 				__instance.fr.levelSecrets = new GameObject[0];
 			}
 			else
-				Debug.LogWarning("Could not find secrets container");
+				Plugin.logger.LogWarning("Could not find secrets container");
 
 			return true;
 		}
@@ -205,19 +205,19 @@ namespace AngryLevelLoader.Patches
 				challengeTextRect.GetComponent<Text>().text = AngrySceneManager.currentLevelData.levelChallengeEnabled ? AngrySceneManager.currentLevelData.levelChallengeText : "No challenge available for the level";
 			}
 			else
-				Debug.LogWarning("Could not find challenge text");
+				Plugin.logger.LogWarning("Could not find challenge text");
 
 			// Set challenge panel
 			if (AngrySceneManager.currentLevelData.levelChallengeEnabled && (challengeCompletedThisSeason || challengeCompletedBefore))
 			{
-				Debug.Log("Enabling challenge panel since it is completed now or before");
+				Plugin.logger.LogInfo("Enabling challenge panel since it is completed now or before");
 				ChallengeManager.Instance.challengePanel.GetComponent<Image>().color = usedCheats && !challengeCompletedBefore ? new Color(0, 1, 0, 0.5f) : new Color(1f, 0.696f, 0f, 0.5f);
                 ChallengeManager.Instance.challengePanel.GetComponent<AudioSource>().volume = !challengeCompletedBefore && !usedCheats ? 1f : 0f;
                 ChallengeManager.Instance.challengePanel.SetActive(true);
             }
 			else
 			{
-                Debug.Log("Disabling challenge panel since it is not completed now and before");
+                Plugin.logger.LogInfo("Disabling challenge panel since it is not completed now and before");
                 ChallengeManager.Instance.challengePanel.SetActive(false);
             }
 		}

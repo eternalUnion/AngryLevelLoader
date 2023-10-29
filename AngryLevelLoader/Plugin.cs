@@ -29,6 +29,8 @@ using AngryLevelLoader.Managers.ServerManager;
 using UnityEngine.UI;
 using AngryUiComponents;
 using Unity.Audio;
+using BepInEx.Logging;
+using AngryLevelLoader.Managers.BannedMods;
 
 namespace AngryLevelLoader
 {
@@ -44,6 +46,15 @@ namespace AngryLevelLoader
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.8.0")]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
+	// Soft ban dependencies
+	[BepInDependency(BannedModsManager.HYDRA_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(DualWieldPunchesSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(UltraTweakerSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(MovementPlusSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(UltraCoinsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(UltraFunGunsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(FasterPunchSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(AtlasWeapons.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
 		public const bool devMode = true;
@@ -63,6 +74,7 @@ namespace AngryLevelLoader
 		public static string angryCatalogPath;
 
         public static Plugin instance;
+		public static ManualLogSource logger;
 		
 		public static PluginConfigurator internalConfig;
 		public static StringField lastVersion;
@@ -92,7 +104,7 @@ namespace AngryLevelLoader
 					string key = reader.ReadLine();
 					if (reader.EndOfStream)
 					{
-						Debug.LogWarning("Invalid end of last played map file");
+						logger.LogWarning("Invalid end of last played map file");
 						break;
 					}
 
@@ -103,7 +115,7 @@ namespace AngryLevelLoader
 					}
 					else
 					{
-						Debug.Log($"Invalid last played time '{value}'");
+						logger.LogInfo($"Invalid last played time '{value}'");
 					}
 				}
 			}
@@ -162,7 +174,7 @@ namespace AngryLevelLoader
 					// Duplicate file check
 					if (File.Exists(bundle.pathToAngryBundle) && !IOUtils.PathEquals(path, bundle.pathToAngryBundle))
 					{
-						Debug.LogError($"Duplicate angry files. Original: {Path.GetFileName(bundle.pathToAngryBundle)}. Duplicate: {Path.GetFileName(path)}");
+						logger.LogError($"Duplicate angry files. Original: {Path.GetFileName(bundle.pathToAngryBundle)}. Duplicate: {Path.GetFileName(path)}");
 
 						if (!string.IsNullOrEmpty(errorText.text))
 							errorText.text += '\n';
@@ -191,7 +203,7 @@ namespace AngryLevelLoader
                     // If rank score is not cached (invalid value) do not lazy load and calculate rank data
                     if (newBundle.finalRankScore.value < 0)
                     {
-                        Debug.LogWarning("Final rank score for the bundle not cached, skipping lazy reload");
+						logger.LogWarning("Final rank score for the bundle not cached, skipping lazy reload");
                         newBundle.UpdateScenes(false, false);
                     }
                     else
@@ -201,7 +213,7 @@ namespace AngryLevelLoader
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning($"Exception thrown while loading level bundle: {e}");
+					logger.LogWarning($"Exception thrown while loading level bundle: {e}");
                     if (!string.IsNullOrEmpty(errorText.text))
                         errorText.text += '\n';
                     errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
@@ -217,7 +229,7 @@ namespace AngryLevelLoader
                 }
                 else
                 {
-                    Debug.LogError($"Could not load the bundle at {path}\n{error}");
+					logger.LogError($"Could not load the bundle at {path}\n{error}");
 
                     if (!string.IsNullOrEmpty(errorText.text))
                         errorText.text += '\n';
@@ -235,7 +247,7 @@ namespace AngryLevelLoader
             errorText.text = "";
             if (!Directory.Exists(levelsPath))
             {
-                Debug.LogWarning("Could not find the Levels folder at " + levelsPath);
+				logger.LogWarning("Could not find the Levels folder at " + levelsPath);
 				errorText.text = "<color=red>Error: </color>Levels folder not found";
 				return;
             }
@@ -297,7 +309,7 @@ namespace AngryLevelLoader
 			var res = ScriptManager.AttemptLoadScriptWithCertificate("AngryLoaderAPI.dll");
 			if (res == ScriptManager.LoadScriptResult.NotFound)
 			{
-				Debug.LogError("Required script AngryLoaderAPI.dll not found");
+				logger.LogError("Required script AngryLoaderAPI.dll not found");
 				loaded = false;
 			}
 			else
@@ -308,7 +320,7 @@ namespace AngryLevelLoader
 			res = ScriptManager.AttemptLoadScriptWithCertificate("RudeLevelScripts.dll");
 			if (res == ScriptManager.LoadScriptResult.NotFound)
 			{
-				Debug.LogError("Required script RudeLevelScripts.dll not found");
+				logger.LogError("Required script RudeLevelScripts.dll not found");
 				loaded = false;
 			}
 			else
@@ -423,7 +435,7 @@ namespace AngryLevelLoader
 			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
 			if (canvasObj == null)
 			{
-				Debug.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
+				logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
 				return;
 			}
 
@@ -446,7 +458,7 @@ namespace AngryLevelLoader
 					Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
 					if (optionsMenu == null)
 					{
-						Debug.LogError("Angry tried to find the options menu but failed!");
+						logger.LogError("Angry tried to find the options menu but failed!");
 						chapterSelect.gameObject.SetActive(true);
 						return;
 					}
@@ -459,7 +471,7 @@ namespace AngryLevelLoader
 
 					if (pluginConfigButton == null)
 					{
-						Debug.LogError("Angry tried to find the plugin configurator button but failed!");
+						logger.LogError("Angry tried to find the plugin configurator button but failed!");
 						return;
 					}
 
@@ -480,7 +492,7 @@ namespace AngryLevelLoader
 						case 1:
 						case 2:
 						case 3:
-							Debug.Log($"Angry setting difficulty to {difficultyList[difficulty]}");
+							logger.LogInfo($"Angry setting difficulty to {difficultyList[difficulty]}");
 							difficultySelect.valueIndex = difficulty;
 							break;
 
@@ -494,7 +506,7 @@ namespace AngryLevelLoader
 								}
 								else
 								{
-									Debug.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
+									logger.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
 									difficultySelect.valueIndex = 3;
 								}
 							}
@@ -510,7 +522,7 @@ namespace AngryLevelLoader
 								}
 								else
 								{
-									Debug.LogWarning("Unknown difficulty, defaulting to violent");
+									logger.LogWarning("Unknown difficulty, defaulting to violent");
 									difficultySelect.valueIndex = 3;
 								}
 							}
@@ -525,7 +537,7 @@ namespace AngryLevelLoader
 			}
 			else
 			{
-				Debug.LogWarning("Angry tried to find chapter select menu, but root canvas was not found!");
+				logger.LogWarning("Angry tried to find chapter select menu, but root canvas was not found!");
 			}
 		}
 
@@ -540,7 +552,7 @@ namespace AngryLevelLoader
 			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
 			if (canvasObj == null)
 			{
-				Debug.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
+				logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
 				return;
 			}
 
@@ -567,7 +579,7 @@ namespace AngryLevelLoader
 				{
 					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
 					{
-						Debug.LogWarning($"Bundle {fullPath} was updated, container notified");
+						logger.LogWarning($"Bundle {fullPath} was updated, container notified");
 						bundle.FileChanged();
 						return;
 					}
@@ -582,7 +594,7 @@ namespace AngryLevelLoader
 				{
 					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
 					{
-						Debug.LogWarning($"Bundle {fullPath} was renamed, path updated");
+						logger.LogWarning($"Bundle {fullPath} was renamed, path updated");
 						bundle.pathToAngryBundle = fullPath;
 						return;
 					}
@@ -597,7 +609,7 @@ namespace AngryLevelLoader
 				{
 					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
 					{
-						Debug.LogWarning($"Bundle {fullPath} was deleted, unlinked");
+						logger.LogWarning($"Bundle {fullPath} was deleted, unlinked");
 						bundle.pathToAngryBundle = "";
 						return;
 					}
@@ -615,7 +627,7 @@ namespace AngryLevelLoader
 				{
 					if (bundle.bundleData.bundleGuid == data.bundleGuid && !File.Exists(bundle.pathToAngryBundle))
 					{
-						Debug.LogWarning($"Bundle {fullPath} was just added, and a container with the same guid had no file linked. Linked, container notified");
+						logger.LogWarning($"Bundle {fullPath} was just added, and a container with the same guid had no file linked. Linked, container notified");
 						bundle.pathToAngryBundle = fullPath;
 						bundle.FileChanged();
 						return;
@@ -643,7 +655,7 @@ namespace AngryLevelLoader
 			{
 				if (newLevelToggle.value)
 				{
-					newLevelNotifier.text = string.Join("\n", Plugin.newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
+					newLevelNotifier.text = string.Join("\n", newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
 					newLevelNotifier.hidden = false;
 					newLevelNotifierLevels.value = "";
 				}
@@ -670,7 +682,7 @@ namespace AngryLevelLoader
 				selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
 				if (selectedDifficulty == -1)
 				{
-					Debug.LogWarning("Invalid difficulty, setting to violent");
+					logger.LogWarning("Invalid difficulty, setting to violent");
 					selectedDifficulty = 3;
 					e.value = "VIOLENT";
 				}
@@ -972,6 +984,9 @@ namespace AngryLevelLoader
 		{
 			// Plugin startup logic
 			instance = this;
+			logger = Logger;
+
+			BannedModsManager.Init();
 
 			// Initialize internal config
 			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
@@ -1008,7 +1023,7 @@ namespace AngryLevelLoader
 			// These scripts are common among all the levels
             if (!LoadEssentialScripts())
 			{
-				Debug.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
+				logger.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
 				enabled = false;
 				return;
 			}

@@ -284,7 +284,7 @@ namespace AngryLevelLoader.Notifications
                     }
                     catch (Exception e)
                     {
-                        Debug.LogError($"Exception thrown while stopping download of script update field\n{e}");
+                        Plugin.logger.LogError($"Exception thrown while stopping download of script update field\n{e}");
                     }
                 }
 

@@ -36,7 +36,7 @@ namespace AngryLevelLoader.Patches
 				}
 				catch (Exception e)
 				{
-					Debug.LogError($"Error while executing OnSceneLoad script for {obj.gameObject.name}: {e}");
+					Plugin.logger.LogError($"Error while executing OnSceneLoad script for {obj.gameObject.name}: {e}");
 				}
 			}
 		}

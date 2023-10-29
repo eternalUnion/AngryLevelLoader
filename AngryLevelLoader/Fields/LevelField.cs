@@ -56,7 +56,7 @@ namespace AngryLevelLoader.Fields
                     LevelContainer reqLevel = Plugin.GetLevel(reqId);
                     if (reqLevel == null)
                     {
-                        Debug.LogWarning($"Could not find level unlock requirement id for {data.uniqueIdentifier}, requested id was {reqId}");
+                        Plugin.logger.LogWarning($"Could not find level unlock requirement id for {data.uniqueIdentifier}, requested id was {reqId}");
                         locked = true;
                         break;
                     }

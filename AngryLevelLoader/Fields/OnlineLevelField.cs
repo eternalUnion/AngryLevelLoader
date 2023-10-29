@@ -325,7 +325,7 @@ namespace AngryLevelLoader.Fields
                     }
                     else
                     {
-                        Debug.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
+                        Plugin.logger.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
 
                         voteStatus = VoteStatus.Disabled;
                         voteCount = 0;
@@ -361,7 +361,7 @@ namespace AngryLevelLoader.Fields
 					}
 					else
 					{
-						Debug.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
+						Plugin.logger.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
 
 						voteStatus = VoteStatus.Disabled;
 						voteCount = 0;
@@ -628,11 +628,11 @@ namespace AngryLevelLoader.Fields
 				if (data.bundleGuid != bundleGuid)
 					valid = false;
 				else if (data.buildHash != level.Hash)
-					Debug.LogWarning($"Downloaded bundle has hash {data.buildHash} but most recent one is {level.Hash}");
+					Plugin.logger.LogWarning($"Downloaded bundle has hash {data.buildHash} but most recent one is {level.Hash}");
 			}
 			else
 			{
-				Debug.LogError($"Threw error while validating downloaded file\n{e}");
+				Plugin.logger.LogError($"Threw error while validating downloaded file\n{e}");
 				valid = false;
 			}
 

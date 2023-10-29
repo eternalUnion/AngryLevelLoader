@@ -30,8 +30,20 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>libs\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="Atlas">
+      <HintPath>libs\Atlas.dll</HintPath>
+    </Reference>
     <Reference Include="Facepunch.Steamworks.Win64">
       <HintPath>libs\Facepunch.Steamworks.Win64.dll</HintPath>
+    </Reference>
+    <Reference Include="FasterPunch">
+      <HintPath>libs\FasterPunch.dll</HintPath>
+    </Reference>
+    <Reference Include="HydraDynamics">
+      <HintPath>libs\HydraDynamics.dll</HintPath>
+    </Reference>
+    <Reference Include="Movement">
+      <HintPath>libs\Movement.dll</HintPath>
     </Reference>
     <Reference Include="MyCoolMod">
       <HintPath>libs\HeavenOrHellDifficulty.dll</HintPath>
@@ -42,8 +54,14 @@
     <Reference Include="PluginConfiguratorComponents">
       <HintPath>libs\PluginConfiguratorComponents.dll</HintPath>
     </Reference>
+    <Reference Include="UltraFunGuns">
+      <HintPath>libs\UltraFunGuns.dll</HintPath>
+    </Reference>
     <Reference Include="Ultrapain">
       <HintPath>libs\Ultrapain.dll</HintPath>
+    </Reference>
+    <Reference Include="UltraTweaker">
+      <HintPath>libs\UltraTweaker.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>libs\Unity.Addressables.dll</HintPath>

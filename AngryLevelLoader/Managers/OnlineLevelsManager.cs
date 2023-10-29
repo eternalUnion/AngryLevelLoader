@@ -79,7 +79,7 @@ namespace AngryLevelLoader.Managers
 
                 if (hashReq.isHttpError || hashReq.isNetworkError)
                 {
-                    Debug.LogError("Could not download the script catalog hash");
+                    Plugin.logger.LogError("Could not download the script catalog hash");
                     return;
                 }
 
@@ -97,7 +97,7 @@ namespace AngryLevelLoader.Managers
                 string hash = CryptographyUtils.GetMD5String(catalog);
                 if (hash == newHash)
                 {
-                    Debug.Log("Cached script catalog up to date");
+                    Plugin.logger.LogInfo("Cached script catalog up to date");
                     scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
                     return;
                 }
@@ -111,7 +111,7 @@ namespace AngryLevelLoader.Managers
 
                 if (updatedCatalogRequest.isHttpError || updatedCatalogRequest.isNetworkError)
                 {
-                    Debug.LogError("Could not download the script catalog");
+                    Plugin.logger.LogError("Could not download the script catalog");
                     return;
                 }
 
@@ -121,7 +121,7 @@ namespace AngryLevelLoader.Managers
 
                 if (currentHash != newHash)
                 {
-                    Debug.LogWarning($"New script catalog hash value does not match online catalog hash value, github page not cached yet (current hash is {currentHash}. online hash is {newHash})");
+                    Plugin.logger.LogWarning($"New script catalog hash value does not match online catalog hash value, github page not cached yet (current hash is {currentHash}. online hash is {newHash})");
                 }
             }
             finally
@@ -301,7 +301,7 @@ namespace AngryLevelLoader.Managers
                         string guid = hashReader.ReadLine();
                         if (hashReader.EndOfStream)
                         {
-                            Debug.LogWarning("Invalid end of thumbnail cache hash file");
+                            Plugin.logger.LogWarning("Invalid end of thumbnail cache hash file");
                             break;
                         }
 
@@ -389,7 +389,7 @@ namespace AngryLevelLoader.Managers
 
             if (catalogVersionRequest.isNetworkError || catalogVersionRequest.isHttpError)
             {
-                Debug.LogError("Could not download catalog version");
+                Plugin.logger.LogError("Could not download catalog version");
                 catalog = null;
                 return;
             }
@@ -406,14 +406,14 @@ namespace AngryLevelLoader.Managers
 
                 if (catalogHash == newCatalogHash)
                 {
-                    Debug.Log("Current online level catalog is up to date, loading from cache");
+                    Plugin.logger.LogInfo("Current online level catalog is up to date, loading from cache");
                     return;
                 }
 
                 catalog = null;
             }
 
-            Debug.Log("Current online level catalog is out of date, downloading from web");
+            Plugin.logger.LogInfo("Current online level catalog is out of date, downloading from web");
             await DownloadCatalog(newCatalogHash, prevCatalog);
         }
 
@@ -430,7 +430,7 @@ namespace AngryLevelLoader.Managers
 
             if (catalogRequest.isNetworkError || catalogRequest.isHttpError)
             {
-                Debug.LogError("Could not download catalog");
+                Plugin.logger.LogError("Could not download catalog");
                 return;
             }
             else
@@ -441,7 +441,7 @@ namespace AngryLevelLoader.Managers
 
                 if (catalogHash != newHash)
                 {
-                    Debug.LogWarning($"Catalog hash does not match, github did not cache the new catalog yet (current hash is {catalogHash}. online hash is {newHash})");
+                    Plugin.logger.LogWarning($"Catalog hash does not match, github did not cache the new catalog yet (current hash is {catalogHash}. online hash is {newHash})");
                 }
 
                 if (Plugin.newLevelNotifierToggle.value && prevCatalog != null)
@@ -500,24 +500,24 @@ namespace AngryLevelLoader.Managers
                 {
                     if (userInfoReq.networkError)
                     {
-                        Debug.LogError("Network error while requesting user info. Check connection");
+                        Plugin.logger.LogError("Network error while requesting user info. Check connection");
                     }
                     else if (userInfoReq.httpError)
                     {
-                        Debug.LogError("Http error while requesting user info. Check server");
+                        Plugin.logger.LogError("Http error while requesting user info. Check server");
                     }
                     else
                     {
                         if (userInfoReq.response != null)
-                            Debug.LogError($"Could not get user info while refreshing. Message: {userInfoReq.message}. Status: {userInfoReq.status}.");
+                            Plugin.logger.LogError($"Could not get user info while refreshing. Message: {userInfoReq.message}. Status: {userInfoReq.status}.");
                         else
-                            Debug.LogError($"Encountered unknown error while requesting user info. Status: {userInfoReq.status}");
+                            Plugin.logger.LogError($"Encountered unknown error while requesting user info. Status: {userInfoReq.status}");
                     }
 				}
 			}
 			else
 			{
-				Debug.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.message}. Status: {allVotesRes.status}.");
+				Plugin.logger.LogError($"Could not get all votes while refreshing. Message: {allVotesRes.message}. Status: {allVotesRes.status}.");
 			}
 		}
 
@@ -611,7 +611,7 @@ namespace AngryLevelLoader.Managers
 
                             if (thumbnailRequests.Count == 0)
                             {
-                                Debug.Log("All thumbnail requests completed. Saving hashes");
+                                Plugin.logger.LogInfo("All thumbnail requests completed. Saving hashes");
                                 SaveThumbnailHashes();
                             }
                         }

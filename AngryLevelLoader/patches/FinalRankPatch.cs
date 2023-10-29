@@ -27,7 +27,7 @@ namespace AngryLevelLoader.Patches
 				}
 				else
 				{
-					Debug.LogWarning("Could not find title text under final canvas");
+					Plugin.logger.LogWarning("Could not find title text under final canvas");
 				}
 
 				return true;
@@ -36,7 +36,7 @@ namespace AngryLevelLoader.Patches
 			__instance.levelSecrets = StatsManager.instance.secretObjects;
 			if (__instance.levelSecrets.Length != AngrySceneManager.currentLevelData.secretCount)
 			{
-				Debug.LogWarning($"Inconsistent secrets size, expected {AngrySceneManager.currentLevelData.secretCount}, found {__instance.levelSecrets.Length}");
+				Plugin.logger.LogWarning($"Inconsistent secrets size, expected {AngrySceneManager.currentLevelData.secretCount}, found {__instance.levelSecrets.Length}");
 				__instance.levelSecrets = new GameObject[AngrySceneManager.currentLevelData.secretCount];
 			}
 
@@ -102,7 +102,7 @@ namespace AngryLevelLoader.Patches
 					}
 				}
 
-				Debug.LogWarning("Could not find target level id " + idPath);
+				Plugin.logger.LogWarning("Could not find target level id " + idPath);
 				MonoSingleton<OptionsManager>.Instance.QuitMission();
 				return false;
 			}

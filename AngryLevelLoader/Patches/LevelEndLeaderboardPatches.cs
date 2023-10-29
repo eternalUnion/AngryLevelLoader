@@ -59,19 +59,19 @@ namespace AngryLevelLoader.Patches
 			AngryLeaderboards.GetRecordsResult result = getRecordsTask.Result;
 			if (result.networkError)
 			{
-				Debug.LogError("Could not get level records (NETWORK_ERROR), check connection");
+				Plugin.logger.LogError("Could not get level records (NETWORK_ERROR), check connection");
 				loadingText.text = "NETWORK ERROR,\nCHECK CONNECTION";
 				yield break;
 			}
 			if (result.httpError)
 			{
-				Debug.LogError("Could not get level records (HTTP_ERROR), check server");
+				Plugin.logger.LogError("Could not get level records (HTTP_ERROR), check server");
 				loadingText.text = "SERVER ERROR,\nTRY AGAIN LATER";
 				yield break;
 			}
 			if (result.status != AngryLeaderboards.GetRecordsStatus.OK)
 			{
-				Debug.LogError($"Status error while getting all records. message: {result.message}, status: {result.status}");
+				Plugin.logger.LogError($"Status error while getting all records. message: {result.message}, status: {result.status}");
 				
 				switch (result.status)
 				{
@@ -98,7 +98,7 @@ namespace AngryLevelLoader.Patches
 			{
 				if (!ulong.TryParse(record.steamId, out ulong steamIdNumeric))
 				{
-					Debug.LogError($"Failed to parse steam id {record.steamId}");
+					Plugin.logger.LogError($"Failed to parse steam id {record.steamId}");
 					continue;
 				}
 

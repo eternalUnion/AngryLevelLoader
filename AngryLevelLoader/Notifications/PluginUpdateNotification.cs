@@ -39,7 +39,7 @@ namespace AngryLevelLoader.Notifications
         {
             if (json == null)
             {
-                Debug.LogError("Closed plugin changelog panel because passed json is null");
+                Plugin.logger.LogError("Closed plugin changelog panel because passed json is null");
                 Close();
                 return;
             }
