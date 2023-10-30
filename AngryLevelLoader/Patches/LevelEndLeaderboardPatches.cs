@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SocialPlatforms.Impl;
+using System.Linq;
 
 namespace AngryLevelLoader.Patches
 {
@@ -37,10 +39,23 @@ namespace AngryLevelLoader.Patches
 		{
 			instance.ResetEntries();
 			Text loadingText = instance.loadingPanel.gameObject.GetComponent<Text>();
-			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 			instance.container.gameObject.SetActive(false);
 			instance.loadingPanel.SetActive(true);
 			instance.leaderboardType.text = (instance.displayPRank ? "P RANK" : "ANY RANK");
+
+			while (AngryLeaderboards.postRecordTasks.Count != 0)
+			{
+				loadingText.text = "POSTING RECORD";
+				Task postRecordTask = AngryLeaderboards.postRecordTasks.Where(task => !task.IsCompleted).FirstOrDefault();
+
+				if (postRecordTask == null)
+					break;
+
+				while (!postRecordTask.IsCompleted)
+					yield return null;
+			}
+
+			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 
 			AngryLeaderboards.RecordDifficulty difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
 
@@ -102,8 +117,9 @@ namespace AngryLevelLoader.Patches
 					continue;
 				}
 
-				int minutes = (int)record.time / 60;
-				instance.templateTime.text = string.Format("{0}:{1:00.000}", minutes, record.time - minutes * 60);
+				int minutes = record.time / 60000;
+				float seconds = (float)(record.time - minutes * 60000) / 1000f;
+				instance.templateTime.text = string.Format("{0}:{1:00.000}", minutes, seconds);
 
 				Text text = instance.templateUsername;
 				text.text = "<unknown>";

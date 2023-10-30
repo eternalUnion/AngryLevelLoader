@@ -26,6 +26,21 @@ namespace AngryLevelLoader.Managers.BannedMods
 	{
 		public const string HYDRA_LIB_GUID = "Hydraxous.HydraDynamics";
 
+		// This is the local banned mods list. It should normally be fetched from angry server
+		// In case the server is offline, this list will be used as a fallback
+		public static readonly string[] LOCAL_BANNED_MODS_LIST = new string[]
+		{
+			AtlasWeaponsSoftBan.PLUGIN_GUID,
+			DualWieldPunchesSoftBan.PLUGIN_GUID,
+			FasterPunchSoftBan.PLUGIN_GUID,
+			MovementPlusSoftBan.PLUGIN_GUID,
+			UltraCoinsSoftBan.PLUGIN_GUID,
+			UltraFunGunsSoftBan.PLUGIN_GUID,
+			UltrapainSoftBan.PLUGIN_GUID,
+			UltraTweakerSoftBan.PLUGIN_GUID,
+			HeavenOrHellSoftBan.PLUGIN_GUID,
+		};
+
 		public static Dictionary<string, Func<SoftBanCheckResult>> checkers = new Dictionary<string, Func<SoftBanCheckResult>>();
 		public static Dictionary<string, string> guidToName = new Dictionary<string, string>()
 		{
@@ -36,7 +51,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			{ UltraCoinsSoftBan.PLUGIN_GUID, "UltraCoins" },
 			{ UltraFunGunsSoftBan.PLUGIN_GUID, "UltraFunGuns" },
 			{ UltrapainSoftBan.PLUGIN_GUID, "UltraPain" },
-			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" }
+			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" },
+			{ HeavenOrHellSoftBan.PLUGIN_GUID, "HeavenOrHell" },
 		};
 
 		public static void Init()
@@ -88,29 +104,12 @@ namespace AngryLevelLoader.Managers.BannedMods
 				Plugin.logger.LogInfo("Detected AtlasLib, adding soft ban check for leaderboards");
 				checkers.Add(AtlasWeaponsSoftBan.PLUGIN_GUID, AtlasWeaponsSoftBan.Check);
 			}
-		}
 
-		public static List<SoftBanCheckResult> CheckBans()
-		{
-			List<SoftBanCheckResult> bans = new List<SoftBanCheckResult>();
-
-			foreach (var checker in checkers)
+			if (HeavenOrHellSoftBan.HeavenOrHellLoaded)
 			{
-				try
-				{
-					SoftBanCheckResult res = checker.Value();
-
-					if (res.banned)
-						bans.Add(res);
-				}
-				catch (Exception e)
-				{
-					Plugin.logger.LogError($"Exception thrown while checking for soft ban for {guidToName[checker.Key]}\n{e}");
-					bans.Add(new SoftBanCheckResult(true, $"Encountered an error while checking for {guidToName[checker.Key]}"));
-				}
+				Plugin.logger.LogInfo("Detected HeavenOrHell, adding soft ban check for leaderboards");
+				checkers.Add(HeavenOrHellSoftBan.PLUGIN_GUID, HeavenOrHellSoftBan.Check);
 			}
-
-			return bans;
 		}
 	}
 }

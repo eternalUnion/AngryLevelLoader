@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Managers;
+using AngryLevelLoader.Managers.ServerManager;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
@@ -196,6 +197,22 @@ namespace AngryLevelLoader.Patches
 
 				AngrySceneManager.currentBundleContainer.RecalculateFinalRank();
 				AngrySceneManager.currentLevelContainer.UpdateUI();
+			}
+
+			// Send record
+			AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
+			record.category = AngryLeaderboards.RecordCategory.ALL;
+			record.difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
+			record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+			record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
+			record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
+			record.time = (int)(__instance.seconds * 1000);
+			AngryLeaderboards.TryPostRecordTask(record);
+
+			if (__instance.rankScore == 12)
+			{
+				record.category = AngryLeaderboards.RecordCategory.PRANK;
+				AngryLeaderboards.TryPostRecordTask(record);
 			}
 
 			// Set challenge text

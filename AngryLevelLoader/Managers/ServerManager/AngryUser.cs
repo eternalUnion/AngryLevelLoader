@@ -52,9 +52,16 @@ namespace AngryLevelLoader.Managers.ServerManager
 		private static Task<TokenGenResult> currentTokenGenTask = null;
 		private static async Task<TokenGenResult> TokenGenTask()
         {
-            try
+			TokenGenResult result = new TokenGenResult();
+
+			try
             {
 				AuthTicket ticketTask = await SteamUser.GetAuthSessionTicketAsync();
+                if (ticketTask == null)
+                {
+                    result.networkError = true;
+                    return result;
+                }
 
                 static string ByteArrayToString(byte[] ba)
                 {
@@ -69,8 +76,6 @@ namespace AngryLevelLoader.Managers.ServerManager
                 UnityWebRequest tokenReq = new UnityWebRequest(AngryPaths.SERVER_ROOT + $"/user/tokengen?ticket={ticket}");
                 tokenReq.downloadHandler = new DownloadHandlerBuffer();
                 await tokenReq.SendWebRequest();
-
-                TokenGenResult result = new TokenGenResult();
 
 				if (tokenReq.isNetworkError)
                 {
@@ -95,6 +100,12 @@ namespace AngryLevelLoader.Managers.ServerManager
                 }
                 return result;
             }
+            catch (Exception e)
+            {
+                Plugin.logger.LogError($"Failed to obtain user token\n{e}");
+                result.networkError = true;
+				return result;
+			}
             finally
             {
                 currentTokenGenTask = null;

@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 		// This mod has no configuration
 		public static SoftBanCheckResult Check()
 		{
-			return new SoftBanCheckResult(true, "Dual wield punches is banned");
+			return new SoftBanCheckResult(true, "This mod is not allowed in the leaderboards, unload to be able to post records");
 		}
 	}
 }

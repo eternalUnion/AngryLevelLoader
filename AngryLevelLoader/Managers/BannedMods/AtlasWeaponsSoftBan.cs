@@ -27,7 +27,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 
 					if (!string.IsNullOrEmpty(result.message))
 						result.message += '\n';
-					result.message += $"Atlast lib weapon {weapon.Pref()} is banned";
+					result.message += $"- Gun {weapon.Pref()} is banned, unequip to be able to post records";
 				}
 			}
 

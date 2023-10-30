@@ -31,6 +31,9 @@ using AngryUiComponents;
 using Unity.Audio;
 using BepInEx.Logging;
 using AngryLevelLoader.Managers.BannedMods;
+using Newtonsoft.Json;
+using System.Threading.Tasks;
+using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 
 namespace AngryLevelLoader
 {
@@ -80,6 +83,7 @@ namespace AngryLevelLoader
 		public static StringField lastVersion;
 		public static BoolField ignoreUpdates;
 		public static StringField configDataPath;
+		public static StringField pendingRecordsField;
 
 		public static bool ultrapainLoaded = false;
 		public static bool heavenOrHellLoaded = false;
@@ -347,6 +351,12 @@ namespace AngryLevelLoader
 		public static BoolField newLevelToggle;
         public static ConfigHeader errorText;
 		public static ConfigDivision bundleDivision;
+		public static ConfigPanel bannedModsPanel;
+		public static ConfigHeader bannedModsText;
+		public static ConfigPanel pendingRecords;
+		public static ButtonField sendPendingRecords;
+		public static ConfigHeader pendingRecordsStatus;
+		public static ConfigHeader pendingRecordsInfo;
 
 		// Settings panel
 		public static ButtonField changelog;
@@ -674,6 +684,18 @@ namespace AngryLevelLoader
 				newLevelNotifier.hidden = true;
 			};
 			OnlineLevelsManager.Init();
+			bannedModsPanel = new ConfigPanel(config.rootPanel, "Leaderboard banned mods", "bannedModsPanel", ConfigPanel.PanelFieldType.StandardWithIcon);
+			bannedModsPanel.SetIconWithURL("file://" + Path.Combine(workingDir, "banned-mods-icon.png"));
+			bannedModsPanel.hidden = true;
+			bannedModsText = new ConfigHeader(bannedModsPanel, "", 24, TextAnchor.MiddleLeft);
+			pendingRecords = new ConfigPanel(config.rootPanel, "Pending records", "pendingRecords", ConfigPanel.PanelFieldType.StandardWithIcon);
+			pendingRecords.SetIconWithURL("file://" + Path.Combine(workingDir, "pending.png"));
+			sendPendingRecords = new ButtonField(pendingRecords, "Send Pending Records", "sendPendingRecordsButton");
+			sendPendingRecords.onClick += ProcessPendingRecords;
+			pendingRecordsStatus = new ConfigHeader(pendingRecords, "", 20, TextAnchor.MiddleLeft);
+			new ConfigSpace(pendingRecords, 5f);
+			pendingRecordsInfo = new ConfigHeader(pendingRecords, "", 18, TextAnchor.MiddleLeft);
+			UpdatePendingRecordsUI();
 
 			difficultySelect = new StringListField(internalConfig.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
 			new ConfigBridge(difficultySelect, config.rootPanel);
@@ -980,6 +1002,278 @@ namespace AngryLevelLoader
 			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
 		}
 
+		#region Leaderboards
+		public static void CheckForBannedMods()
+		{
+			if (!AngryLeaderboards.bannedModsListLoaded)
+				return;
+
+			bool bannedModsFound = false;
+			bannedModsText.text = "";
+
+			string[] bannedModsList = AngryLeaderboards.bannedMods;
+			if (bannedModsList == null)
+			{
+				logger.LogWarning("Banned mods list cannot be fetched from angry servers, using the local list");
+				bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
+			}
+
+			foreach (string plugin in Chainloader.PluginInfos.Keys)
+			{
+				if (Array.IndexOf(bannedModsList, plugin) == -1)
+					continue;
+
+				if (!BannedModsManager.guidToName.TryGetValue(plugin, out string realName))
+					realName = plugin;
+
+				// First, check for a soft ban checker
+				if (BannedModsManager.checkers.TryGetValue(plugin, out Func<SoftBanCheckResult> checker))
+				{
+					try
+					{
+						var result = checker();
+
+						if (result.banned)
+						{
+							if (!string.IsNullOrEmpty(bannedModsText.text))
+								bannedModsText.text += '\n';
+
+							bannedModsText.text += $"<color=red>{realName}</color>\n<size=18>{result.message}</size>\n\n";
+							bannedModsFound = true;
+						}
+					}
+					catch (Exception e)
+					{
+						logger.LogError($"Exception thrown while checking for soft ban for {realName}\n{e}");
+
+						if (!string.IsNullOrEmpty(bannedModsText.text))
+							bannedModsText.text += '\n';
+
+						bannedModsText.text += $"<color=red>{realName}</color>\n<size=18>- Encountered an error while checking for the soft ban status, check console</size>\n\n";
+						bannedModsFound = true;
+					}
+				}
+				// Failsafe: assume banned
+				else
+				{
+					if (!string.IsNullOrEmpty(bannedModsText.text))
+						bannedModsText.text += '\n';
+
+					bannedModsText.text += $"<color=red>{realName}</color>\n<size=18>- Could not find a soft ban check for this mod. Is angry up to date?</size>\n\n";
+					bannedModsFound = true;
+				}
+			}
+		
+			bannedModsPanel.hidden = !bannedModsFound;
+		}
+
+		private class RecordInfoJsonWrapper
+		{
+			public string category { get; set; }
+			public string difficulty { get; set; }
+			public string bundleGuid { get; set; }
+			public string hash { get; set; }
+			public string levelId { get; set; }
+			public int time { get; set; }
+
+			public RecordInfoJsonWrapper() { }
+
+			public RecordInfoJsonWrapper(AngryLeaderboards.PostRecordInfo record)
+			{
+				category = AngryLeaderboards.RECORD_CATEGORY_DICT[record.category];
+				difficulty = AngryLeaderboards.RECORD_DIFFICULTY_DICT[record.difficulty];
+				bundleGuid = record.bundleGuid;
+				hash = record.hash;
+				levelId = record.levelId;
+				time = record.time;
+			}
+
+			public bool TryParseRecordInfo(out AngryLeaderboards.PostRecordInfo record)
+			{
+				record = new AngryLeaderboards.PostRecordInfo();
+
+				record.category = AngryLeaderboards.RECORD_CATEGORY_DICT.FirstOrDefault(i => i.Value == category).Key;
+				if (AngryLeaderboards.RECORD_CATEGORY_DICT[record.category] != category)
+					return false;
+
+				record.difficulty = AngryLeaderboards.RECORD_DIFFICULTY_DICT.FirstOrDefault(i => i.Value == difficulty).Key;
+				if (AngryLeaderboards.RECORD_DIFFICULTY_DICT[record.difficulty] != difficulty)
+					return false;
+
+				record.bundleGuid = bundleGuid;
+				record.hash = hash;
+				record.levelId = levelId;
+				record.time = time;
+				return true;
+			}
+		}
+
+		internal static void AddPendingRecord(AngryLeaderboards.PostRecordInfo record, bool recursiveCall = false)
+		{
+			if (pendingRecordsTask != null && !pendingRecordsTask.IsCompleted && !recursiveCall)
+			{
+				pendingRecordsTask.ContinueWith((task) => AddPendingRecord(record, recursiveCall: true), TaskScheduler.FromCurrentSynchronizationContext());
+				return;
+			}
+
+			List<RecordInfoJsonWrapper> pendingRecordsList;
+			try
+			{
+				pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(pendingRecordsField.value);
+				if (pendingRecordsList == null)
+					pendingRecordsList = new List<RecordInfoJsonWrapper>();
+			}
+			catch (Exception ex)
+			{
+				logger.LogError($"Caught exception while trying to deserialize pending records\n{ex}");
+				pendingRecordsField.value = "[]";
+				pendingRecordsList = new List<RecordInfoJsonWrapper>();
+			}
+
+			pendingRecordsList.Add(new RecordInfoJsonWrapper(record));
+			pendingRecordsField.value = JsonConvert.SerializeObject(pendingRecordsList);
+			UpdatePendingRecordsUI();
+		}
+
+		internal static void UpdatePendingRecordsUI()
+		{
+			try
+			{
+				List<RecordInfoJsonWrapper> pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(pendingRecordsField.value);
+				if (pendingRecordsList == null)
+					pendingRecordsList = new List<RecordInfoJsonWrapper>();
+
+				pendingRecords.hidden = pendingRecordsList.Count == 0;
+				pendingRecordsInfo.text = "";
+
+				foreach (var record in pendingRecordsList)
+				{
+					string bundleName = record.bundleGuid;
+					string levelName = record.levelId;
+					
+					var bundle = GetAngryBundleByGuid(bundleName);
+					if (bundle != null)
+						bundleName = bundle.bundleData.bundleName;
+
+					var level = GetLevel(levelName);
+					if (level != null)
+						levelName = level.data.levelName;
+
+					pendingRecordsInfo.text += $"Bundle: <color=grey>{bundleName}</color>\nLevel: <color=grey>{levelName}</color>\nCategory: <color=grey>{record.category}</color>\nDifficulty: <color=grey>{record.difficulty}</color>\nTime: <color=grey>{record.time}</color>\n\n\n";
+				}
+			}
+			catch (Exception ex)
+			{
+				logger.LogError($"Caught exception while trying to deserialize pending records\n{ex}");
+				pendingRecordsField.value = "[]";
+				pendingRecords.hidden = true;
+			}
+		}
+
+		private static Task pendingRecordsTask = null;
+		private static async Task ProcessPendingRecordsTask()
+		{
+			pendingRecordsStatus.text = "";
+
+			List<RecordInfoJsonWrapper> pendingRecordsList;
+			try
+			{
+				pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(pendingRecordsField.value);
+				if (pendingRecordsList == null)
+					pendingRecordsList = new List<RecordInfoJsonWrapper>();
+			}
+			catch (Exception ex)
+			{
+				pendingRecordsStatus.text = $"<color=red>Exception thrown while deserializing pending records, discarding\n\n{ex}</color>";
+				pendingRecordsField.value = "[]";
+				UpdatePendingRecordsUI();
+				return;
+			}
+
+			List<RecordInfoJsonWrapper> failedToSend = new List<RecordInfoJsonWrapper>();
+			foreach (var record in pendingRecordsList)
+			{
+				string bundleName = record.bundleGuid;
+				string levelName = record.levelId;
+
+				var bundle = GetAngryBundleByGuid(bundleName);
+				if (bundle != null)
+					bundleName = bundle.bundleData.bundleName;
+
+				var level = GetLevel(levelName);
+				if (level != null)
+					levelName = level.data.levelName;
+
+				if (!record.TryParseRecordInfo(out AngryLeaderboards.PostRecordInfo parsedRecord))
+				{
+					pendingRecordsStatus.text += $"<color=red>Failed to parse record info for level {levelName} in bundle {bundleName}. Discarded.</color>\n\n";
+					continue;
+				}
+
+				pendingRecordsStatus.text += $"Posting record for level <color=grey>{levelName}</color> in bundle <color=grey>{bundleName}</color>...\n";
+
+				var postResult = await PostRecordTask(parsedRecord.category, parsedRecord.difficulty, parsedRecord.bundleGuid, parsedRecord.hash, parsedRecord.levelId, parsedRecord.time);
+				if (postResult.completedSuccessfully)
+				{
+					if (postResult.status == PostRecordStatus.OK)
+					{
+						pendingRecordsStatus.text += $"<color=lime>Record posted successfully!</color> Ranking: #{postResult.response.ranking}, New Best: {postResult.response.newBest}\n\n";
+					}
+					else
+					{
+						switch (postResult.status)
+						{
+							case PostRecordStatus.BANNED:
+								pendingRecordsStatus.text += "<color=red>User banned from the leaderboards. Discarded.</color>\n\n";
+								break;
+
+							case PostRecordStatus.INVALID_BUNDLE:
+							case PostRecordStatus.INVALID_ID:
+								pendingRecordsStatus.text += "<color=red>Level's leaderboards are not enabled. Discarded.</color>\n\n";
+								break;
+
+							case PostRecordStatus.RATE_LIMITED:
+								pendingRecordsStatus.text += "<color=red>Too many requests sent. Returning record to the pending list</color>\n\n";
+								failedToSend.Add(record);
+								break;
+
+							case PostRecordStatus.INVALID_HASH:
+								pendingRecordsStatus.text += "<color=red>Record bundle version is not up to date with the leaderboard. Discarded.</color>\n\n";
+								break;
+
+							case PostRecordStatus.INVALID_TIME:
+								pendingRecordsStatus.text += $"<color=red>Angry server rejected the sent time {record.time}. Discarded.</color>\n\n";
+								break;
+
+							default:
+								pendingRecordsStatus.text += $"<color=red>Encountered an unknown error while posting record. Status: {postResult.status}, Message: '{postResult.message}'. Returning record to the pending list</color>\n\n";
+								failedToSend.Add(record);
+								break;
+						}
+					}
+				}
+				else
+				{
+					pendingRecordsStatus.text += $"<color=red>Encountered a network error while posting record. Returning record to the pending list</color>\n\n";
+					failedToSend.Add(record);
+				}
+			}
+
+			pendingRecordsStatus.text += $"<color=lime>Done!</color>";
+			pendingRecordsField.value = JsonConvert.SerializeObject(failedToSend);
+			UpdatePendingRecordsUI();
+		}
+
+		internal static void ProcessPendingRecords()
+		{
+			if (pendingRecordsTask != null && !pendingRecordsTask.IsCompleted)
+				return;
+
+			sendPendingRecords.interactable = false;
+			pendingRecordsTask = ProcessPendingRecordsTask().ContinueWith((task) => sendPendingRecords.interactable = true, TaskScheduler.FromCurrentSynchronizationContext());
+		}
+		#endregion
+
 		private void Awake()
 		{
 			// Plugin startup logic
@@ -995,12 +1289,13 @@ namespace AngryLevelLoader
 			internalConfig.presetButtonHidden = true;
 			internalConfig.presetButtonInteractable = false;
 
-            lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true);
-            ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false);
-			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"));
+            lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true, true, false);
+            ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
+			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
+			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
 
 			// Setup variable dependent paths
-            workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 			dataPath = configDataPath.value;
 			IOUtils.TryCreateDirectory(dataPath);
 			levelsPath = Path.Combine(dataPath, "Levels");
@@ -1071,6 +1366,14 @@ namespace AngryLevelLoader
 			}
 
 			InitializeConfig();
+			config.rootPanel.onPannelOpenEvent += (externally) =>
+			{
+				if (AngryLeaderboards.bannedModsListLoaded)
+					CheckForBannedMods();
+				else
+					AngryLeaderboards.LoadBannedModsList();
+			};
+			AngryLeaderboards.LoadBannedModsList();
 
 			// TODO: Investigate further on this issue:
 			//

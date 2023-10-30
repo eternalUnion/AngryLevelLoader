@@ -29,7 +29,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 
 						if (!string.IsNullOrEmpty(result.message))
 							result.message += '\n';
-						result.message += $"UltraFunGun {node.weaponKey} is banned";	
+						result.message += $"- Gun {node.weaponKey} is banned, unequip to be able to post records";	
 					}
 				}
 			}

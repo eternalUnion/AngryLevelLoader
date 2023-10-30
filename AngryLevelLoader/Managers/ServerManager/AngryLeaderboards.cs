@@ -1,4 +1,7 @@
-﻿using BepInEx;
+﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers.BannedMods;
+using BepInEx;
+using BepInEx.Bootstrap;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -6,12 +9,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace AngryLevelLoader.Managers.ServerManager
 {
 	public static class AngryLeaderboards
 	{
+		#region Structs
 		public const string RECORD_CATEGORY_ALL = "all";
 		public const string RECORD_CATEGORY_PRANK = "prank";
 		public enum RecordCategory
@@ -62,7 +67,189 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class RecordInfo
 		{
 			public string steamId { get; set; }
-			public float time { get; set; }
+			public int time { get; set; }
+		}
+		#endregion
+		
+		public static string[] bannedMods = null;
+		public static bool bannedModsListLoaded = false;
+
+		private static Task<GetBannedModsResult> loadBannedModsTask = null;
+		public static bool loadingBannedModsList
+		{
+			get => loadBannedModsTask != null && !loadBannedModsTask.IsCompleted;
+		}
+
+		public static void LoadBannedModsList()
+		{
+			if (bannedModsListLoaded || loadingBannedModsList)
+				return;
+
+			loadBannedModsTask = GetBannedModsTask();
+			loadBannedModsTask.ContinueWith((task) =>
+			{
+				var result = task.Result;
+
+				if (result.status == GetBannedModsStatus.OK)
+				{
+					bannedModsListLoaded = true;
+					bannedMods = result.response.mods;
+				}
+
+				Plugin.CheckForBannedMods();
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+		}
+
+		public struct PostRecordInfo
+		{
+			public RecordCategory category;
+			public RecordDifficulty difficulty;
+			public string bundleGuid;
+			public string hash;
+			public string levelId;
+			public int time;
+		}
+		public static List<Task> postRecordTasks = new List<Task>();
+
+		private static async Task TryPostRecordInternalTask(PostRecordInfo info)
+		{
+			// Cheats + major assists check
+			if (!GameStateManager.CanSubmitScores)
+			{
+				Plugin.logger.LogWarning("Angry did not post the record because cheats or major assists were used");
+				return;
+			}
+
+			// Difficulty range
+			int difficulty = PrefsManager.Instance.GetInt("difficulty", -1);
+			if (difficulty < 0 || difficulty > 3)
+			{
+				Plugin.logger.LogWarning("Angry did not post the record because current difficulty is not valid");
+				return;
+			}
+
+			// Leaderboard banned mods
+			string[] bannedModsList = bannedMods;
+			if (!bannedModsListLoaded)
+			{
+				if (!loadingBannedModsList)
+					LoadBannedModsList();
+				await loadBannedModsTask;
+
+				if (!bannedModsListLoaded)
+				{
+					Plugin.logger.LogWarning("Banned mods list could not be loaded, using the local list");
+					bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
+				}
+			}
+
+			bool bannedModsFound = false;
+			foreach (string plugin in Chainloader.PluginInfos.Keys)
+			{
+				if (Array.IndexOf(bannedModsList, plugin) == -1)
+					continue;
+
+				if (!BannedModsManager.guidToName.TryGetValue(plugin, out string realName))
+					realName = plugin;
+
+				// First, check for a soft ban checker
+				if (BannedModsManager.checkers.TryGetValue(plugin, out Func<SoftBanCheckResult> checker))
+				{
+					try
+					{
+						var result = checker();
+
+						if (result.banned)
+						{
+							Plugin.logger.LogWarning($"Banned mod found: {realName}\n{result.message}");
+							bannedModsFound = true;
+						}
+					}
+					catch (Exception e)
+					{
+						Plugin.logger.LogError($"Exception thrown while checking for soft ban for {realName}\n{e}");
+						bannedModsFound = true;
+					}
+				}
+				// Failsafe: assume banned
+				else
+				{
+					Plugin.logger.LogWarning($"Mod {realName} has no checker. Assumed to be banned. Is your angry up to date?");
+					bannedModsFound = true;
+				}
+			}
+
+			if (bannedModsFound)
+			{
+				Plugin.logger.LogWarning("Angry did not post the record because there were banned mods found");
+				return;
+			}
+
+			Plugin.logger.LogInfo("Environment safe to send record. Posting to angry servers...");
+
+			var postResult = await PostRecordTask(info.category, info.difficulty, info.bundleGuid, info.hash, info.levelId, info.time);
+
+			if (postResult.completedSuccessfully)
+			{
+				if (postResult.status == PostRecordStatus.OK)
+				{
+					Plugin.logger.LogInfo($"Record posted successfully! Ranking: {postResult.response.ranking}, New Best: {postResult.response.newBest}");
+				}
+				else
+				{
+					switch (postResult.status)
+					{
+						case PostRecordStatus.BANNED:
+							Plugin.logger.LogError("User banned from the leaderboards");
+							break;
+
+						case PostRecordStatus.INVALID_BUNDLE:
+						case PostRecordStatus.INVALID_ID:
+							Plugin.logger.LogWarning("Level's leaderboards were not enabled");
+							break;
+
+						case PostRecordStatus.RATE_LIMITED:
+							Plugin.logger.LogWarning("Too many requests sent. Adding record to the pending list");
+							Plugin.AddPendingRecord(info);
+							break;
+
+						case PostRecordStatus.INVALID_HASH:
+							Plugin.logger.LogWarning("Current bundle version is not up to date with the leaderboard");
+							break;
+
+						case PostRecordStatus.INVALID_TIME:
+							Plugin.logger.LogWarning($"Angry server rejected the sent time {info.time}");
+							break;
+
+						default:
+							Plugin.logger.LogWarning($"Encountered an unknown error while posting record. Status: {postResult.status}, Message: '{postResult.message}'. Adding record to the pending list");
+							Plugin.AddPendingRecord(info);
+							break;
+					}
+				}
+			}
+			else
+			{
+				Plugin.logger.LogWarning($"Encountered a network error while posting record. Adding to the pending list");
+				Plugin.AddPendingRecord(info);
+			}
+		}
+
+		public static Task TryPostRecordTask(PostRecordInfo info)
+		{
+			Task postRecordTask = TryPostRecordInternalTask(info);
+			postRecordTasks.Add(postRecordTask);
+			postRecordTask.ContinueWith((task) =>
+			{
+				if (task.Exception != null)
+				{
+					Plugin.logger.LogError($"Post record task threw an exception\n{task.Exception}");
+				}
+
+				postRecordTasks.Remove(task);
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+
+			return postRecordTask;
 		}
 
 		#region Get Records
@@ -145,7 +332,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 		}
 
-		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, float time, CancellationToken cancellationToken = default)
+		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, int time, CancellationToken cancellationToken = default)
 		{
 			PostRecordResult result = new PostRecordResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/postRecord?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&hash={hash}&levelId={levelId}&time={time}";
@@ -181,7 +368,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class GetUserRecordResponse : AngryResponse
 		{
 			public int ranking { get; set; }
-			public float time { get; set; }
+			public int time { get; set; }
 		}
 
 		public class GetUserRecordResult : AngryResult<GetUserRecordResponse, GetUserRecordStatus>
@@ -225,7 +412,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class UserRecord
 		{
 			public string steamId { get; set; }
-			public float time { get; set; }
+			public int time { get; set; }
 			public int globalRank { get; set; }
 		}
 
@@ -309,6 +496,37 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public static Task<CheckForBannedModsResult> CheckForBannedModsTask(CancellationToken cancellationToken = default)
 		{
 			return CheckForBannedModsTask(BepInEx.Bootstrap.Chainloader.PluginInfos.Keys, cancellationToken);
+		}
+		#endregion
+
+		#region Get Banned Mods
+		public enum GetBannedModsStatus
+		{
+			FAILED = -2,
+			OK = 0
+		}
+
+		public class GetBannedModsResponse : AngryResponse
+		{
+			public string[] mods;
+		}
+
+		public class GetBannedModsResult : AngryResult<GetBannedModsResponse, GetBannedModsStatus>
+		{
+
+		}
+
+		public static async Task<GetBannedModsResult> GetBannedModsTask(CancellationToken cancellationToken = default)
+		{
+			GetBannedModsResult result = new GetBannedModsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getBannedMods";
+
+			await AngryRequest.MakeRequest(url, result, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetBannedModsStatus.FAILED;
+			return result;
 		}
 		#endregion
 	}

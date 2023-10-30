@@ -21,7 +21,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 			if (FasterPunch.ConfigManager.StandardEnabled.value)
 			{
 				result.banned = true;
-				result.message = "FasterPunch feedbacker is banned";
+				result.message = "- Fast feedbacker is banned, disable from settings to be able to post records";
 			}
 
 			if (FasterPunch.ConfigManager.HeavyEnabled.value)
@@ -29,7 +29,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 				result.banned = true;
 				if (!string.IsNullOrEmpty(result.message))
 					result.message += '\n';
-				result.message += "FasterPunch knuckleblaster is banned";
+				result.message += "- Fast knuckleblaster is banned, disable from settings to be able to post records";
 			}
 
 			if (FasterPunch.ConfigManager.HookEnabled.value)
@@ -37,7 +37,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 				result.banned = true;
 				if (!string.IsNullOrEmpty(result.message))
 					result.message += '\n';
-				result.message += "FasterPunch whiplash is banned";
+				result.message += "- Fast whiplash is banned, disable from settings to be able to post records";
 			}
 
 			return result;

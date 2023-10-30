@@ -43,7 +43,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 					{
 						if (!string.IsNullOrEmpty(result.message))
 							result.message += '\n';
-						result.message += $"UltraTweaker tweak {tweak.Key.Name} is banned";
+						result.message += $"- Tweak {tweak.Key.Name} is banned, disable to be able to post records";
 
 						result.banned = true;
 					}

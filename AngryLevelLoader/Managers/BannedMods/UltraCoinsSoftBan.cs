@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 		// Amount of coins is not configurable
 		public static SoftBanCheckResult Check()
 		{
-			return new SoftBanCheckResult(true, "UltraCoins is banned");
+			return new SoftBanCheckResult(true, "This mod is not allowed in the leaderboards, unload to be able to post records");
 		}
 	}
 }
