@@ -2,6 +2,8 @@
 using AngryLevelLoader.Managers;
 using HarmonyLib;
 using RudeLevelScript;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,6 +17,22 @@ namespace AngryLevelLoader.Patches
 		{
 			if (!AngrySceneManager.isInCustomLevel)
 				return true;
+
+			// If level is a secret level, alternative level end screen will be shown, which does not contain a leaderboard
+			// In that case move the leaderboard from ranked end screen to the secret level end screen, and add it to the toAppear list
+			if (__instance.gameObject.GetComponentInChildren<LevelEndLeaderboard>(true) == null)
+			{
+				LevelEndLeaderboard otherFinalRanksLeaderboard = __instance.transform.parent.GetComponentInChildren<LevelEndLeaderboard>(true);
+
+				if (otherFinalRanksLeaderboard != null)
+				{
+					otherFinalRanksLeaderboard.transform.SetParent(__instance.transform);
+
+					List<GameObject> toAppear = __instance.toAppear.ToList();
+					toAppear.Add(otherFinalRanksLeaderboard.gameObject);
+					__instance.toAppear = toAppear.ToArray();
+				}
+			}
 
 			bool secretLevel = __instance.transform.Find("Challenge") == null;
 

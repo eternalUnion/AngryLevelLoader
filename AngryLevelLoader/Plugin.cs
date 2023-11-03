@@ -34,6 +34,7 @@ using AngryLevelLoader.Managers.BannedMods;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
+using AngryLevelLoader.Notifications;
 
 namespace AngryLevelLoader
 {
@@ -46,7 +47,7 @@ namespace AngryLevelLoader
     }
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, "1.8.0")]
+	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	// Soft ban dependencies
@@ -66,6 +67,8 @@ namespace AngryLevelLoader
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.5.1";
 
+		public const string PLUGIN_CONFIG_MIN_VERSION = "1.8.0";
+
 		public static string workingDir;
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
@@ -83,6 +86,10 @@ namespace AngryLevelLoader
 		public static StringField lastVersion;
 		public static BoolField ignoreUpdates;
 		public static StringField configDataPath;
+		public static BoolField leaderboardToggle;
+		public static BoolField askedPermissionForLeaderboards;
+		public static BoolField showLeaderboardOnLevelEnd;
+		public static BoolField showLeaderboardOnSecretLevelEnd;
 		public static StringField pendingRecordsField;
 
 		public static bool ultrapainLoaded = false;
@@ -351,6 +358,7 @@ namespace AngryLevelLoader
 		public static BoolField newLevelToggle;
         public static ConfigHeader errorText;
 		public static ConfigDivision bundleDivision;
+		public static ConfigDivision leaderboardsDivision;
 		public static ConfigPanel bannedModsPanel;
 		public static ConfigHeader bannedModsText;
 		public static ConfigPanel pendingRecords;
@@ -359,7 +367,7 @@ namespace AngryLevelLoader
 		public static ConfigHeader pendingRecordsInfo;
 
 		// Settings panel
-		public static ButtonField changelog;
+		public static ButtonArrayField openButtons;
 		public static KeyCodeField reloadFileKeybind;
 		public enum CustomLevelButtonPosition
 		{
@@ -684,11 +692,13 @@ namespace AngryLevelLoader
 				newLevelNotifier.hidden = true;
 			};
 			OnlineLevelsManager.Init();
-			bannedModsPanel = new ConfigPanel(config.rootPanel, "Leaderboard banned mods", "bannedModsPanel", ConfigPanel.PanelFieldType.StandardWithIcon);
+			leaderboardsDivision = new ConfigDivision(config.rootPanel, "leaderboardsDivision");
+			leaderboardsDivision.hidden = !leaderboardToggle.value;
+			bannedModsPanel = new ConfigPanel(leaderboardsDivision, "Leaderboard banned mods", "bannedModsPanel", ConfigPanel.PanelFieldType.StandardWithIcon);
 			bannedModsPanel.SetIconWithURL("file://" + Path.Combine(workingDir, "banned-mods-icon.png"));
 			bannedModsPanel.hidden = true;
 			bannedModsText = new ConfigHeader(bannedModsPanel, "", 24, TextAnchor.MiddleLeft);
-			pendingRecords = new ConfigPanel(config.rootPanel, "Pending records", "pendingRecords", ConfigPanel.PanelFieldType.StandardWithIcon);
+			pendingRecords = new ConfigPanel(leaderboardsDivision, "Pending records", "pendingRecords", ConfigPanel.PanelFieldType.StandardWithIcon);
 			pendingRecords.SetIconWithURL("file://" + Path.Combine(workingDir, "pending.png"));
 			sendPendingRecords = new ButtonField(pendingRecords, "Send Pending Records", "sendPendingRecordsButton");
 			sendPendingRecords.onClick += ProcessPendingRecords;
@@ -723,12 +733,11 @@ namespace AngryLevelLoader
 			settingsPanel.hidden = true;
 
 			// Settings panel
-			ButtonField openLevels = new ButtonField(settingsPanel, "Open Levels Folder", "openLevelsButton");
-			openLevels.onClick += () => Application.OpenURL(levelsPath);
-			changelog = new ButtonField(settingsPanel, "Changelog", "changelogButton");
-			changelog.onClick += () =>
+			openButtons = new ButtonArrayField(settingsPanel, "settingButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Open Levels Folder", "Changelog" });
+			openButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(levelsPath);
+			openButtons.OnClickEventHandler(1).onClick += () =>
 			{
-				changelog.interactable = false;
+				openButtons.SetButtonInteractable(1, false);
 				_ = PluginUpdateHandler.CheckPluginUpdate();
 			};
 
@@ -738,6 +747,8 @@ namespace AngryLevelLoader
 				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
 					e.canceled = true;
 			};
+
+			new ConfigHeader(settingsPanel, "User Interface") { textColor = new Color(1f, 0.504717f, 0.9454f) };
 
 			customLevelButtonPosition = new EnumField<CustomLevelButtonPosition>(settingsPanel, "Custom level button position", "s_customLevelButtonPosition", CustomLevelButtonPosition.Bottom);
 			customLevelButtonPosition.postValueChangeEvent += (pos) =>
@@ -782,7 +793,9 @@ namespace AngryLevelLoader
 				}
 			};
 
-			customLevelButtonFrameColor = new ColorField(settingsPanel, "Custom level button frame color", "s_customLevelButtonFrameColor", Color.white);
+			ConfigPanel customLevelButtonPanel = new ConfigPanel(settingsPanel, "Custom level button colors", "customLevelButtonPanel");
+
+			customLevelButtonFrameColor = new ColorField(customLevelButtonPanel, "Custom level button frame color", "s_customLevelButtonFrameColor", Color.white);
 			customLevelButtonFrameColor.postValueChangeEvent += (clr) =>
 			{
 				if (currentCustomLevelButton == null)
@@ -800,7 +813,7 @@ namespace AngryLevelLoader
 				currentCustomLevelButton.button.colors = block;
 			};
 
-			customLevelButtonBackgroundColor = new ColorField(settingsPanel, "Custom level button background color", "s_customLevelButtonBgColor", Color.black);
+			customLevelButtonBackgroundColor = new ColorField(customLevelButtonPanel, "Custom level button background color", "s_customLevelButtonBgColor", Color.black);
 			customLevelButtonBackgroundColor.postValueChangeEvent += (clr) =>
 			{
 				if (currentCustomLevelButton == null)
@@ -809,7 +822,7 @@ namespace AngryLevelLoader
 				currentCustomLevelButton.background.color = clr;
 			};
 
-			customLevelButtonTextColor = new ColorField(settingsPanel, "Custom level button text color", "s_customLevelButtonTextColor", Color.white);
+			customLevelButtonTextColor = new ColorField(customLevelButtonPanel, "Custom level button text color", "s_customLevelButtonTextColor", Color.white);
 			customLevelButtonTextColor.postValueChangeEvent += (clr) =>
 			{
 				if (currentCustomLevelButton == null)
@@ -825,8 +838,12 @@ namespace AngryLevelLoader
 				SortBundles();
 			};
 
-			new ConfigHeader(settingsPanel, "Online");
-			new ConfigHeader(settingsPanel, "Online level catalog and thumbnails are cached, if there are no updates only 64 bytes of data is downloaded per refresh", 12, TextAnchor.UpperLeft);
+			new ConfigHeader(settingsPanel, "Leaderboards") { textColor = new Color(1f, 0.692924f, 0.291f) };
+			new ConfigBridge(leaderboardToggle, settingsPanel);
+			showLeaderboardOnLevelEnd = new BoolField(settingsPanel, "Show leaderboard on level end", "showLeaderboardOnLevelEnd", true);
+			showLeaderboardOnSecretLevelEnd = new BoolField(settingsPanel, "Show leaderboard on secret level end", "showLeaderboardOnSecretLevelEnd", true);
+
+			new ConfigHeader(settingsPanel, "Online") { textColor = new Color(0.532f, 0.8284001f, 1f) };
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
 			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
 			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
@@ -856,7 +873,7 @@ namespace AngryLevelLoader
 				if (!e.value)
 					newLevelNotifier.hidden = true;
 			};
-			new ConfigHeader(settingsPanel, "Scripts");
+			new ConfigHeader(settingsPanel, "Scripts") { textColor = new Color(0.6248745f, 1f, 0.617f) };
 			scriptUpdateIgnoreCustom = new BoolField(settingsPanel, "Ignore updates for custom builds", "s_scriptUpdateIgnoreCustom", false);
 			scriptCertificateIgnoreField = new StringMultilineField(settingsPanel, "Certificate ignore", "s_scriptCertificateIgnore", "", true);
 			scriptCertificateIgnore = scriptCertificateIgnoreField.value.Split('\n').ToList();
@@ -1274,12 +1291,44 @@ namespace AngryLevelLoader
 		}
 		#endregion
 
+		private void DisplayPluginConfigVersionError()
+		{
+			var errorConfig = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
+			errorConfig.SetIconWithURL("file://" + Path.Combine(workingDir, "plugin-icon.png"));
+			new ConfigHeader(errorConfig.rootPanel, $"<color=red>Plugin config version too low, {PLUGIN_CONFIG_MIN_VERSION} or above needed</color>");
+		}
+
+		// First validate all dependencies are installed and they meet the minimum requirements
 		private void Awake()
 		{
 			// Plugin startup logic
 			instance = this;
 			logger = Logger;
+			workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
+			if (Chainloader.PluginInfos.TryGetValue("com.eternalUnion.pluginConfigurator", out var configuratorInfo))
+			{
+				if (configuratorInfo.Metadata.Version < new Version(PLUGIN_CONFIG_MIN_VERSION))
+				{
+					logger.LogError($"Angry level loader needs Plugin Configurator minimum version {PLUGIN_CONFIG_MIN_VERSION} to work properly. Disabled.");
+					DisplayPluginConfigVersionError();
+
+					enabled = false;
+					return;
+				}
+			}
+			else
+			{
+				logger.LogError($"Angry level loader needs Plugin Configurator minimum version {PLUGIN_CONFIG_MIN_VERSION} to work properly. Disabled.");
+				enabled = false;
+				return;
+			}
+
+			PostAwake();
+		}
+
+		private void PostAwake()
+		{
 			BannedModsManager.Init();
 
 			// Initialize internal config
@@ -1293,9 +1342,25 @@ namespace AngryLevelLoader
             ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
 			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
+			askedPermissionForLeaderboards = new BoolField(internalConfig.rootPanel, "askedPermissionForLeaderboards", "askedPermissionForLeaderboards", false);
+			leaderboardToggle = new BoolField(internalConfig.rootPanel, "Post records to leaderboards", "leaderboardToggle", false);
+			leaderboardToggle.onValueChange += (e =>
+			{
+				if (e.value == true)
+				{
+					e.canceled = true;
+					NotificationPanel.Open(new LeaderboardPermissionNotification());
+				}
+			});
+			leaderboardToggle.postValueChangeEvent += (newVal =>
+			{
+				leaderboardsDivision.hidden = newVal;
+			});
+
+			if (askedPermissionForLeaderboards.value == false)
+				NotificationPanel.Open(new LeaderboardPermissionNotification());
 
 			// Setup variable dependent paths
-			workingDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 			dataPath = configDataPath.value;
 			IOUtils.TryCreateDirectory(dataPath);
 			levelsPath = Path.Combine(dataPath, "Levels");

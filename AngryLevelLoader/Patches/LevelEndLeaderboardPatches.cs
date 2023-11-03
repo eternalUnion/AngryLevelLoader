@@ -25,6 +25,23 @@ namespace AngryLevelLoader.Patches
 			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
+			if (AngrySceneManager.currentLevelData.isSecretLevel)
+			{
+				if (!Plugin.showLeaderboardOnSecretLevelEnd.value)
+				{
+					__instance.gameObject.SetActive(false);
+					return false;
+				}
+			}
+			else
+			{
+				if (!Plugin.showLeaderboardOnLevelEnd.value)
+				{
+					__instance.gameObject.SetActive(false);
+					return false;
+				}
+			}
+
 			// UI setup
 			Text loadingText = __instance.loadingPanel.gameObject.GetComponent<Text>();
 			loadingText.text = "CONNECTING TO\nANGRY SERVER";

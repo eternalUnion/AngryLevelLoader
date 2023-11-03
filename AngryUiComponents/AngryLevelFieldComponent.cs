@@ -30,5 +30,6 @@ namespace AngryUiComponents
 
         public Image levelThumbnail;
         public Button levelButton;
+        public Button leaderboardsButton;
     }
 }

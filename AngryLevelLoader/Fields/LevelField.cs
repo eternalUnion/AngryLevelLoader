@@ -1,6 +1,8 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.Managers;
+using AngryLevelLoader.Notifications;
 using AngryUiComponents;
+using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using RudeLevelScript;
@@ -17,6 +19,7 @@ namespace AngryLevelLoader.Fields
         private const string ASSET_PATH = "AngryLevelLoader/Fields/LevelField.prefab";
 
         private bool inited = false;
+        public AngryBundleContainer bundleContainer;
         public RudeLevelData data;
 
         public float time = 0;
@@ -96,8 +99,9 @@ namespace AngryLevelLoader.Fields
         public delegate void onLevelButtonPressDelegate();
         public event onLevelButtonPressDelegate onLevelButtonPress;
 
-        public LevelField(ConfigPanel panel, RudeLevelData data) : base(panel, 600, 170)
+        public LevelField(ConfigPanel panel, AngryBundleContainer bundleContainer, RudeLevelData data) : base(panel, 600, 170)
         {
+            this.bundleContainer = bundleContainer;
             this.data = data;
 
             inited = true;
@@ -209,6 +213,11 @@ namespace AngryLevelLoader.Fields
 
                 if (onLevelButtonPress != null)
                     onLevelButtonPress.Invoke();
+            });
+
+            currentUi.leaderboardsButton.onClick.AddListener(() =>
+            {
+                NotificationPanel.Open(new LeaderboardNotification(bundleContainer.bundleData.bundleName, data.levelName, bundleContainer.bundleData.bundleGuid, data.uniqueIdentifier));
             });
 
             currentUi.timeText.text = $"{GetTimeStringFromSeconds(time)} {RankUtils.GetFormattedRankText(timeRank)}";

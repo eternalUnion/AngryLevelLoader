@@ -25,7 +25,7 @@ namespace AngryLevelLoader
             {
                 Plugin.logger.LogError("Could not download plugin data");
                 infoReq.Dispose();
-                Plugin.changelog.interactable = true;
+                Plugin.openButtons.SetButtonInteractable(1, true);
                 return;
             }
 
@@ -34,8 +34,8 @@ namespace AngryLevelLoader
             if (startIndex > 0)
                 text = text.Substring(startIndex);
             PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(text);
-            Plugin.changelog.interactable = true;
-            infoReq.Dispose();
+			Plugin.openButtons.SetButtonInteractable(1, true);
+			infoReq.Dispose();
 
             if (!userRequested)
             {

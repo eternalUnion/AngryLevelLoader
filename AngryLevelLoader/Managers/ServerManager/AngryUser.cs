@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using static AngryLevelLoader.Managers.ServerManager.AngryVotes;
 
 namespace AngryLevelLoader.Managers.ServerManager
 {
@@ -161,6 +162,43 @@ namespace AngryLevelLoader.Managers.ServerManager
             if (!result.completedSuccessfully)
                 result.status = UserInfoStatus.FAILED;
             return result;
+		}
+		#endregion
+
+		#region Report
+        public enum ReportStatus
+        {
+            FAILED = -2,
+            RATE_LIMITED = -1,
+            OK = 0,
+
+			INVALID_TOKEN = 1,
+            BANNED = 2,
+            INVALID_TARGET_ID = 3,
+            INVALID_ENTRY = 4,
+		}
+
+        public class ReportResponse : AngryResponse
+        {
+            public bool alreadySent { get; set; }
+		}
+
+        public class ReportResult : AngryResult<ReportResponse, ReportStatus>
+        {
+
+        }
+
+		public static async Task<ReportResult> ReportTask(string category, string difficulty, string bundleGuid, string levelId, string targetId, string reason, CancellationToken cancellationToken = default)
+		{
+			ReportResult result = new ReportResult();
+
+			string url = AngryPaths.SERVER_ROOT + $"/user/report?category={category}&difficulty={difficulty}&bundleGuid={bundleGuid}&levelId={levelId}&targetId={targetId}&reason={reason}";
+			await AngryRequest.MakeRequestWithToken(url, result, ReportStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = ReportStatus.FAILED;
+			return result;
 		}
 		#endregion
 	}

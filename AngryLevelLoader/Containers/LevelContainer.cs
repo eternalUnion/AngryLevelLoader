@@ -94,7 +94,7 @@ namespace AngryLevelLoader.Containers
         {
             this.container = container;
             this.data = data;
-            field = new LevelField(panel, data);
+            field = new LevelField(panel, container, data);
             field.onLevelButtonPress += () =>
             {
                 if (onLevelButtonPress != null)
