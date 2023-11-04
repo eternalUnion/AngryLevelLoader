@@ -47,5 +47,49 @@ namespace AngryLevelLoader.Managers.ServerManager
 			return result;
 		}
 		#endregion
+
+		#region Get All Level Info
+		public enum GetAllLevelInfoStatus
+		{
+			MISSING_KEY = -3,
+			FAILED = -2,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			DECRYPTION_ERROR = 3,
+			VERIFICATION_ERROR = 4,
+		}
+
+		public class BundleLevelInfo
+		{
+			public string bundleGuid { get; set; }
+			public string hash { get; set; }
+			public string[] levels;
+		}
+
+		public class GetAllLevelInfoResponse : AngryResponse
+		{
+			public BundleLevelInfo[] result;
+		}
+
+		public class GetAllLevelInfoResult : AngryResult<GetAllLevelInfoResponse, GetAllLevelInfoStatus>
+		{
+
+		}
+
+		public static async Task<GetAllLevelInfoResult> GetAllLevelInfoTask(CancellationToken cancellationToken = default)
+		{
+			GetAllLevelInfoResult result = new GetAllLevelInfoResult();
+			string url = AngryPaths.SERVER_ROOT + $"/admin/getAllLevels?";
+
+			await AngryRequest.MakeRequestWithAdminToken(url, result, GetAllLevelInfoStatus.INVALID_TOKEN, GetAllLevelInfoStatus.MISSING_KEY, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetAllLevelInfoStatus.FAILED;
+			return result;
+		}
+		#endregion
 	}
 }

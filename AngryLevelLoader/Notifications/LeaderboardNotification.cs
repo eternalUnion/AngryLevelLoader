@@ -32,7 +32,7 @@ namespace AngryLevelLoader.Notifications
 		{
 			private void Update()
 			{
-				transform.Rotate(new Vector3(0, 0, Time.deltaTime * 360f));
+				transform.Rotate(new Vector3(0, 0, Time.unscaledDeltaTime * 360f));
 			}
 		}
 
@@ -282,6 +282,9 @@ namespace AngryLevelLoader.Notifications
 								entry.time.text = MillisecondsToString(page.response.records[i].time);
 
 								ulong steamId = ulong.Parse(page.response.records[i].steamId);
+								if (steamId.ToString() == Steamworks.SteamClient.SteamId.ToString())
+									entry.reportButton.interactable = false;
+
 								if (SteamCacheManager.TryGetUser(steamId, out SteamUserCache cachedUser))
 								{
 									entry.username.text = cachedUser.name;
@@ -403,6 +406,8 @@ namespace AngryLevelLoader.Notifications
 						entry.time.text = MillisecondsToString(friendRecords[realIndex].time);
 
 						ulong steamId = ulong.Parse(friendRecords[realIndex].steamId);
+						if (steamId.ToString() == Steamworks.SteamClient.SteamId.ToString())
+							entry.reportButton.interactable = false;
 						if (SteamCacheManager.TryGetUser(steamId, out SteamUserCache cachedUser))
 						{
 							entry.username.text = $"{cachedUser.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
@@ -437,8 +442,8 @@ namespace AngryLevelLoader.Notifications
 
 		private void ReportButton(string steamId, string username)
 		{
-			//if (steamId == Steamworks.SteamClient.SteamId.ToString())
-			//	return;
+			if (steamId == Steamworks.SteamClient.SteamId.ToString())
+				return;
 
 			currentUi.reportFormToggle.gameObject.SetActive(true);
 			currentUi.reportResultToggle.gameObject.SetActive(false);

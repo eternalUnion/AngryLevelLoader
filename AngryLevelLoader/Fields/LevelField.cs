@@ -160,6 +160,8 @@ namespace AngryLevelLoader.Fields
 
                 currentUi.statContainer.gameObject.SetActive(false);
                 currentUi.challengeContainer.gameObject.SetActive(false);
+
+                currentUi.leaderboardsButton.interactable = false;
             }
             else
             {
@@ -168,7 +170,9 @@ namespace AngryLevelLoader.Fields
                     currentUi.levelThumbnail.sprite = AssetManager.notPlayedPreview;
                 else
                     currentUi.levelThumbnail.sprite = data.levelPreviewImage;
-            }
+
+				currentUi.leaderboardsButton.interactable = true;
+			}
 
             hidden = !discovered && data.hideIfNotPlayed;
         }

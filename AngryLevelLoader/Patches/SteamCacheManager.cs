@@ -51,7 +51,6 @@ namespace AngryLevelLoader.Patches
 
 			SteamId userId = steamId;
 			SteamFriends.RequestUserInformation(userId, true);
-			result.name = new Friend(userId).Name;
 			
 			var profilePicture = await SteamFriends.GetMediumAvatarAsync(userId);
 			if (profilePicture != null)
@@ -65,6 +64,8 @@ namespace AngryLevelLoader.Patches
 			{
 				doCache = false;
 			}
+
+			result.name = new Friend(userId).Name;
 
 			if (doCache)
 				steamUserCacheDict[steamId] = result;

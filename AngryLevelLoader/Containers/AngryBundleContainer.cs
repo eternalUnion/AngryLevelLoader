@@ -321,10 +321,10 @@ namespace AngryLevelLoader.Containers
         /// Reloads the angry file and adds the new scenes
         /// </summary>
         /// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
-        public void UpdateScenes(bool forceReload, bool lazyLoad)
+        public Task UpdateScenes(bool forceReload, bool lazyLoad)
         {
             if (updating)
-                return;
+                return updateTask;
 
 			loadingCircle.hidden = false;
 			sceneDiv.hidden = true;
@@ -337,7 +337,9 @@ namespace AngryLevelLoader.Containers
 				sceneDiv.hidden = false;
 				sceneDiv.interactable = true;
 			}, TaskScheduler.FromCurrentSynchronizationContext());
-        }
+
+            return updateTask;
+		}
 
         // Faster ordering since not all fields are moved, only this one
         public void UpdateOrder()

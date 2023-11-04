@@ -54,7 +54,7 @@ namespace AngryLevelLoader.Fields
         {
             private void Update()
             {
-                transform.Rotate(Vector3.forward, Time.deltaTime * 360f);
+                transform.Rotate(Vector3.forward, Time.unscaledDeltaTime * 360f);
             }
         }
 
