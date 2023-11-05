@@ -150,6 +150,25 @@ namespace AngryLevelLoader.Patches
 			if (!AngrySceneManager.isInCustomLevel)
 				return;
 
+			// Send record
+			if (Plugin.leaderboardToggle.value)
+			{
+				AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
+				record.category = AngryLeaderboards.RecordCategory.ALL;
+				record.difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
+				record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+				record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
+				record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
+				record.time = (int)(__instance.seconds * 1000);
+				AngryLeaderboards.TryPostRecordTask(record);
+
+				if (__instance.rankScore == 12)
+				{
+					record.category = AngryLeaderboards.RecordCategory.PRANK;
+					AngryLeaderboards.TryPostRecordTask(record);
+				}
+			}
+
 			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
 			if (secretLevel)
 			{
@@ -197,25 +216,6 @@ namespace AngryLevelLoader.Patches
 
 				AngrySceneManager.currentBundleContainer.RecalculateFinalRank();
 				AngrySceneManager.currentLevelContainer.UpdateUI();
-			}
-
-			// Send record
-			if (Plugin.leaderboardToggle.value)
-			{
-				AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
-				record.category = AngryLeaderboards.RecordCategory.ALL;
-				record.difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
-				record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
-				record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
-				record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
-				record.time = (int)(__instance.seconds * 1000);
-				AngryLeaderboards.TryPostRecordTask(record);
-
-				if (__instance.rankScore == 12)
-				{
-					record.category = AngryLeaderboards.RecordCategory.PRANK;
-					AngryLeaderboards.TryPostRecordTask(record);
-				}
 			}
 
 			// Set challenge text
