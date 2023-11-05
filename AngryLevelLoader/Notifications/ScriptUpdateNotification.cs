@@ -43,14 +43,14 @@ namespace AngryLevelLoader.Notifications
             public bool downloadError = false;
 
             public Text currentTextComp;
-            public void SetStatusText()
+            public void SetStatusText(bool downloadedFromTask = false)
             {
                 if (currentTextComp == null)
                     return;
 
                 string currentText = scriptName + '\n';
 
-                if (downloading)
+                if (downloading && !downloadedFromTask)
                 {
                     currentText += $"Downloading... {(int)(currentDllRequest.downloadProgress * 100)} %";
                 }
@@ -189,7 +189,7 @@ namespace AngryLevelLoader.Notifications
                     if (caller != null)
                         caller.CheckContinueButtonInteractable();
 
-                    SetStatusText();
+                    SetStatusText(true);
                 }
             }
 
@@ -301,7 +301,9 @@ namespace AngryLevelLoader.Notifications
 
                 if (ui != null)
                     ui.continueButton.interactable = false;
-            });
+
+                CheckContinueButtonInteractable();
+			});
 
             foreach (var field in fields)
             {
