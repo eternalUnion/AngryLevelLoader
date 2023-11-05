@@ -61,11 +61,11 @@ namespace AngryLevelLoader
 	[BepInDependency(AtlasWeaponsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const bool devMode = true;
+		public const bool devMode = false;
 
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.5.1";
+        public const string PLUGIN_VERSION = "2.6.0";
 
 		public const string PLUGIN_CONFIG_MIN_VERSION = "1.8.0";
 
