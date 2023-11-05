@@ -50,14 +50,16 @@ namespace AngryLevelLoader.Notifications
             {
                 Close();
                 Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
-            });
+                Plugin.updateLastVersion.value = json.latestVersion;
+			});
 
             ui.ignoreUpdate.onClick.AddListener(() =>
             {
                 Close();
                 Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
                 Plugin.ignoreUpdates.value = true;
-            });
+				Plugin.updateLastVersion.value = json.latestVersion;
+			});
 
             ui.header.text = "<color=cyan>Changelog</color>";
             if (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion))

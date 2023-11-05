@@ -84,6 +84,7 @@ namespace AngryLevelLoader
 		
 		public static PluginConfigurator internalConfig;
 		public static StringField lastVersion;
+		public static StringField updateLastVersion;
 		public static BoolField ignoreUpdates;
 		public static StringField configDataPath;
 		public static BoolField leaderboardToggle;
@@ -1431,7 +1432,8 @@ namespace AngryLevelLoader
 			internalConfig.presetButtonInteractable = false;
 
             lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true, true, false);
-            ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
+			updateLastVersion = new StringField(internalConfig.rootPanel, "updateLastVersion", "updateLastVersion", "", true, true, false);
+			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
 			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
 			askedPermissionForLeaderboards = new BoolField(internalConfig.rootPanel, "askedPermissionForLeaderboards", "askedPermissionForLeaderboards", false);
