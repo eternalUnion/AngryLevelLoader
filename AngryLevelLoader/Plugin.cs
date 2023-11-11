@@ -396,7 +396,27 @@ namespace AngryLevelLoader
 			LastPlayed
 		}
 		public static EnumField<BundleSorting> bundleSortingMode;
-		
+		public enum DefaultLeaderboardCategory
+		{
+			All,
+			PRank,
+		}
+		public static EnumField<DefaultLeaderboardCategory> defaultLeaderboardCategory;
+		public enum DefaultLeaderboardDifficulty
+		{
+			Harmless,
+			Lenient,
+			Standard,
+			Violent,
+		}
+		public static EnumField<DefaultLeaderboardDifficulty> defaultLeaderboardDifficulty;
+		public enum DefaultLeaderboardFilter
+		{
+			Global,
+			Friends,
+		}
+		public static EnumField<DefaultLeaderboardFilter> defaultLeaderboardFilter;
+
 		// Developer panel
 
 		#endregion
@@ -843,6 +863,11 @@ namespace AngryLevelLoader
 			new ConfigBridge(leaderboardToggle, settingsPanel);
 			showLeaderboardOnLevelEnd = new BoolField(settingsPanel, "Show leaderboard on level end", "showLeaderboardOnLevelEnd", true);
 			showLeaderboardOnSecretLevelEnd = new BoolField(settingsPanel, "Show leaderboard on secret level end", "showLeaderboardOnSecretLevelEnd", true);
+			new SpaceField(settingsPanel, 5);
+			defaultLeaderboardCategory = new EnumField<DefaultLeaderboardCategory>(settingsPanel, "Default leaderboard category", "defaultLeaderboardCategory", DefaultLeaderboardCategory.All);
+			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.PRank, "P Rank");
+			defaultLeaderboardDifficulty = new EnumField<DefaultLeaderboardDifficulty>(settingsPanel, "Default leaderboard difficulty", "defaultLeaderboardDifficulty", DefaultLeaderboardDifficulty.Violent);
+			defaultLeaderboardFilter = new EnumField<DefaultLeaderboardFilter>(settingsPanel, "Default leaderboard filter", "defaultLeaderboardFilter", DefaultLeaderboardFilter.Global);
 
 			new ConfigHeader(settingsPanel, "Online") { textColor = new Color(0.532f, 0.8284001f, 1f) };
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);

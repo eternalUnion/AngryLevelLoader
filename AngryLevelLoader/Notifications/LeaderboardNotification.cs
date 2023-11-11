@@ -75,6 +75,7 @@ namespace AngryLevelLoader.Notifications
 				currentUi.refreshCircle.AddComponent<RefreshCircleSpin>();
 				currentUi.reportLoadCircle.AddComponent<RefreshCircleSpin>();
 
+				currentUi.category.value = (int)Plugin.defaultLeaderboardCategory.value;
 				currentUi.category.onValueChanged.AddListener((index) =>
 				{
 					currentPage = 0;
@@ -84,6 +85,7 @@ namespace AngryLevelLoader.Notifications
 					Reload(true);
 				});
 
+				currentUi.difficulty.value = (int)Plugin.defaultLeaderboardDifficulty.value;
 				currentUi.difficulty.onValueChanged.AddListener((index) =>
 				{
 					currentPage = 0;
@@ -93,6 +95,7 @@ namespace AngryLevelLoader.Notifications
 					Reload(true);
 				});
 
+				currentUi.group.value = (int)Plugin.defaultLeaderboardFilter.value;
 				currentUi.group.onValueChanged.AddListener((index) =>
 				{
 					currentPage = 0;
