@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.6.0",
+  "latestVersion": "2.6.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -56,6 +56,10 @@
     {
       "version": "2.6.0",
       "updateText": "<color=cyan>Features:</color>\n- Added a shortcut in the act select menu, which can be used to set the difficulty and access the main panel easily. The button can be customized in the settings\n    * Compatible with boss rush button\n- Added leaderboards to online levels\n    * Banned mods are checked before posting records\n    * Users can report cheated records and inappropriate user profiles\n    * Only valid steam accounts can post levels and vote bundles\n    * Leaderboards are shown at the end of the level and can be accessed from the level field's leaderboard button\n    * If failed to post the record, angry will store the record internally which can be then sent later on\n- Added votes and vote sorting filter for online level panel\n- Added file observer to track changes in angry files and warn if a level is updated\n- Made force loading async, preventing freezes\n- Grouped settings panel\n- Moved several setting fields to internal config so that they are not affected by the preset changes\n\n<color=red>Bug Fixes:</color>\n- Fixed secret level ending screens having incorrect level name"
+    },
+    {
+      "version": "2.6.1",
+      "updateText": "Bug fixes:\n- Page text no longer covers corners of the page buttons on leaderboards panel\n- Continue button no longer disabled even after all scripts are downloaded\n\nFeatures:\n- Settings for default leaderboard panel category/difficulty/filter\n- Faster steam user caching, resulting in shorter initial leaderboard loading times"
     }
   ]
 }
