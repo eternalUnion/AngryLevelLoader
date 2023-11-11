@@ -275,6 +275,7 @@ namespace AngryLevelLoader.Notifications
 								return;
 							}
 
+							List<Task> toWait = new List<Task>();
 							for (int i = 0; i < page.response.records.Length; i++)
 							{
 								var entry = UnityEngine.Object.Instantiate(currentUi.recordTemplate, currentUi.recordContainer);
@@ -293,14 +294,25 @@ namespace AngryLevelLoader.Notifications
 								}
 								else
 								{
-									var userReq = await SteamCacheManager.RequestUser(steamId);
-									entry.username.text = userReq.name;
-									entry.profile.texture = userReq.profilePicture;
-									entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
+									var userReqTask = SteamCacheManager.RequestUser(steamId);
+									toWait.Add(userReqTask);
+									_ = userReqTask.ContinueWith((task) =>
+									{
+										if (entry == null)
+											return;
+
+										var userReq = task.Result;
+										entry.username.text = userReq.name;
+										entry.profile.texture = userReq.profilePicture;
+										entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
+									}, TaskScheduler.FromCurrentSynchronizationContext());
 								}
 
 								entry.gameObject.SetActive(true);
 							}
+
+							foreach (var task in toWait)
+								await task;
 						}
 						else
 						{
@@ -397,6 +409,7 @@ namespace AngryLevelLoader.Notifications
 				if (currentUi != null)
 				{
 					int limit = Math.Min(5, friendRecords.Length - currentPage * 5);
+					List<Task> toWait = new List<Task>();
 					for (int i = 0; i < limit; i++)
 					{
 						int realIndex = i + currentPage * 5;
@@ -416,14 +429,25 @@ namespace AngryLevelLoader.Notifications
 						}
 						else
 						{
-							var userReq = await SteamCacheManager.RequestUser(steamId);
-							entry.username.text = $"{userReq.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
-							entry.profile.texture = userReq.profilePicture;
-							entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
+							var userReqTask = SteamCacheManager.RequestUser(steamId);
+							toWait.Add(userReqTask);
+							_ = userReqTask.ContinueWith((task) =>
+							{
+								if (entry == null)
+									return;
+
+								var userReq = task.Result;
+								entry.username.text = $"{userReq.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
+								entry.profile.texture = userReq.profilePicture;
+								entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
+							}, TaskScheduler.FromCurrentSynchronizationContext());
 						}
 
 						entry.gameObject.SetActive(true);
 					}
+
+					foreach (var task in toWait)
+						await task;
 				}
 			}
 
