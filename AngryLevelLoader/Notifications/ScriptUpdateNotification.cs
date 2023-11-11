@@ -187,7 +187,7 @@ namespace AngryLevelLoader.Notifications
                     currentCertRequest = null;
 
                     if (caller != null)
-                        caller.CheckContinueButtonInteractable();
+                        caller.CheckInteractable(callingField: this);
 
                     SetStatusText(true);
                 }
@@ -251,7 +251,7 @@ namespace AngryLevelLoader.Notifications
             }
         }
 
-        public void CheckContinueButtonInteractable()
+        private void CheckInteractable(ScriptUpdateProgressField callingField = null)
         {
             if (ui == null)
                 return;
@@ -259,7 +259,7 @@ namespace AngryLevelLoader.Notifications
             bool interactable = true;
             foreach (var field in fields)
             {
-                if (field.downloading)
+                if (callingField != field && field.downloading)
                 {
                     interactable = false;
                     break;
@@ -267,7 +267,10 @@ namespace AngryLevelLoader.Notifications
             }
 
             if (ui != null)
+            {
+                ui.update.interactable = interactable;
                 ui.continueButton.interactable = interactable;
+            }
         }
 
         public override void OnUI(RectTransform panel)
@@ -302,7 +305,7 @@ namespace AngryLevelLoader.Notifications
                 if (ui != null)
                     ui.continueButton.interactable = false;
 
-                CheckContinueButtonInteractable();
+                CheckInteractable();
 			});
 
             foreach (var field in fields)
