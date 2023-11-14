@@ -25,6 +25,9 @@ namespace AngryLevelLoader.Patches
 			{
 				__instance.levelName.text = "???";
 			}
+
+			__instance.ready = true;
+			__instance.CheckStats();
 		}
 	}
 }
