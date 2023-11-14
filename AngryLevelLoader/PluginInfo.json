@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.6.1",
+  "latestVersion": "2.6.2",
   "updates": [
     {
       "version": "1.0.0",
@@ -60,6 +60,10 @@
     {
       "version": "2.6.1",
       "updateText": "Bug fixes:\n- Page text no longer covers corners of the page buttons on leaderboards panel\n- Continue button no longer disabled even after all scripts are downloaded\n\nFeatures:\n- Settings for default leaderboard panel category/difficulty/filter\n- Faster steam user caching, resulting in shorter initial leaderboard loading times"
+    },
+    {
+      "version": "2.6.2",
+      "updateText": "<color=red><b>Security Update</b></color>\n- Web buttons no longer work\n- Prevented save files from being modified via weapon pickups and point changes"
     }
   ]
 }
