@@ -7,7 +7,7 @@ using AngryLevelLoader.Managers;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(SceneHelper))]
-	public class SceneHelper_LoadScene_Patch
+	public static class SceneHelperPatches
 	{
 		[HarmonyPatch(nameof(SceneHelper.LoadScene))]
 		[HarmonyPrefix]
@@ -48,6 +48,48 @@ namespace AngryLevelLoader.Patches
 				SceneHelper.Instance.loadingBlocker.SetActive(true);
 
 			return false;
+		}
+
+		internal static bool forceDisableIsInCustomLevel = false;
+		[HarmonyPatch(nameof(SceneHelper.IsPlayingCustom), MethodType.Getter)]
+		[HarmonyPrefix]
+		public static bool OverwriteIsInCustomLevel(ref bool __result)
+		{
+			if (AngrySceneManager.isInCustomLevel)
+			{
+				__result = !forceDisableIsInCustomLevel;
+				return false;
+			}
+
+			return true;
+		}
+
+		[HarmonyPatch(nameof(SceneHelper.CurrentLevelNumber), MethodType.Getter)]
+		[HarmonyPrefix]
+		public static bool OverwriteGetCurrentLevelNumber(ref int __result)
+		{
+			if (AngrySceneManager.isInCustomLevel)
+			{
+				__result = -1;
+				return false;
+			}
+
+			return true;
+		}
+
+		[HarmonyPatch(nameof(SceneHelper.OnSceneLoaded))]
+		[HarmonyPrefix]
+		public static bool AvoidSceneSetup()
+		{
+			forceDisableIsInCustomLevel = true;
+			return true;
+		}
+
+		[HarmonyPatch(nameof(SceneHelper.OnSceneLoaded))]
+		[HarmonyPostfix]
+		public static void PostAvoidSceneSetup()
+		{
+			forceDisableIsInCustomLevel = false;
 		}
 	}
 }

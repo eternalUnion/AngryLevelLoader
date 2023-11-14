@@ -1,5 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.Notifications;
+using AngryLevelLoader.Patches;
 using PluginConfig;
 using RudeLevelScript;
 using RudeLevelScripts.Essentials;
@@ -304,7 +305,8 @@ namespace AngryLevelLoader.Managers
 
         public static void PostSceneLoad()
         {
-            currentLevelContainer.AssureSecretsSize();
+			SceneHelperPatches.forceDisableIsInCustomLevel = false;
+			currentLevelContainer.AssureSecretsSize();
 
             string secretString = currentLevelContainer.secrets.value;
             foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == currentLevelData.scenePath))
