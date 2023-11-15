@@ -28,6 +28,7 @@ namespace AngryLevelLoader.Patches
 
 			__instance.ready = true;
 			__instance.CheckStats();
+			__instance.gameObject.SetActive(true);
 		}
 	}
 }
