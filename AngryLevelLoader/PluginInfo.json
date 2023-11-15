@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.6.2",
+  "latestVersion": "2.6.3",
   "updates": [
     {
       "version": "1.0.0",
@@ -64,6 +64,10 @@
     {
       "version": "2.6.2",
       "updateText": "<color=red><b>Security Update</b></color>\n- Web buttons no longer work\n- Prevented save files from being modified via weapon pickups and point changes"
+    },
+    {
+      "version": "2.6.3",
+      "updateText": "- Fixed level stats always getting hidden on restart\n- Switched angry server root url to https variant"
     }
   ]
 }
