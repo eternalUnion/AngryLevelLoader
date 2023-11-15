@@ -8,7 +8,7 @@ namespace AngryLevelLoader
 {
     public static class AngryPaths
     {
-		public const string SERVER_ROOT = "http://angry.dnzsoft.com";
+		public const string SERVER_ROOT = "https://angry.dnzsoft.com";
 
 		public static void TryCreateAllPaths()
         {
