@@ -80,6 +80,29 @@ namespace RudeLevelScript
 
 			return Addressables.LoadAssetAsync<T>(obj.Value.First()).WaitForCompletion();
 		}
+
+		//Jank... but it works.
+		public static void SetPlayerWorldRotation(Quaternion newRotation)
+		{
+			Quaternion oldRot = CameraController.Instance.transform.rotation;
+			CameraController.Instance.transform.rotation = newRotation;
+			float sampleX = CameraController.Instance.transform.localEulerAngles.x;
+			float newX = sampleX;
+
+			if (sampleX <= 90.0f && sampleX >= 0)
+			{
+				newX = -sampleX;
+			}
+			else if (sampleX >= 270.0f && sampleX <= 360.0f)
+			{
+				newX = Mathf.Lerp(0.0f, 90.0f, Mathf.InverseLerp(360.0f, 270.0f, sampleX));
+			}
+
+			float newY = CameraController.Instance.transform.rotation.eulerAngles.y;
+
+			CameraController.Instance.rotationX = newX;
+			CameraController.Instance.rotationY = newY;
+		}
 	}
 
 	public static class UnityUtils

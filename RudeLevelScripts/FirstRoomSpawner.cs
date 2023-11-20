@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AngryLevelLoader;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -395,13 +396,13 @@ namespace RudeLevelScript
 			firstRoomInst.transform.position = transform.position;
 			firstRoomInst.transform.rotation = transform.rotation;
 			player.transform.parent = null;
-			player.transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
+			Utils.SetPlayerWorldRotation(Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0));
 			
 			if (playerSpawnPos != null)
 			{
 				player.transform.parent = playerSpawnPos.transform.parent;
 				player.transform.localPosition = playerSpawnPos.localPosition;
-				player.transform.localRotation = Quaternion.Euler(0, playerSpawnPos.localRotation.eulerAngles.y, 0);
+				Utils.SetPlayerWorldRotation(playerSpawnPos.rotation);
 				player.transform.SetParent(null);
 			}
 			StatsManager.instance.spawnPos = player.transform.position;
