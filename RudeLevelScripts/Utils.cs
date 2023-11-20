@@ -84,7 +84,6 @@ namespace RudeLevelScript
 		//Jank... but it works.
 		public static void SetPlayerWorldRotation(Quaternion newRotation)
 		{
-			Quaternion oldRot = CameraController.Instance.transform.rotation;
 			CameraController.Instance.transform.rotation = newRotation;
 			float sampleX = CameraController.Instance.transform.localEulerAngles.x;
 			float newX = sampleX;
