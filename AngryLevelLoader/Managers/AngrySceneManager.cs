@@ -50,7 +50,7 @@ namespace AngryLevelLoader.Managers
                         _currentLevelContainer.UpdateUI();
                         SceneHelper_CurrentScene.SetValue(null, _currentLevelData.uniqueIdentifier);
                         Plugin.config.presetButtonInteractable = false;
-                        Plugin.difficultySelect.interactable = false;
+                        Plugin.difficultyField.interactable = false;
 
                         return;
                     }
@@ -61,7 +61,7 @@ namespace AngryLevelLoader.Managers
                 _currentLevelData = null;
                 _currentLevelContainer = null;
                 Plugin.config.presetButtonInteractable = true;
-				Plugin.difficultySelect.interactable = true;
+				Plugin.difficultyField.interactable = true;
 			}
         }
 
@@ -286,18 +286,26 @@ namespace AngryLevelLoader.Managers
                 UnsetHeavenOrHellDifficulty();
             }
 
-            if (Plugin.selectedDifficulty == 4)
+            if (Plugin.difficultyField.gamemodeListValueIndex == 0)
             {
-                SetToUltrapainDifficulty();
+                if (Plugin.selectedDifficulty == 4)
+                {
+                    SetToUltrapainDifficulty();
+                }
+                else if (Plugin.selectedDifficulty == 5)
+                {
+                    SetToHeavenOrHellDifficulty();
+                }
+                else
+                {
+                    MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
+                }
             }
-            else if (Plugin.selectedDifficulty == 5)
+            // NoMo/NoMoW = Harmless
+            else if (Plugin.difficultyField.gamemodeListValueIndex == 1 || Plugin.difficultyField.gamemodeListValueIndex == 2)
             {
-                SetToHeavenOrHellDifficulty();
-            }
-            else
-            {
-                MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
-            }
+				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 0);
+			}
 
             SceneHelper.LoadScene(levelPath);
             Plugin.UpdateLastPlayed(bundleContainer);

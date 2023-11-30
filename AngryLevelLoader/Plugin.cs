@@ -61,8 +61,6 @@ namespace AngryLevelLoader
 	[BepInDependency(AtlasWeaponsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const bool devMode = false;
-
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
         public const string PLUGIN_VERSION = "2.6.3";
@@ -83,6 +81,7 @@ namespace AngryLevelLoader
 		public static ManualLogSource logger;
 		
 		public static PluginConfigurator internalConfig;
+		public static BoolField devMode;
 		public static StringField lastVersion;
 		public static StringField updateLastVersion;
 		public static BoolField ignoreUpdates;
@@ -345,9 +344,13 @@ namespace AngryLevelLoader
 
 		// Defaults to violent
         public static int selectedDifficulty = 3;
-		private static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
-		public static StringListField difficultySelect;
-		
+		public static DifficultyField difficultyField;
+		internal static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+		internal static List<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
+
+		public static bool NoMo => difficultyField.gamemodeListValueIndex == 1;
+		public static bool NoMoW => difficultyField.gamemodeListValueIndex == 2;
+
 		public static Harmony harmony;
 
 		#region Config Fields
@@ -400,6 +403,9 @@ namespace AngryLevelLoader
 		{
 			All,
 			PRank,
+			Challenge,
+			Nomo,
+			Nomow
 		}
 		public static EnumField<DefaultLeaderboardCategory> defaultLeaderboardCategory;
 		public enum DefaultLeaderboardDifficulty
@@ -532,7 +538,7 @@ namespace AngryLevelLoader
 						case 2:
 						case 3:
 							logger.LogInfo($"Angry setting difficulty to {difficultyList[difficulty]}");
-							difficultySelect.valueIndex = difficulty;
+							difficultyField.difficultyListValueIndex = difficulty;
 							break;
 
 						// Possibly ultrapain
@@ -541,12 +547,12 @@ namespace AngryLevelLoader
 							{
 								if (GetUltrapainDifficultySet())
 								{
-									difficultySelect.valueIndex = difficultyList.IndexOf("ULTRAPAIN");
+									difficultyField.difficultyListValueIndex = difficultyList.IndexOf("ULTRAPAIN");
 								}
 								else
 								{
 									logger.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
-									difficultySelect.valueIndex = 3;
+									difficultyField.difficultyListValueIndex = 3;
 								}
 							}
 							break;
@@ -557,16 +563,18 @@ namespace AngryLevelLoader
 							{
 								if (GetHeavenOrHellDifficultySet())
 								{
-									difficultySelect.valueIndex = difficultyList.IndexOf("HEAVEN OR HELL");
+									difficultyField.difficultyListValueIndex = difficultyList.IndexOf("HEAVEN OR HELL");
 								}
 								else
 								{
 									logger.LogWarning("Unknown difficulty, defaulting to violent");
-									difficultySelect.valueIndex = 3;
+									difficultyField.difficultyListValueIndex = 3;
 								}
 							}
 							break;
 					}
+
+					difficultyField.TriggerPostDifficultyChangeEvent();
 				});
 
 				customLevelButtonPosition.TriggerPostValueChangeEvent();
@@ -728,26 +736,61 @@ namespace AngryLevelLoader
 			pendingRecordsInfo = new ConfigHeader(pendingRecords, "", 18, TextAnchor.MiddleLeft);
 			UpdatePendingRecordsUI();
 
-			difficultySelect = new StringListField(internalConfig.rootPanel, "Difficulty", "difficultySelect", difficultyList.ToArray(), "VIOLENT");
-			new ConfigBridge(difficultySelect, config.rootPanel);
-			difficultySelect.onValueChange += (e) =>
+			difficultyField = new DifficultyField(config.rootPanel);
+
+			bundleSortingMode = new EnumField<BundleSorting>(internalConfig.rootPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
+			bundleSortingMode.onValueChange += (e) =>
 			{
-				selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), e.value);
+				bundleSortingMode.value = e.value;
+				SortBundles();
+			};
+			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastPlayed, "Last Played");
+			new ConfigBridge(bundleSortingMode, config.rootPanel);
+
+			ConfigHeader difficultyOverrideWarning = new ConfigHeader(config.rootPanel, "Difficulty is overridden by gamemode\nWarning: Some levels may not be compatible with gamemodes", 18);
+			difficultyOverrideWarning.textColor = Color.yellow;
+			difficultyOverrideWarning.hidden = true;
+
+			difficultyField.postDifficultyChange += (difficultyName, difficultyIndex) =>
+			{
+				selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), difficultyName);
 				if (selectedDifficulty == -1)
 				{
 					logger.LogWarning("Invalid difficulty, setting to violent");
 					selectedDifficulty = 3;
-					e.value = "VIOLENT";
+					difficultyField.difficultyListValue = "VIOLENT";
 				}
 				else
 				{
-					if (e.value == "ULTRAPAIN")
+					if (difficultyName == "ULTRAPAIN")
 						selectedDifficulty = 4;
-					else if (e.value == "HEAVEN OR HELL")
+					else if (difficultyName == "HEAVEN OR HELL")
 						selectedDifficulty = 5;
 				}
+
+				if (difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2)
+				{
+					difficultyOverrideWarning.hidden = false;
+					difficultyField.difficultyInteractable = false;
+					difficultyField.ForceSetDifficultyUI(0);
+					selectedDifficulty = 0;
+				}
+				else
+				{
+					difficultyOverrideWarning.hidden = true;
+					difficultyField.difficultyInteractable = true;
+					difficultyField.ForceSetDifficultyUI(selectedDifficulty);
+				}
 			};
-			difficultySelect.TriggerValueChangeEvent();
+			difficultyField.postGamemodeChange += (gamemodeName, gamemodeIndex) =>
+			{
+				difficultyField.TriggerPostDifficultyChangeEvent();
+			};
+			config.rootPanel.onPannelOpenEvent += (externally) =>
+			{
+				difficultyField.TriggerPostDifficultyChangeEvent();
+			};
+			difficultyField.TriggerPostDifficultyChangeEvent();
 
 			ConfigPanel settingsPanel = new ConfigPanel(internalConfig.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
 			new ConfigBridge(settingsPanel, config.rootPanel);
@@ -852,13 +895,6 @@ namespace AngryLevelLoader
 				currentCustomLevelButton.text.color = clr;
 			};
 
-			bundleSortingMode = new EnumField<BundleSorting>(settingsPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
-			bundleSortingMode.onValueChange += (e) =>
-			{
-				bundleSortingMode.value = e.value;
-				SortBundles();
-			};
-
 			new ConfigHeader(settingsPanel, "Leaderboards") { textColor = new Color(1f, 0.692924f, 0.291f) };
 			new ConfigBridge(leaderboardToggle, settingsPanel);
 			showLeaderboardOnLevelEnd = new BoolField(settingsPanel, "Show leaderboard on level end", "showLeaderboardOnLevelEnd", true);
@@ -866,6 +902,8 @@ namespace AngryLevelLoader
 			new SpaceField(settingsPanel, 5);
 			defaultLeaderboardCategory = new EnumField<DefaultLeaderboardCategory>(settingsPanel, "Default leaderboard category", "defaultLeaderboardCategory", DefaultLeaderboardCategory.All);
 			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.PRank, "P Rank");
+			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.Nomo, "No Monsters");
+			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.Nomow, "No Monsters/Weapons");
 			defaultLeaderboardDifficulty = new EnumField<DefaultLeaderboardDifficulty>(settingsPanel, "Default leaderboard difficulty", "defaultLeaderboardDifficulty", DefaultLeaderboardDifficulty.Violent);
 			defaultLeaderboardFilter = new EnumField<DefaultLeaderboardFilter>(settingsPanel, "Default leaderboard filter", "defaultLeaderboardFilter", DefaultLeaderboardFilter.Global);
 
@@ -873,7 +911,7 @@ namespace AngryLevelLoader
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
 			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
 			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
-			if (!devMode)
+			if (devMode.value)
 			{
 				useDevelopmentBranch.hidden = true;
 				useDevelopmentBranch.value = false;
@@ -965,7 +1003,7 @@ namespace AngryLevelLoader
 
 			// Developer panel
 			ConfigPanel devPanel = new ConfigPanel(config.rootPanel, "Developer Panel", "devPanel", ConfigPanel.PanelFieldType.BigButton);
-			if (!devMode)
+			if (devMode.value)
 				devPanel.hidden = true;
 
 			new ConfigHeader(devPanel, "Angry Server Interface");
@@ -1456,6 +1494,7 @@ namespace AngryLevelLoader
 			internalConfig.presetButtonHidden = true;
 			internalConfig.presetButtonInteractable = false;
 
+			devMode = new BoolField(internalConfig.rootPanel, "devMode", "devMode", false);
             lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true, true, false);
 			updateLastVersion = new StringField(internalConfig.rootPanel, "updateLastVersion", "updateLastVersion", "", true, true, false);
 			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);

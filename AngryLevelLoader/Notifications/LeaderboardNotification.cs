@@ -5,6 +5,7 @@ using PluginConfig;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -76,8 +77,10 @@ namespace AngryLevelLoader.Notifications
 				currentUi.reportLoadCircle.AddComponent<RefreshCircleSpin>();
 
 				currentUi.category.value = (int)Plugin.defaultLeaderboardCategory.value;
+				currentUi.difficulty.interactable = currentUi.category.value != 3 && currentUi.category.value != 4;
 				currentUi.category.onValueChanged.AddListener((index) =>
 				{
+					currentUi.difficulty.interactable = index != 3 && index != 4;
 					currentPage = 0;
 					currentUi.pageInput.SetTextWithoutNotify("1");
 					totalRecordCount = 0;
@@ -194,7 +197,7 @@ namespace AngryLevelLoader.Notifications
 				{
 					currentUi.refreshCircle.SetActive(false);
 					currentUi.category.interactable = true;
-					currentUi.difficulty.interactable = true;
+					currentUi.difficulty.interactable = currentUi.category.value != 3 && currentUi.category.value != 4;
 					currentUi.group.interactable = true;
 				}
 			}, TaskScheduler.FromCurrentSynchronizationContext());
@@ -204,6 +207,9 @@ namespace AngryLevelLoader.Notifications
 		{
 			AngryLeaderboards.RecordCategory.ALL,
 			AngryLeaderboards.RecordCategory.PRANK,
+			AngryLeaderboards.RecordCategory.CHALLENGE,
+			AngryLeaderboards.RecordCategory.NOMO,
+			AngryLeaderboards.RecordCategory.NOMOW,
 		};
 
 		private static readonly AngryLeaderboards.RecordDifficulty[] dropdownDifficulties = new AngryLeaderboards.RecordDifficulty[]
@@ -226,6 +232,8 @@ namespace AngryLevelLoader.Notifications
 		{
 			AngryLeaderboards.RecordCategory category = dropdownCategories[currentUi.category.value];
 			AngryLeaderboards.RecordDifficulty difficulty = dropdownDifficulties[currentUi.difficulty.value];
+			if (category == AngryLeaderboards.RecordCategory.NOMO || category == AngryLeaderboards.RecordCategory.NOMOW)
+				difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
 			bool allFilter = currentUi.group.value == 0;
 
 			if (getLocalUser)

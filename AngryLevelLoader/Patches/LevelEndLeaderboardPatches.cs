@@ -12,12 +12,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SocialPlatforms.Impl;
 using System.Linq;
+using AngryLevelLoader.Extensions;
 
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(LevelEndLeaderboard))]
 	public static class LevelEndLeaderboardPatches
 	{
+		public static AngryLeaderboards.RecordCategory currentCategory = AngryLeaderboards.RecordCategory.ALL;
+
 		[HarmonyPatch(nameof(LevelEndLeaderboard.OnEnable))]
 		[HarmonyPrefix]
 		public static bool EnableCustomLeaderboard(LevelEndLeaderboard __instance)
@@ -46,7 +49,19 @@ namespace AngryLevelLoader.Patches
 			Text loadingText = __instance.loadingPanel.gameObject.GetComponent<Text>();
 			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 
-			__instance.displayPRank = (MonoSingleton<StatsManager>.Instance.rankScore == 12);
+			if (Plugin.difficultyField.gamemodeListValueIndex == 0)
+			{
+				currentCategory = MonoSingleton<StatsManager>.Instance.rankScore == 12 ? AngryLeaderboards.RecordCategory.PRANK : AngryLeaderboards.RecordCategory.ALL;
+			}
+			else if (Plugin.difficultyField.gamemodeListValueIndex == 1)
+			{
+				currentCategory = AngryLeaderboards.RecordCategory.NOMO;
+			}
+			else if (Plugin.difficultyField.gamemodeListValueIndex == 2)
+			{
+				currentCategory = AngryLeaderboards.RecordCategory.NOMOW;
+			}
+
 			__instance.StartCoroutine(CustomFetch(__instance));
 
 			return false;
@@ -58,7 +73,29 @@ namespace AngryLevelLoader.Patches
 			Text loadingText = instance.loadingPanel.gameObject.GetComponent<Text>();
 			instance.container.gameObject.SetActive(false);
 			instance.loadingPanel.SetActive(true);
-			instance.leaderboardType.text = (instance.displayPRank ? "P RANK" : "ANY RANK");
+
+			switch (currentCategory)
+			{
+				case AngryLeaderboards.RecordCategory.ALL:
+					instance.leaderboardType.text = "ANY RANK";
+					break;
+
+				case AngryLeaderboards.RecordCategory.PRANK:
+					instance.leaderboardType.text = "P RANK";
+					break;
+
+				case AngryLeaderboards.RecordCategory.CHALLENGE:
+					instance.leaderboardType.text = "CHALLENGE";
+					break;
+
+				case AngryLeaderboards.RecordCategory.NOMO:
+					instance.leaderboardType.text = "NO MONSTERS";
+					break;
+
+				case AngryLeaderboards.RecordCategory.NOMOW:
+					instance.leaderboardType.text = "NO MONSTERS & WEAPONS";
+					break;
+			}
 
 			while (AngryLeaderboards.postRecordTasks.Count != 0)
 			{
@@ -75,10 +112,12 @@ namespace AngryLevelLoader.Patches
 			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 
 			AngryLeaderboards.RecordDifficulty difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
+			if (currentCategory == AngryLeaderboards.RecordCategory.NOMO || currentCategory == AngryLeaderboards.RecordCategory.NOMOW)
+				difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
 
 			// Get top 10 records
 			Task<AngryLeaderboards.GetRecordsResult> getRecordsTask = AngryLeaderboards.GetRecordsTask(
-				instance.displayPRank ? AngryLeaderboards.RecordCategory.PRANK : AngryLeaderboards.RecordCategory.ALL,
+				currentCategory,
 				difficulty,
 				AngrySceneManager.currentBundleContainer.bundleData.bundleGuid,
 				AngrySceneManager.currentLevelData.uniqueIdentifier,
@@ -208,6 +247,18 @@ namespace AngryLevelLoader.Patches
 			__result = new InstantReturnEnumerator();
 			__instance.StartCoroutine(CustomFetch(__instance));
 			return false;
+		}
+
+		[HarmonyPatch(nameof(LevelEndLeaderboard.Update))]
+		[HarmonyPrefix]
+		public static bool IterateCustomLeaderboardTypes()
+		{
+			if (InputManager.Instance.InputSource.NextWeapon.WasPerformedThisFrame || InputManager.Instance.InputSource.LastWeapon.WasPerformedThisFrame)
+			{
+				currentCategory = currentCategory.Next();
+			}
+
+			return true;
 		}
 	}
 }

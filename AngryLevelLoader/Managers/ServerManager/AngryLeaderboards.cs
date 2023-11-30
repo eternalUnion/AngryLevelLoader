@@ -19,15 +19,24 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#region Structs
 		public const string RECORD_CATEGORY_ALL = "all";
 		public const string RECORD_CATEGORY_PRANK = "prank";
+		public const string RECORD_CATEGORY_CHALLENGE = "challenge";
+		public const string RECORD_CATEGORY_NOMO = "nomo";
+		public const string RECORD_CATEGORY_NOMOW = "nomow";
 		public enum RecordCategory
 		{
 			ALL,
-			PRANK
+			PRANK,
+			CHALLENGE,
+			NOMO,
+			NOMOW,
 		}
 		public static readonly Dictionary<RecordCategory, string> RECORD_CATEGORY_DICT = new Dictionary<RecordCategory, string>()
 		{
 			{ RecordCategory.ALL, RECORD_CATEGORY_ALL },
 			{ RecordCategory.PRANK, RECORD_CATEGORY_PRANK },
+			{ RecordCategory.CHALLENGE, RECORD_CATEGORY_CHALLENGE },
+			{ RecordCategory.NOMO, RECORD_CATEGORY_NOMO },
+			{ RecordCategory.NOMOW, RECORD_CATEGORY_NOMOW },
 		};
 
 		public const string RECORD_DIFFICULTY_HARMLESS = "harmless";	

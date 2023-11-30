@@ -153,24 +153,49 @@ namespace AngryLevelLoader.Patches
 			// Send record
 			if (Plugin.leaderboardToggle.value)
 			{
-				AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
-				record.category = AngryLeaderboards.RecordCategory.ALL;
-				record.difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
-				record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
-				record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
-				record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
-				record.time = (int)(__instance.seconds * 1000);
-				AngryLeaderboards.TryPostRecordTask(record);
-
-				if (__instance.rankScore == 12)
+				// No gamemode
+				if (Plugin.difficultyField.gamemodeListValueIndex == 0)
 				{
-					record.category = AngryLeaderboards.RecordCategory.PRANK;
+					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
+					record.category = AngryLeaderboards.RecordCategory.ALL;
+					record.difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
+					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
+					record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
+					record.time = (int)(__instance.seconds * 1000);
+					AngryLeaderboards.TryPostRecordTask(record);
+
+					if (__instance.rankScore == 12)
+					{
+						record.category = AngryLeaderboards.RecordCategory.PRANK;
+						AngryLeaderboards.TryPostRecordTask(record);
+					}
+
+					bool postChallengeRecord = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
+					if (postChallengeRecord && AngrySceneManager.currentLevelData.levelChallengeEnabled)
+					{
+						record.category = AngryLeaderboards.RecordCategory.CHALLENGE;
+						AngryLeaderboards.TryPostRecordTask(record);
+					}
+				}
+				// Nomo/Nomow
+				else if (Plugin.difficultyField.gamemodeListValueIndex == 1 || Plugin.difficultyField.gamemodeListValueIndex == 2)
+				{
+					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
+					record.category = Plugin.difficultyField.gamemodeListValueIndex == 1 ? AngryLeaderboards.RecordCategory.NOMO : AngryLeaderboards.RecordCategory.NOMOW;
+					record.difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
+					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
+					record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
+					record.time = (int)(__instance.seconds * 1000);
 					AngryLeaderboards.TryPostRecordTask(record);
 				}
 			}
 
+			bool isPlayingWithoutGamemode = Plugin.difficultyField.gamemodeListValueIndex == 0;
+
 			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
-			if (secretLevel)
+			if (secretLevel && isPlayingWithoutGamemode)
 			{
 				char prevRank = AngrySceneManager.currentLevelContainer.finalRank.value[0];
 				if (prevRank != 'P')
@@ -194,7 +219,7 @@ namespace AngryLevelLoader.Patches
             bool playerBestWithoutCheats = !usedCheats && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < AngrySceneManager.currentLevelContainer.time.value));
 			bool firstTimeWithCheats = previousRankScore == -1 && usedCheats;
 
-			if (playerBestWithoutCheats || firstTimeWithCheats)
+			if ((playerBestWithoutCheats || firstTimeWithCheats) && isPlayingWithoutGamemode)
 			{
 				AngrySceneManager.currentLevelContainer.time.value = __instance.seconds;
 				AngrySceneManager.currentLevelContainer.timeRank.value = RemoveFormatting(__instance.fr.timeRank.text);
