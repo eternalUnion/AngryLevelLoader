@@ -13,7 +13,7 @@ namespace AngryLevelLoader.Patches.NoMoW
 		[HarmonyPrefix]
 		public static bool RemoveGuns(GunSetter __instance)
 		{
-			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMoW)
+			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoWeapons)
 				return true;
 
 			VariantSetting disabledVariant = new VariantSetting()
@@ -51,7 +51,7 @@ namespace AngryLevelLoader.Patches.NoMoW
 		[HarmonyPrefix]
 		public static bool NoForcedWeapons()
 		{
-			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMoW)
+			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoWeapons)
 				return true;
 
 			return false;

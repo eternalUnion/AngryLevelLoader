@@ -348,8 +348,8 @@ namespace AngryLevelLoader
 		internal static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
 		internal static List<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
 
-		public static bool NoMo => difficultyField.gamemodeListValueIndex == 1;
-		public static bool NoMoW => difficultyField.gamemodeListValueIndex == 2;
+		public static bool NoMonsters => difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2;
+		public static bool NoWeapons => difficultyField.gamemodeListValueIndex == 2;
 
 		public static Harmony harmony;
 
@@ -911,7 +911,7 @@ namespace AngryLevelLoader
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
 			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
 			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
-			if (devMode.value)
+			if (!devMode.value)
 			{
 				useDevelopmentBranch.hidden = true;
 				useDevelopmentBranch.value = false;
@@ -1003,7 +1003,7 @@ namespace AngryLevelLoader
 
 			// Developer panel
 			ConfigPanel devPanel = new ConfigPanel(config.rootPanel, "Developer Panel", "devPanel", ConfigPanel.PanelFieldType.BigButton);
-			if (devMode.value)
+			if (!devMode.value)
 				devPanel.hidden = true;
 
 			new ConfigHeader(devPanel, "Angry Server Interface");

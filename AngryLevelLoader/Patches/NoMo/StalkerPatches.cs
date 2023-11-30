@@ -13,7 +13,7 @@ namespace AngryLevelLoader.Patches.NoMo
 		[HarmonyPrefix]
 		public static bool PreventSandExplodeOnNomo()
 		{
-			if (!AngrySceneManager.isInCustomLevel || !(Plugin.NoMo || Plugin.NoMoW))
+			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMonsters)
 				return true;
 
 			return false;

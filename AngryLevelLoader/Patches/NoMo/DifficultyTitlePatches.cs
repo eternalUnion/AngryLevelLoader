@@ -16,9 +16,9 @@ namespace AngryLevelLoader.Patches.NoMo
 			if (!AngrySceneManager.isInCustomLevel)
 				return;
 
-			if (Plugin.NoMo)
+			if (Plugin.difficultyField.gamemodeListValueIndex == 1)
 				__instance.txt.text = __instance.lines ? "-- NO MONSTERS --" : "NO MONSTERS";
-			else if (Plugin.NoMoW)
+			else if (Plugin.difficultyField.gamemodeListValueIndex == 2)
 				__instance.txt.text = __instance.lines ? "-- NO MONSTERS AND WEAPONS --" : "NO MONSTERS AND WEAPONS";
 		}
 	}
