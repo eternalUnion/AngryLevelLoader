@@ -678,9 +678,11 @@ namespace AngryLevelLoader.Fields
 			}
             else
             {
+                Plugin.UpdateLastUpdate(bundle);
+
                 if (!(AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == bundle))
                 {
-					bundle.UpdateScenes(false, false);
+					_ = bundle.UpdateScenes(false, false);
                 }
 
                 // ELSE THERE WILL BE A PROMPT FROM FILE SYSTEM WATCHER

@@ -159,6 +159,64 @@ namespace AngryLevelLoader
 			}
 		}
 
+		public static Dictionary<string, long> lastUpdate = new Dictionary<string, long>();
+		public static void LoadLastUpdateMap()
+		{
+			lastPlayed.Clear();
+
+			string path = AngryPaths.LastUpdateMapPath;
+			if (!File.Exists(path))
+				return;
+
+			using (StreamReader reader = new StreamReader(File.Open(path, FileMode.Open, FileAccess.Read)))
+			{
+				while (!reader.EndOfStream)
+				{
+					string key = reader.ReadLine();
+					if (reader.EndOfStream)
+					{
+						logger.LogWarning("Invalid end of last played map file");
+						break;
+					}
+
+					string value = reader.ReadLine();
+					if (long.TryParse(value, out long seconds))
+					{
+						lastUpdate[key] = seconds;
+					}
+					else
+					{
+						logger.LogInfo($"Invalid last played time '{value}'");
+					}
+				}
+			}
+		}
+
+		public static void UpdateLastUpdate(AngryBundleContainer bundle)
+		{
+			string guid = bundle.bundleData.bundleGuid;
+			if (guid.Length != 32)
+				return;
+
+			if (bundleSortingMode.value == BundleSorting.LastUpdate)
+				bundle.rootPanel.siblingIndex = 0;
+			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
+			lastUpdate[guid] = secondsNow;
+
+			string path = AngryPaths.LastUpdateMapPath;
+			IOUtils.TryCreateDirectoryForFile(path);
+			using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
+			{
+				writer.BaseStream.Seek(0, SeekOrigin.Begin);
+				writer.BaseStream.SetLength(0);
+				foreach (var pair in lastUpdate)
+				{
+					writer.WriteLine(pair.Key);
+					writer.WriteLine(pair.Value.ToString());
+				}
+			}
+		}
+
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
 			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
@@ -297,6 +355,17 @@ namespace AngryLevelLoader
 					bundle.rootPanel.siblingIndex = i++;
 				}
 			}
+			else if (bundleSortingMode.value == BundleSorting.LastUpdate)
+			{
+				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
+					if (lastUpdate.TryGetValue(b.bundleData.bundleGuid, out long time))
+						return time;
+					return 0;
+				}))
+				{
+					bundle.rootPanel.siblingIndex = i++;
+				}
+			}
 		}
 
 		public static void UpdateAllUI()
@@ -398,7 +467,8 @@ namespace AngryLevelLoader
 		{
 			Alphabetically,
 			Author,
-			LastPlayed
+			LastPlayed,
+			LastUpdate
 		}
 		public static EnumField<BundleSorting> bundleSortingMode;
 		public enum DefaultLeaderboardCategory
@@ -747,6 +817,7 @@ namespace AngryLevelLoader
 				SortBundles();
 			};
 			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastPlayed, "Last Played");
+			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastUpdate, "Last Update");
 			new ConfigBridge(bundleSortingMode, config.rootPanel);
 
 			ConfigHeader difficultyOverrideWarning = new ConfigHeader(config.rootPanel, "Difficulty is overridden by gamemode\nWarning: Some levels may not be compatible with gamemodes", 18);
@@ -1550,6 +1621,8 @@ namespace AngryLevelLoader
 
 			// Tracks when each bundle was last played in unix time
 			LoadLastPlayedMap();
+			// Tracks when the bundle file was last written to
+			LoadLastUpdateMap();
 
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();

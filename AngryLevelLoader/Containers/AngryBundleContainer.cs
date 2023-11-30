@@ -77,6 +77,7 @@ namespace AngryLevelLoader.Containers
             AngryBundleData latestData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
             bool rewriteData = false;
             bool unzip = true;
+            bool fileChanged = false;
 
             pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
             
@@ -94,15 +95,23 @@ namespace AngryLevelLoader.Containers
             }
 
             // If force reload is set to false, check if the build hashes match
-            // between unzipped bundle and the current angry file.
-            // Build hash is generated randomly every build so avoiding unzipping
-            if (!forceReload && Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
+            // between unzipped bundle and the current angry file. Avoids unnecessary unzips
+            if (Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
             {
                 AngryBundleData previousData = JsonConvert.DeserializeObject<AngryBundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
                 if (previousData.buildHash == latestData.buildHash)
                 {
-                    unzip = false;
+                    if (!forceReload)
+                        unzip = false;
                 }
+                else
+                {
+                    fileChanged = true;
+                }
+            }
+            else
+            {
+                fileChanged = true;
             }
 
             if (unzip)
@@ -123,8 +132,11 @@ namespace AngryLevelLoader.Containers
                     rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
             }
 
-            // We don't need to load the bunde assets if all we need is the bundle interface
-            if (lazyLoad)
+			if (fileChanged)
+				Plugin.UpdateLastUpdate(this);
+
+			// We don't need to load the bunde assets if all we need is the bundle interface
+			if (lazyLoad)
                 return;
 
 			fileChangeDetected = false;
@@ -497,6 +509,9 @@ namespace AngryLevelLoader.Containers
 				}
 
                 fileChangeDetected = updatedData.buildHash != bundleData.buildHash;
+                if (fileChangeDetected)
+                    Plugin.UpdateLastUpdate(this);
+
                 CheckReloadPrompt();
 			}
         }

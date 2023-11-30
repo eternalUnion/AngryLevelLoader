@@ -51,5 +51,10 @@ namespace AngryLevelLoader
         {
             get => Path.Combine(ConfigFolderPath, "lastPlayedMap.txt");
         }
-    }
+
+		public static string LastUpdateMapPath
+		{
+			get => Path.Combine(ConfigFolderPath, "lastUpdateMap.txt");
+		}
+	}
 }
