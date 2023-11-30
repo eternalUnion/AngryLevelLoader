@@ -284,8 +284,13 @@ namespace AngryLevelLoader.Fields
             if (!inited)
                 return;
 
-            currentUi = Addressables.InstantiateAsync(ASSET_PATH, currentContainer.transform.parent).WaitForCompletion().GetComponent<AngryOnlineLevelFieldComponent>();
-            UnityEngine.Object.Destroy(fieldUI.gameObject);
+            currentUi = Addressables.InstantiateAsync(ASSET_PATH, fieldUI.transform).WaitForCompletion().GetComponent<AngryOnlineLevelFieldComponent>();
+            RectTransform currentUiRect = currentUi.GetComponent<RectTransform>();
+            fieldUI.sizeDelta = currentUiRect.sizeDelta;
+            currentUiRect.pivot = new Vector2(0, 1);
+            currentUiRect.anchorMin = new Vector2(0, 1);
+            currentUiRect.anchorMax = new Vector2(0, 1);
+            currentUiRect.anchoredPosition = new Vector2(0, 0);
 
             currentUi.thumbnail.texture = _previewImage;
             UpdateInfoText();

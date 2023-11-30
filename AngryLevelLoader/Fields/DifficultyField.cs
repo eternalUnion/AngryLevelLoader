@@ -143,9 +143,13 @@ namespace AngryLevelLoader.Fields
 			if (!inited)
 				return;
 
-			Transform container = fieldUi.transform.parent;
-			UnityEngine.Object.DestroyImmediate(fieldUi.gameObject);
-			currentUi = Addressables.InstantiateAsync(ASSET_PATH, container).WaitForCompletion().GetComponent<AngryDifficultyFieldComponent>();
+			currentUi = Addressables.InstantiateAsync(ASSET_PATH, fieldUI.transform).WaitForCompletion().GetComponent<AngryDifficultyFieldComponent>();
+			RectTransform currentUiRect = currentUi.GetComponent<RectTransform>();
+			fieldUI.sizeDelta = currentUiRect.sizeDelta;
+			currentUiRect.pivot = new Vector2(0, 1);
+			currentUiRect.anchorMin = new Vector2(0, 1);
+			currentUiRect.anchorMax = new Vector2(0, 1);
+			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
 			currentUi.difficultyList.AddOptions(Plugin.difficultyList);
 			currentUi.gamemodeList.AddOptions(Plugin.gamemodeList);

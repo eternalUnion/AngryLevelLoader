@@ -203,10 +203,15 @@ namespace AngryLevelLoader.Fields
             if (!inited)
                 return;
 
-            currentUi = Addressables.InstantiateAsync(ASSET_PATH, fieldUI.transform.parent).WaitForCompletion().GetComponent<AngryLevelFieldComponent>();
-            Object.Destroy(fieldUI.gameObject);
+            currentUi = Addressables.InstantiateAsync(ASSET_PATH, fieldUI.transform).WaitForCompletion().GetComponent<AngryLevelFieldComponent>();
+            RectTransform currentUiRect = currentUi.GetComponent<RectTransform>();
+			fieldUI.sizeDelta = currentUiRect.sizeDelta;
+			currentUiRect.pivot = new Vector2(0, 1);
+			currentUiRect.anchorMin = new Vector2(0, 1);
+			currentUiRect.anchorMax = new Vector2(0, 1);
+			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
-            currentUi.levelHeader.text = data == null ? "???" : data.levelName;
+			currentUi.levelHeader.text = data == null ? "???" : data.levelName;
             if (data.levelPreviewImage != null)
                 currentUi.levelThumbnail.sprite = data.levelPreviewImage;
 
