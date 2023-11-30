@@ -162,7 +162,7 @@ namespace AngryLevelLoader
 		public static Dictionary<string, long> lastUpdate = new Dictionary<string, long>();
 		public static void LoadLastUpdateMap()
 		{
-			lastPlayed.Clear();
+			lastUpdate.Clear();
 
 			string path = AngryPaths.LastUpdateMapPath;
 			if (!File.Exists(path))
