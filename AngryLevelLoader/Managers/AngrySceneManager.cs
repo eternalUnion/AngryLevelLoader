@@ -313,6 +313,8 @@ namespace AngryLevelLoader.Managers
 
         public static void PostSceneLoad()
         {
+            Physics.gravity = Plugin.defaultGravity;
+
 			SceneHelperPatches.forceDisableIsInCustomLevel = false;
 			currentLevelContainer.AssureSecretsSize();
 

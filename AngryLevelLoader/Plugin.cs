@@ -67,6 +67,8 @@ namespace AngryLevelLoader
 
 		public const string PLUGIN_CONFIG_MIN_VERSION = "1.8.0";
 
+		public static readonly Vector3 defaultGravity = new Vector3(0, -40, 0);
+
 		public static string workingDir;
 		// This is the path addressable remote load path uses
 		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
