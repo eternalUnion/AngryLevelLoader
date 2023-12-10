@@ -65,7 +65,7 @@ namespace AngryLevelLoader
 	{
         public const string PLUGIN_NAME = "AngryLevelLoader";
         public const string PLUGIN_GUID = "com.eternalUnion.angryLevelLoader";
-        public const string PLUGIN_VERSION = "2.7.0";
+        public const string PLUGIN_VERSION = "2.7.1";
 
 		public const string PLUGIN_CONFIG_MIN_VERSION = "1.8.0";
 
