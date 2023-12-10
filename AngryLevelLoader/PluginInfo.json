@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.7.0",
+  "latestVersion": "2.7.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -72,6 +72,10 @@
     {
       "version": "2.7.0",
       "updateText": "- Added no monsters and no weapons game modes\n- New leaderboard entries: Challenge%, No Monsters, No Monsters and Weapons\n- Bundle sorting option moved to main panel\n- New bundle sorting mode: Last Update\n<color=cyan>Bug Fixes</color>:\n- Fixed gravity not resetting when overridden by a level\n- Fixed player camera resetting orientation if first room in a level is not facing north (Hydra commit)\n- Fixed newly added online level fields not getting sorted"
+    },
+    {
+      "version": "2.7.1",
+      "updateText": "- Added ban checks for Whiplash Buff and Masquerade Divinity\n- Improved nomo by force disabling enemies if they get re-enabled in level\n- Fixed bundle not getting sorted on last update sort mode"
     }
   ]
 }
