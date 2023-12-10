@@ -39,6 +39,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			UltrapainSoftBan.PLUGIN_GUID,
 			UltraTweakerSoftBan.PLUGIN_GUID,
 			HeavenOrHellSoftBan.PLUGIN_GUID,
+			WipFixHardBan.PLUGIN_GUID,
+			MasqueradeDivinitySoftBan.PLUGIN_GUID,
 		};
 
 		public static Dictionary<string, Func<SoftBanCheckResult>> checkers = new Dictionary<string, Func<SoftBanCheckResult>>();
@@ -53,6 +55,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			{ UltrapainSoftBan.PLUGIN_GUID, "UltraPain" },
 			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" },
 			{ HeavenOrHellSoftBan.PLUGIN_GUID, "HeavenOrHell" },
+			{ WipFixHardBan.PLUGIN_GUID, "Whiplash Buff" },
+			{ MasqueradeDivinitySoftBan.PLUGIN_GUID, "Masquerade Divinity" },
 		};
 
 		public static void Init()
@@ -109,6 +113,18 @@ namespace AngryLevelLoader.Managers.BannedMods
 			{
 				Plugin.logger.LogInfo("Detected HeavenOrHell, adding soft ban check for leaderboards");
 				checkers.Add(HeavenOrHellSoftBan.PLUGIN_GUID, HeavenOrHellSoftBan.Check);
+			}
+
+			if (WipFixHardBan.WipFixLoaded)
+			{
+				Plugin.logger.LogInfo("Detected WipFix, adding soft ban check for leaderboards");
+				checkers.Add(WipFixHardBan.PLUGIN_GUID, WipFixHardBan.Check);
+			}
+
+			if (MasqueradeDivinitySoftBan.MasqueradeDivinityLoaded)
+			{
+				Plugin.logger.LogInfo("Detected MasqueradeDivinity, adding soft ban check for leaderboards");
+				checkers.Add(MasqueradeDivinitySoftBan.PLUGIN_GUID, MasqueradeDivinitySoftBan.Check);
 			}
 		}
 	}

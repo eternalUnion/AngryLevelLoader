@@ -413,8 +413,30 @@ namespace AngryLevelLoader.Containers
                     order += 1;
                 }
             }
+			else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.LastUpdate)
+			{
+				if (!Plugin.lastUpdate.TryGetValue(bundleData.bundleGuid, out long lastUpdate))
+					lastUpdate = 0;
 
-            if (order < 0)
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (!Plugin.lastUpdate.TryGetValue(allBundles[order].bundleData.bundleGuid, out long otherLastUpdate))
+						otherLastUpdate = 0;
+
+					if (lastUpdate > otherLastUpdate)
+						break;
+
+					order += 1;
+				}
+			}
+
+			if (order < 0)
                 order = 0;
             else if (order >= allBundles.Length)
                 order = allBundles.Length - 1;

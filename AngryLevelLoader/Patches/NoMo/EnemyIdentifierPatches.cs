@@ -10,6 +10,14 @@ namespace AngryLevelLoader.Patches.NoMo
     [HarmonyPatch(typeof(EnemyIdentifier))]
     public static class EnemyIdentifierPatches
     {
+		private class ForceDisable : MonoBehaviour
+		{
+			private void OnEnable()
+			{
+				gameObject.SetActive(false);
+			}
+		}
+
 		[HarmonyPatch(nameof(EnemyIdentifier.Start))]
 		[HarmonyPrefix]
         public static bool DisableSpawnInOnNoMo(EnemyIdentifier __instance)
@@ -52,14 +60,22 @@ namespace AngryLevelLoader.Patches.NoMo
             {
                 case EnemyType.MaliciousFace:
                     if (__instance.GetComponent<SpiderBody>() != null)
-                        __instance.transform.parent.gameObject.SetActive(false);
+					{
+						__instance.transform.parent.gameObject.SetActive(false);
+						__instance.transform.parent.gameObject.AddComponent<ForceDisable>();
+					}
                     break;
 
 				case EnemyType.Cerberus:
 					if (__instance.GetComponent<StatueBoss>() != null)
+					{
 						__instance.transform.parent.gameObject.SetActive(false);
+						__instance.transform.parent.gameObject.AddComponent<ForceDisable>();
+					}
 					break;
 			}
+
+			__instance.gameObject.AddComponent<ForceDisable>();
 
 			return false;
 		}

@@ -59,6 +59,8 @@ namespace AngryLevelLoader
 	[BepInDependency(UltraFunGunsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(FasterPunchSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(AtlasWeaponsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(WipFixHardBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(MasqueradeDivinitySoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
         public const string PLUGIN_NAME = "AngryLevelLoader";

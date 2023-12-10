@@ -54,6 +54,9 @@
     <Reference Include="PluginConfiguratorComponents">
       <HintPath>libs\PluginConfiguratorComponents.dll</HintPath>
     </Reference>
+    <Reference Include="ProjectProphet">
+      <HintPath>libs\ProjectProphet.dll</HintPath>
+    </Reference>
     <Reference Include="UltraFunGuns">
       <HintPath>libs\UltraFunGuns.dll</HintPath>
     </Reference>
