@@ -13,6 +13,7 @@ using UnityEngine.UI;
 using UnityEngine.SocialPlatforms.Impl;
 using System.Linq;
 using AngryLevelLoader.Extensions;
+using TMPro;
 
 namespace AngryLevelLoader.Patches
 {
@@ -177,7 +178,7 @@ namespace AngryLevelLoader.Patches
 				float seconds = (float)(record.time - minutes * 60000) / 1000f;
 				instance.templateTime.text = string.Format("{0}:{1:00.000}", minutes, seconds);
 
-				Text text = instance.templateUsername;
+				TMP_Text text = instance.templateUsername;
 				text.text = "<unknown>";
 				instance.templateDifficulty.text = $"#{order++}";
 

@@ -10,6 +10,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\V2PatchBundles\other_assets_allaudio.bundle" />
+    <None Remove="Resources\V2PatchBundles\other_assets_dooraudio.bundle" />
+    <None Remove="Resources\V2PatchBundles\other_assets_goreaudio.bundle" />
+    <None Remove="Resources\V2PatchBundles\other_assets_musicaudio.bundle" />
+    <None Remove="Resources\V2PatchBundles\other_assets_unfreezeableaudio.bundle" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\V2PatchBundles\other_assets_allaudio.bundle" />
+    <EmbeddedResource Include="Resources\V2PatchBundles\other_assets_dooraudio.bundle" />
+    <EmbeddedResource Include="Resources\V2PatchBundles\other_assets_goreaudio.bundle" />
+    <EmbeddedResource Include="Resources\V2PatchBundles\other_assets_musicaudio.bundle" />
+    <EmbeddedResource Include="Resources\V2PatchBundles\other_assets_unfreezeableaudio.bundle" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
@@ -71,6 +87,9 @@
     </Reference>
     <Reference Include="Unity.ResourceManager">
       <HintPath>libs\Unity.ResourceManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>libs\Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>libs\UnityEngine.AssetBundleModule.dll</HintPath>

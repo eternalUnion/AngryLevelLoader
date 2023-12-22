@@ -35,6 +35,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 using AngryLevelLoader.Notifications;
+using AngryLevelLoader.Managers.LegacyPatches;
 
 namespace AngryLevelLoader
 {
@@ -1612,9 +1613,10 @@ namespace AngryLevelLoader
 			angryCatalogPath = Path.Combine(workingDir, "Assets");
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 			AssetManager.Init();
+			LegacyPatchManager.Init();
 
 			// These scripts are common among all the levels
-            if (!LoadEssentialScripts())
+			if (!LoadEssentialScripts())
 			{
 				logger.LogError("Disabling AngryLevelLoader because one or more of its dependencies have failed to load");
 				enabled = false;

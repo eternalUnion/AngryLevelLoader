@@ -57,7 +57,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			try
             {
-				AuthTicket ticketTask = await SteamUser.GetAuthSessionTicketAsync();
+				AuthTicket ticketTask = await SteamUser.GetAuthSessionTicketAsync(new Steamworks.Data.NetIdentity());
                 if (ticketTask == null)
                 {
                     result.networkError = true;
