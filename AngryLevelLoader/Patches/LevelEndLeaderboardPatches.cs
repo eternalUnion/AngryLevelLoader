@@ -47,7 +47,7 @@ namespace AngryLevelLoader.Patches
 			}
 
 			// UI setup
-			Text loadingText = __instance.loadingPanel.gameObject.GetComponent<Text>();
+			TextMeshProUGUI loadingText = __instance.loadingPanel.gameObject.GetComponent<TextMeshProUGUI>();
 			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 
 			if (Plugin.difficultyField.gamemodeListValueIndex == 0)
@@ -71,7 +71,7 @@ namespace AngryLevelLoader.Patches
 		public static IEnumerator CustomFetch(LevelEndLeaderboard instance)
 		{
 			instance.ResetEntries();
-			Text loadingText = instance.loadingPanel.gameObject.GetComponent<Text>();
+			TextMeshProUGUI loadingText = instance.loadingPanel.gameObject.GetComponent<TextMeshProUGUI>();
 			instance.container.gameObject.SetActive(false);
 			instance.loadingPanel.SetActive(true);
 
@@ -198,9 +198,9 @@ namespace AngryLevelLoader.Patches
 					gameObject.SetActive(true);
 
 					Transform newUsernameFieldTrans = gameObject.transform.Find("Username Field");
-					Text newUsernameField = null;
+					TextMeshProUGUI newUsernameField = null;
 					if (newUsernameFieldTrans != null)
-						newUsernameField = newUsernameFieldTrans.GetComponent<Text>();
+						newUsernameField = newUsernameFieldTrans.GetComponent<TextMeshProUGUI>();
 					RawImage profilePicture = gameObject.GetComponentInChildren<RawImage>();
 
 					var userRequest = SteamCacheManager.RequestUser(steamIdNumeric);

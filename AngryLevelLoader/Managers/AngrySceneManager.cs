@@ -330,6 +330,15 @@ namespace AngryLevelLoader.Managers
                     bonus.BeenFound();
                 }
             }
+
+            if (currentBundleContainer.bundleData.bundleVersion != 3)
+            {
+                HudMessageReceiver hudMsg = HudMessageReceiver.Instance;
+                if (hudMsg != null)
+                    hudMsg.SendHudMessage("<color=yellow>Warning</color>: Level is made for an older version of the game. Expect issues");
+                else
+                    Debug.LogWarning("Could not locate hud message");
+            }
         }
     }
 }

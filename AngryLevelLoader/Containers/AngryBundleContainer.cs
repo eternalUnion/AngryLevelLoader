@@ -94,6 +94,25 @@ namespace AngryLevelLoader.Containers
                 rewriteData = true;
             }
 
+            if (latestData.bundleVersion == -1)
+            {
+                latestData.bundleVersion = 2;
+                bundleData.bundleVersion = 2;
+
+				using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
+				{
+					ZipArchiveEntry dataEntry = angryFile.GetEntry("data.json");
+
+					using (StreamWriter sw = new StreamWriter(dataEntry.Open()))
+					{
+						sw.BaseStream.SetLength(0);
+						sw.BaseStream.Seek(0, SeekOrigin.Begin);
+						await sw.WriteAsync(JsonConvert.SerializeObject(latestData));
+						await sw.FlushAsync();
+					}
+				}
+			}
+
             // If force reload is set to false, check if the build hashes match
             // between unzipped bundle and the current angry file. Avoids unnecessary unzips
             if (Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
@@ -173,7 +192,7 @@ namespace AngryLevelLoader.Containers
 
             if (rewriteData)
             {
-                using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
+				using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
                 {
                     ZipArchiveEntry dataEntry = angryFile.GetEntry("data.json");
 
