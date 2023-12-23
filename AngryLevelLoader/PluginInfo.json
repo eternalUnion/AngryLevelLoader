@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.7.2",
+  "latestVersion": "2.7.3",
   "updates": [
     {
       "version": "1.0.0",
@@ -80,6 +80,10 @@
     {
       "version": "2.7.2",
       "updateText": "- Fix for violence update\n- Legacy patches for older levels"
+    },
+    {
+      "version": "2.7.3",
+      "updateText": "- Fixed maurice beam not exploding for old levels"
     }
   ]
 }
