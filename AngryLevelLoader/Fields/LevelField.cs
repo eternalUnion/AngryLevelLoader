@@ -91,8 +91,8 @@ namespace AngryLevelLoader.Fields
             set
             {
                 base.hidden = value;
-                if (currentUi != null)
-                    currentUi.gameObject.SetActive(!hierarchyHidden && !forceHidden);
+                if (container != null)
+					container.gameObject.SetActive(!hierarchyHidden && !forceHidden);
             }
         }
 

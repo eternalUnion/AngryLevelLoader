@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
 using PluginConfig;
@@ -307,7 +308,13 @@ namespace AngryLevelLoader.Managers
 				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 0);
 			}
 
-            SceneHelper.LoadScene(levelPath);
+			int levelVersion = bundleContainer.bundleData.bundleVersion;
+			if (levelVersion == 2)
+				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver2);
+			else
+				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+
+			SceneHelper.LoadScene(levelPath);
             Plugin.UpdateLastPlayed(bundleContainer);
         }
 

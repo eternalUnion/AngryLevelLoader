@@ -1613,7 +1613,27 @@ namespace AngryLevelLoader
 			angryCatalogPath = Path.Combine(workingDir, "Assets");
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 			AssetManager.Init();
+
 			LegacyPatchManager.Init();
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
+				if (AngrySceneManager.isInCustomLevel)
+				{
+					int levelVersion = AngrySceneManager.currentBundleContainer.bundleData.bundleVersion;
+
+					if (levelVersion == 2)
+						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver2);
+					else
+						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+				}
+				else
+				{
+					LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+				}
+			};
 
 			// These scripts are common among all the levels
 			if (!LoadEssentialScripts())
@@ -1652,6 +1672,7 @@ namespace AngryLevelLoader
 					CreateCustomLevelButtonOnMainMenu();
 				}
 			};
+
 			// Delay the catalog reload on boot until the main menu since steam must be initialized for the ticket request
 			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;
 
