@@ -190,6 +190,12 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 		public static bool FixSpider(SpiderBody __instance)
 		{
+			if (__instance.spiderBeam != null && __instance.spiderBeam.TryGetComponent(out RevolverBeam beam))
+			{
+				if (beam.hitParticle == null || string.IsNullOrEmpty(beam.hitParticle.AssetGUID))
+					__instance.spiderBeam = spiderBody.spiderBeam;
+			}
+
 			if (__instance.beamExplosion == null || string.IsNullOrEmpty(__instance.beamExplosion.AssetGUID))
 				__instance.beamExplosion = spiderBody.beamExplosion;
 
