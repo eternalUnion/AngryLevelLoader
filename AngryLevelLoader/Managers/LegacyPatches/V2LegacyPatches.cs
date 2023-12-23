@@ -149,7 +149,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 				{
 					if (__instance.projectile == null || string.IsNullOrEmpty(__instance.projectile.AssetGUID))
 						__instance.projectile = drone.projectile;
-
+					
 					if (__instance.explosion == null || string.IsNullOrEmpty(__instance.explosion.AssetGUID))
 						__instance.explosion = drone.explosion;
 
