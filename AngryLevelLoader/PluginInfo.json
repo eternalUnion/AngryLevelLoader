@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.7.1",
+  "latestVersion": "2.7.2",
   "updates": [
     {
       "version": "1.0.0",
@@ -76,6 +76,10 @@
     {
       "version": "2.7.1",
       "updateText": "- Added ban checks for Whiplash Buff and Masquerade Divinity\n- Improved nomo by force disabling enemies if they get re-enabled in level\n- Fixed bundle not getting sorted on last update sort mode"
+    },
+    {
+      "version": "2.7.2",
+      "updateText": "- Fix for violence update\n- Legacy patches for older levels"
     }
   ]
 }
