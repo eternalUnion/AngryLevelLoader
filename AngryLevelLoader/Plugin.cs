@@ -465,6 +465,7 @@ namespace AngryLevelLoader
 		public static List<string> scriptCertificateIgnore = new List<string>();
 		public static StringMultilineField scriptCertificateIgnoreField;
 		public static BoolField useDevelopmentBranch;
+		public static BoolField useLocalServer;
 		public static BoolField scriptUpdateIgnoreCustom;
 		public enum BundleSorting
 		{
@@ -987,10 +988,14 @@ namespace AngryLevelLoader
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
 			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
 			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
+			useLocalServer = new BoolField(settingsPanel, "Use local server", "s_useLocalServer", false);
 			if (!devMode.value)
 			{
 				useDevelopmentBranch.hidden = true;
 				useDevelopmentBranch.value = false;
+
+				useLocalServer.hidden = true;
+				useLocalServer.value = false;
 			}
 			levelUpdateNotifierToggle = new BoolField(settingsPanel, "Notify on level updates", "s_levelUpdateNofify", true);
 			levelUpdateNotifierToggle.onValueChange += (e) =>

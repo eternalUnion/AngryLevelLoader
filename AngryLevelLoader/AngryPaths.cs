@@ -8,9 +8,15 @@ namespace AngryLevelLoader
 {
     public static class AngryPaths
     {
-		public const string SERVER_ROOT = "https://angry.dnzsoft.com";
+        public const string SERVER_ROOT_GLOBAL = "https://angry.dnzsoft.com";
+        public const string SERVER_ROOT_LOCAL = "http://localhost:3000";
 
-		public static void TryCreateAllPaths()
+        public static string SERVER_ROOT
+        {
+            get => Plugin.useLocalServer.value ? SERVER_ROOT_LOCAL : SERVER_ROOT_GLOBAL;
+        }
+
+        public static void TryCreateAllPaths()
         {
             IOUtils.TryCreateDirectory(ConfigFolderPath);
             IOUtils.TryCreateDirectory(OnlineCacheFolderPath);
