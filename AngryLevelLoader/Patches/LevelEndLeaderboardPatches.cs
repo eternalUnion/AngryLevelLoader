@@ -112,14 +112,10 @@ namespace AngryLevelLoader.Patches
 
 			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 
-			AngryLeaderboards.RecordDifficulty difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
-			if (currentCategory == AngryLeaderboards.RecordCategory.NOMO || currentCategory == AngryLeaderboards.RecordCategory.NOMOW)
-				difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
-
 			// Get top 10 records
 			Task<AngryLeaderboards.GetRecordsResult> getRecordsTask = AngryLeaderboards.GetRecordsTask(
 				currentCategory,
-				difficulty,
+				AngryLeaderboards.RecordDifficulty.ANY,
 				AngrySceneManager.currentBundleContainer.bundleData.bundleGuid,
 				AngrySceneManager.currentLevelData.uniqueIdentifier,
 				0,
@@ -180,7 +176,7 @@ namespace AngryLevelLoader.Patches
 
 				TMP_Text text = instance.templateUsername;
 				text.text = "<unknown>";
-				instance.templateDifficulty.text = $"#{order++}";
+				instance.templateDifficulty.text = record.difficulty;
 
 				if (SteamCacheManager.TryGetUser(steamIdNumeric, out SteamUserCache cachedSteamUser))
 				{

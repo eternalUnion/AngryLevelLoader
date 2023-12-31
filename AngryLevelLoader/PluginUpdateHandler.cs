@@ -131,8 +131,14 @@ namespace AngryLevelLoader
                 Plugin.LoadLastPlayedMap();
             }
 
-            // Reset ignore update on version change
-            if (Plugin.PLUGIN_VERSION != Plugin.lastVersion.value)
+			// 2.8.0: Added any difficulty leaderboard
+            if (string.IsNullOrEmpty(Plugin.lastVersion.value) || new Version(Plugin.lastVersion.value) <= new Version("2.7.3"))
+            {
+                Plugin.defaultLeaderboardDifficulty.value = Plugin.DefaultLeaderboardDifficulty.Any;
+            }
+
+			// Reset ignore update on version change
+			if (Plugin.PLUGIN_VERSION != Plugin.lastVersion.value)
                 Plugin.ignoreUpdates.value = false;
 
             // Show update notification

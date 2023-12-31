@@ -193,6 +193,9 @@ namespace AngryLevelLoader.Notifications
 
 			currentReloadTask = ReloadTask(getLocalUser).ContinueWith((task) =>
 			{
+				if (task.Exception != null)
+					Debug.LogException(task.Exception);
+
 				if (currentUi != null)
 				{
 					currentUi.refreshCircle.SetActive(false);
@@ -214,6 +217,7 @@ namespace AngryLevelLoader.Notifications
 
 		private static readonly AngryLeaderboards.RecordDifficulty[] dropdownDifficulties = new AngryLeaderboards.RecordDifficulty[]
 		{
+			AngryLeaderboards.RecordDifficulty.ANY,
 			AngryLeaderboards.RecordDifficulty.HARMLESS,
 			AngryLeaderboards.RecordDifficulty.LENIENT,
 			AngryLeaderboards.RecordDifficulty.STANDARD,
@@ -255,6 +259,8 @@ namespace AngryLevelLoader.Notifications
 					if (localUserResult.completedSuccessfully && localUserResult.status == AngryLeaderboards.GetUserRecordStatus.OK)
 					{
 						currentUi.localUserRank.text = localUserResult.response.ranking == -1 ? "#?" : $"#{localUserResult.response.ranking}";
+						if (difficulty == AngryLeaderboards.RecordDifficulty.ANY && localUserResult.response.ranking != -1)
+							currentUi.localUserName.text += $"\n<color=grey>{localUserResult.response.difficulty}</color>";
 						currentUi.localUserTime.text = localUserResult.response.ranking == -1 ? NullTime : MillisecondsToString(localUserResult.response.time);
 					}
 					else
@@ -290,6 +296,7 @@ namespace AngryLevelLoader.Notifications
 							for (int i = 0; i < page.response.records.Length; i++)
 							{
 								var entry = UnityEngine.Object.Instantiate(currentUi.recordTemplate, currentUi.recordContainer);
+								string entryDifficulty = difficulty == AngryLeaderboards.RecordDifficulty.ANY ? page.response.records[i].difficulty : "";
 								entry.rank.text = $"#{page.response.offset + i + 1}";
 								entry.time.text = MillisecondsToString(page.response.records[i].time);
 
@@ -300,6 +307,8 @@ namespace AngryLevelLoader.Notifications
 								if (SteamCacheManager.TryGetUser(steamId, out SteamUserCache cachedUser))
 								{
 									entry.username.text = cachedUser.name;
+									if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
+										entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
 									entry.profile.texture = cachedUser.profilePicture;
 									entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), cachedUser.name));
 								}
@@ -314,6 +323,8 @@ namespace AngryLevelLoader.Notifications
 
 										var userReq = task.Result;
 										entry.username.text = userReq.name;
+										if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
+											entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
 										entry.profile.texture = userReq.profilePicture;
 										entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
 									}, TaskScheduler.FromCurrentSynchronizationContext());
@@ -426,6 +437,7 @@ namespace AngryLevelLoader.Notifications
 						int realIndex = i + currentPage * 5;
 
 						var entry = UnityEngine.Object.Instantiate(currentUi.recordTemplate, currentUi.recordContainer);
+						string entryDifficulty = difficulty == AngryLeaderboards.RecordDifficulty.ANY ? friendRecords[realIndex].difficulty : "";
 						entry.rank.text = $"#{currentPage * 5 + i + 1}";
 						entry.time.text = MillisecondsToString(friendRecords[realIndex].time);
 
@@ -435,6 +447,8 @@ namespace AngryLevelLoader.Notifications
 						if (SteamCacheManager.TryGetUser(steamId, out SteamUserCache cachedUser))
 						{
 							entry.username.text = $"{cachedUser.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
+							if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
+								entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
 							entry.profile.texture = cachedUser.profilePicture;
 							entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), cachedUser.name));
 						}
@@ -449,6 +463,8 @@ namespace AngryLevelLoader.Notifications
 
 								var userReq = task.Result;
 								entry.username.text = $"{userReq.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
+								if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
+									entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
 								entry.profile.texture = userReq.profilePicture;
 								entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
 							}, TaskScheduler.FromCurrentSynchronizationContext());

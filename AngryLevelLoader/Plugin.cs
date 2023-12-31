@@ -486,6 +486,7 @@ namespace AngryLevelLoader
 		public static EnumField<DefaultLeaderboardCategory> defaultLeaderboardCategory;
 		public enum DefaultLeaderboardDifficulty
 		{
+			Any,
 			Harmless,
 			Lenient,
 			Standard,
@@ -981,7 +982,7 @@ namespace AngryLevelLoader
 			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.PRank, "P Rank");
 			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.Nomo, "No Monsters");
 			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.Nomow, "No Monsters/Weapons");
-			defaultLeaderboardDifficulty = new EnumField<DefaultLeaderboardDifficulty>(settingsPanel, "Default leaderboard difficulty", "defaultLeaderboardDifficulty", DefaultLeaderboardDifficulty.Violent);
+			defaultLeaderboardDifficulty = new EnumField<DefaultLeaderboardDifficulty>(settingsPanel, "Default leaderboard difficulty", "defaultLeaderboardDifficulty", DefaultLeaderboardDifficulty.Any);
 			defaultLeaderboardFilter = new EnumField<DefaultLeaderboardFilter>(settingsPanel, "Default leaderboard filter", "defaultLeaderboardFilter", DefaultLeaderboardFilter.Global);
 
 			new ConfigHeader(settingsPanel, "Online") { textColor = new Color(0.532f, 0.8284001f, 1f) };

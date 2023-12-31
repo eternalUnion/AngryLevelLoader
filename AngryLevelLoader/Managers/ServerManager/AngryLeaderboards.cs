@@ -5,6 +5,7 @@ using BepInEx.Bootstrap;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -39,12 +40,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 			{ RecordCategory.NOMOW, RECORD_CATEGORY_NOMOW },
 		};
 
+		public const string RECORD_DIFFICULTY_ANY = "any";
 		public const string RECORD_DIFFICULTY_HARMLESS = "harmless";	
 		public const string RECORD_DIFFICULTY_LENIENT = "lenient";
 		public const string RECORD_DIFFICULTY_STANDARD = "standard";
 		public const string RECORD_DIFFICULTY_VIOLENT = "violent";
 		public enum RecordDifficulty
 		{
+			ANY,
 			HARMLESS,
 			LENIENT,
 			STANDARD,
@@ -52,6 +55,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		}
 		public static readonly Dictionary<RecordDifficulty, string> RECORD_DIFFICULTY_DICT = new Dictionary<RecordDifficulty, string>()
 		{
+			{ RecordDifficulty.ANY, RECORD_DIFFICULTY_ANY },
 			{ RecordDifficulty.HARMLESS, RECORD_DIFFICULTY_HARMLESS },
 			{ RecordDifficulty.LENIENT, RECORD_DIFFICULTY_LENIENT },
 			{ RecordDifficulty.STANDARD, RECORD_DIFFICULTY_STANDARD },
@@ -77,6 +81,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		{
 			public string steamId { get; set; }
 			public int time { get; set; }
+			public string difficulty { get; set; }
 		}
 		#endregion
 		
@@ -378,6 +383,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		{
 			public int ranking { get; set; }
 			public int time { get; set; }
+			public string difficulty { get; set; }
 		}
 
 		public class GetUserRecordResult : AngryResult<GetUserRecordResponse, GetUserRecordStatus>
@@ -422,6 +428,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		{
 			public string steamId { get; set; }
 			public int time { get; set; }
+			public string difficulty { get; set; }
 			public int globalRank { get; set; }
 		}
 
