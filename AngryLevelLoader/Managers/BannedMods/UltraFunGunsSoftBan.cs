@@ -8,10 +8,12 @@ namespace AngryLevelLoader.Managers.BannedMods
 	public static class UltraFunGunsSoftBan
 	{
 		public const string PLUGIN_GUID = "Hydraxous.ULTRAKILL.UltraFunGuns";
+        public const string CONFIGGY_LIB_GUID = "Hydraxous.ULTRAKILL.Configgy";
 
-		public static bool UltraFunGunsLoaded
+
+        public static bool UltraFunGunsLoaded
 		{
-			get => Chainloader.PluginInfos.ContainsKey(PLUGIN_GUID) && Chainloader.PluginInfos.ContainsKey(BannedModsManager.HYDRA_LIB_GUID);
+			get => Chainloader.PluginInfos.ContainsKey(PLUGIN_GUID) && Chainloader.PluginInfos.ContainsKey(CONFIGGY_LIB_GUID);
 		}
 
 		public static SoftBanCheckResult Check()
@@ -19,6 +21,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 			SoftBanCheckResult result = new SoftBanCheckResult();
 
 			var loadout = UltraFunGuns.Data.Loadout.Data;
+			
 			foreach (var slot in loadout.slots)
 			{
 				foreach (var node in slot.slotNodes)
@@ -29,7 +32,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 
 						if (!string.IsNullOrEmpty(result.message))
 							result.message += '\n';
-						result.message += $"- Gun {node.weaponKey} is banned, unequip to be able to post records";	
+						result.message += $"- Gun {node.weaponKey} (UltraFunGuns) is banned, unequip to be able to post records";
 					}
 				}
 			}
