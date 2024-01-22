@@ -55,9 +55,6 @@
     <Reference Include="FasterPunch">
       <HintPath>libs\FasterPunch.dll</HintPath>
     </Reference>
-    <Reference Include="HydraDynamics">
-      <HintPath>libs\HydraDynamics.dll</HintPath>
-    </Reference>
     <Reference Include="Movement">
       <HintPath>libs\Movement.dll</HintPath>
     </Reference>
