@@ -52,7 +52,7 @@ namespace AngryLevelLoader
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
 	// Soft ban dependencies
-	[BepInDependency(BannedModsManager.HYDRA_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(UltraFunGunsSoftBan.CONFIGGY_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(DualWieldPunchesSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(UltraTweakerSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(MovementPlusSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]

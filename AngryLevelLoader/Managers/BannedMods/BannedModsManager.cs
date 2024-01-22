@@ -24,7 +24,6 @@ namespace AngryLevelLoader.Managers.BannedMods
 
 	public static class BannedModsManager
 	{
-		public const string HYDRA_LIB_GUID = "Hydraxous.HydraDynamics";
 
 		// This is the local banned mods list. It should normally be fetched from angry server
 		// In case the server is offline, this list will be used as a fallback
