@@ -4,12 +4,23 @@ using HarmonyLib;
 
 namespace AngryLevelLoader.Patches
 {
-    [HarmonyPatch(typeof(AbruptLevelChanger), nameof(AbruptLevelChanger.AbruptChangeLevel))]
-    public static class AbrutptLevelChanger_AbruptChangeLevel_Patch
+    //Support custom level ids when using the AbruptLevelChanger component
+    [HarmonyPatch]
+    public static class AbrutptLevelChangerPatch
     {
-        //Support custom level ids when using the AbruptLevelChanger component
-        [HarmonyPrefix]
-        public static bool Prefix(AbruptLevelChanger __instance, string levelName)
+        [HarmonyPatch(typeof(AbruptLevelChanger), nameof(AbruptLevelChanger.AbruptChangeLevel)), HarmonyPrefix]
+        public static bool OnAbruptChangeLevel(AbruptLevelChanger __instance, string levelName)
+        {
+            return ChangeLevel(__instance, levelName);
+        }
+
+        [HarmonyPatch(typeof(AbruptLevelChanger), nameof(AbruptLevelChanger.NormalChangeLevel)), HarmonyPrefix]
+        public static bool OnNormalChangeLevel(AbruptLevelChanger __instance, string levelName)
+        {
+            return ChangeLevel(__instance, levelName);
+        }
+
+        private static bool ChangeLevel(AbruptLevelChanger __instance, string levelName)
         {
             if (!AngrySceneManager.isInCustomLevel)
                 return true;
@@ -17,7 +28,7 @@ namespace AngryLevelLoader.Patches
             if (string.IsNullOrEmpty(levelName))
                 return false;
 
-            if(AngrySceneManager.TryFindLevel(levelName, out LevelContainer result))
+            if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer result))
             {
                 //Prevent the AbruptLevelChanger from loading the level and load angry level
                 AngrySceneManager.LoadLevel(result.container, result, result.data, result.data.scenePath);
@@ -26,7 +37,7 @@ namespace AngryLevelLoader.Patches
             else
             {
                 Plugin.logger.LogWarning("Could not find target level id " + levelName);
-                
+
                 //Don't save the mission since we're in custom level
                 if (__instance.saveMission)
                     __instance.saveMission = false;
