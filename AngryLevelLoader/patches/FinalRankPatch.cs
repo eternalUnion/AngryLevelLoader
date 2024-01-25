@@ -1,7 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.Managers;
 using HarmonyLib;
-using RudeLevelScript;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -104,32 +103,26 @@ namespace AngryLevelLoader.Patches
 			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
-			if (FinalPit_SendInfo_Patch.lastTarget != null && !string.IsNullOrEmpty(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId))
+			//Quit mission if theres no target level
+			if(FinalPit_SendInfo_Patch.lastTarget == null || string.IsNullOrEmpty(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId))
 			{
-				string idPath = FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId;
-
-				foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
-				{
-					foreach (LevelContainer level in container.levels.Values)
-					{
-						if (level.data.uniqueIdentifier == idPath)
-						{
-							AngrySceneManager.LoadLevel(container, level, level.data, level.data.scenePath);
-							return false;
-						}
-					}
-				}
-
-				Plugin.logger.LogWarning("Could not find target level id " + idPath);
-				MonoSingleton<OptionsManager>.Instance.QuitMission();
+                MonoSingleton<OptionsManager>.Instance.QuitMission();
 				return false;
-			}
-			else
-			{
-				MonoSingleton<OptionsManager>.Instance.QuitMission();
-			}
+            }
 
+			string levelID = FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId;
+
+			//Attempt to find the level id from AngrySceneManager, quit mission if it can't be found
+            if (!AngrySceneManager.TryFindLevel(levelID, out LevelContainer level))
+			{
+                Plugin.logger.LogWarning("Could not find target level id " + levelID);
+                MonoSingleton<OptionsManager>.Instance.QuitMission();
+				return false;
+            }
+            
+			//Load the level
+			AngrySceneManager.LoadLevel(level.container, level, level.data, level.data.scenePath);
 			return false;
-		}
+        }
 	}
 }
