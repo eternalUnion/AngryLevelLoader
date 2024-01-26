@@ -225,20 +225,6 @@ namespace AngryLevelLoader
 			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
 		}
 
-		public static LevelContainer GetLevel(string id)
-		{
-			foreach (AngryBundleContainer container in angryBundles.Values)
-			{
-				foreach (LevelContainer level in container.levels.Values)
-				{
-					if (level.field.data.uniqueIdentifier == id)
-						return level;
-				}
-			}
-
-			return null;
-		}
-
 		public static void ProcessPath(string path)
 		{
             if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
@@ -1410,8 +1396,7 @@ namespace AngryLevelLoader
 					if (bundle != null)
 						bundleName = bundle.bundleData.bundleName;
 
-					var level = GetLevel(levelName);
-					if (level != null)
+					if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
 						levelName = level.data.levelName;
 
 					pendingRecordsInfo.text += $"Bundle: <color=grey>{bundleName}</color>\nLevel: <color=grey>{levelName}</color>\nCategory: <color=grey>{record.category}</color>\nDifficulty: <color=grey>{record.difficulty}</color>\nTime: <color=grey>{record.time}</color>\n\n\n";
@@ -1455,8 +1440,7 @@ namespace AngryLevelLoader
 				if (bundle != null)
 					bundleName = bundle.bundleData.bundleName;
 
-				var level = GetLevel(levelName);
-				if (level != null)
+				if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
 					levelName = level.data.levelName;
 
 				if (!record.TryParseRecordInfo(out AngryLeaderboards.PostRecordInfo parsedRecord))
@@ -1806,18 +1790,16 @@ namespace AngryLevelLoader
 		public static char INCOMPLETE_LEVEL_CHAR = '-';
 		public static char GetLevelRank(string levelId)
         {
-			LevelContainer level = Plugin.GetLevel(levelId);
-			if (level == null)
-				return INCOMPLETE_LEVEL_CHAR;
-			return level.finalRank.value[0];
+			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
+				return level.finalRank.value[0];
+			return INCOMPLETE_LEVEL_CHAR;
 		}
 	
         public static bool GetLevelChallenge(string levelId)
 		{
-			LevelContainer level = Plugin.GetLevel(levelId);
-			if (level == null)
-				return false;
-			return level.challenge.value;
+			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
+				return level.challenge.value;
+			return false;
 		}
 
 		public static bool GetLevelSecret(string levelId, int secretIndex)
@@ -1825,17 +1807,18 @@ namespace AngryLevelLoader
 			if (secretIndex < 0)
 				return false;
 
-			LevelContainer level = Plugin.GetLevel(levelId);
-			if (level == null)
-				return false;
+			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
+			{
+				level.AssureSecretsSize();
+				if (secretIndex >= level.field.data.secretCount)
+					return false;
+				return level.secrets.value[secretIndex] == 'T';
+			}
 
-			level.AssureSecretsSize();
-			if (secretIndex >= level.field.data.secretCount)
-				return false;
-			return level.secrets.value[secretIndex] == 'T';
+			return false;
 		}
 
-        public static string GetCurrentLevelId()
+		public static string GetCurrentLevelId()
         {
             return AngrySceneManager.isInCustomLevel ? AngrySceneManager.currentLevelData.uniqueIdentifier : "";
         }

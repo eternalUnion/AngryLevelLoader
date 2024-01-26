@@ -56,19 +56,20 @@ namespace AngryLevelLoader.Fields
 
                 foreach (string reqId in data.requiredCompletedLevelIdsForUnlock)
                 {
-                    LevelContainer reqLevel = Plugin.GetLevel(reqId);
-                    if (reqLevel == null)
+                    if (AngrySceneManager.TryFindLevel(reqId, out LevelContainer reqLevel))
                     {
-                        Plugin.logger.LogWarning($"Could not find level unlock requirement id for {data.uniqueIdentifier}, requested id was {reqId}");
-                        locked = true;
-                        break;
-                    }
-
-                    if (reqLevel.finalRank.value[0] == '-')
+						if (reqLevel.finalRank.value[0] == '-')
+						{
+							locked = true;
+							break;
+						}
+					}
+                    else
                     {
-                        locked = true;
-                        break;
-                    }
+						Plugin.logger.LogWarning($"Could not find level unlock requirement id for {data.uniqueIdentifier}, requested id was {reqId}");
+						locked = true;
+						break;
+					}
                 }
 
                 return locked;

@@ -4,13 +4,10 @@ using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
 using PluginConfig;
 using RudeLevelScript;
-using RudeLevelScripts.Essentials;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -346,6 +343,25 @@ namespace AngryLevelLoader.Managers
                 else
                     Debug.LogWarning("Could not locate hud message");
             }
+        }
+
+        public static bool TryFindLevel(string id, out LevelContainer level)
+        {
+            level = null;
+
+            foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
+            {
+                foreach (LevelContainer levelContainer in container.levels.Values)
+                {
+                    if (level.data.uniqueIdentifier == id)
+                    {
+                        level = levelContainer;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }
