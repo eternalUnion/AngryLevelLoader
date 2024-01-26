@@ -442,7 +442,7 @@ namespace RudeLevelScript
 					hellmapContainer.name = "Hellmap Container";
 					hellmapContainer.anchorMin = hellmapContainer.anchorMax = new Vector2(0.5f, 0.5f);
 					hellmapContainer.pivot = new Vector2(0.5f, 0.5f);
-					hellmapContainer.sizeDelta = new Vector2(250, 650);
+					hellmapContainer.sizeDelta = new Vector2(Screen.width, 650);
 					hellmapContainer.anchoredPosition = Vector2.zero;
 					hellmapContainer.localScale = Vector3.one;
 					VerticalLayoutGroup vLayout = hellmapContainer.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -455,17 +455,24 @@ namespace RudeLevelScript
 					foreach (LayerInfo layer in layersAndLevels)
 					{
 						// Add the layer text
-						Text header = MakeText(hellmapContainer);
+						RectTransform headerContainer = MakeRect(hellmapContainer);
+						headerContainer.anchorMin = headerContainer.anchorMax = new Vector2(0, 1);
+						headerContainer.sizeDelta = new Vector2(Screen.width, 50);
+						headerContainer.pivot = new Vector2(0, 1);
+						headerContainer.localScale = Vector3.one;
+
+						Text header = MakeText(headerContainer);
 						header.text = layer.layerName;
 						header.fontSize = 36;
 						header.font = Utils.gameFont;
 						header.alignment = TextAnchor.MiddleLeft;
 						header.color = Color.white;
 						RectTransform textRect = header.GetComponent<RectTransform>();
-						textRect.anchorMin = textRect.anchorMax = new Vector2(0, 1);
-						textRect.sizeDelta = new Vector2(250, 50);
-						textRect.pivot = new Vector2(0, 1);
+						textRect.anchorMin = textRect.anchorMax = new Vector2(0.5f, 0.5f);
+						textRect.sizeDelta = new Vector2(Screen.width / 2 + 125, 100);
+						textRect.pivot = new Vector2(0, 0.5f);
 						textRect.localScale = Vector3.one;
+						textRect.anchoredPosition = new Vector2(-125, 0);
 
 						// Add all levels
 						foreach (string level in layer.layerLevels)
