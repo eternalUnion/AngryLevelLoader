@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.7.3",
+  "latestVersion": "2.7.4",
   "updates": [
     {
       "version": "1.0.0",
@@ -84,6 +84,10 @@
     {
       "version": "2.7.3",
       "updateText": "- Fixed maurice beam not exploding for old levels"
+    },
+    {
+      "version": "2.7.4",
+      "updateText": "- Fixed ufg softban (Hydra pr)\n- Added AbruptLevelChanger support (Hydra pr)\n- Leaderboards merged to single difficulty, filter still available\n- Added difficulty post information below the leaderboard panel\n- Fixed challenges not working"
     }
   ]
 }
