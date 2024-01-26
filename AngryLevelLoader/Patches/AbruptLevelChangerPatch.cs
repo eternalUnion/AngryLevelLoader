@@ -9,15 +9,15 @@ namespace AngryLevelLoader.Patches
     public static class AbrutptLevelChangerPatch
     {
         [HarmonyPatch(typeof(AbruptLevelChanger), nameof(AbruptLevelChanger.AbruptChangeLevel)), HarmonyPrefix]
-        public static bool OnAbruptChangeLevel(AbruptLevelChanger __instance, string levelName)
+        public static bool OnAbruptChangeLevel(AbruptLevelChanger __instance, string __0)
         {
-            return ChangeLevel(__instance, levelName);
+            return ChangeLevel(__instance, __0);
         }
 
         [HarmonyPatch(typeof(AbruptLevelChanger), nameof(AbruptLevelChanger.NormalChangeLevel)), HarmonyPrefix]
-        public static bool OnNormalChangeLevel(AbruptLevelChanger __instance, string levelName)
+        public static bool OnNormalChangeLevel(AbruptLevelChanger __instance, string __0)
         {
-            return ChangeLevel(__instance, levelName);
+            return ChangeLevel(__instance, __0);
         }
 
         private static bool ChangeLevel(AbruptLevelChanger __instance, string levelName)
