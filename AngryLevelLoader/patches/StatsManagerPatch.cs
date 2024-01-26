@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -150,6 +152,29 @@ namespace AngryLevelLoader.Patches
 			if (!AngrySceneManager.isInCustomLevel)
 				return;
 
+			LevelEndLeaderboard leaderboard = null;
+			if (FinalRank.Instance != null)
+				leaderboard = FinalRank.Instance.GetComponentInChildren<LevelEndLeaderboard>(true);
+
+			void AppendInfoToLeaderboard(string message)
+			{
+				if (leaderboard == null)
+				{
+					Debug.LogWarning("Failed to find leaderboard for record info");
+					return;
+				}
+
+				Transform bottomText = leaderboard.transform.Find("SettingsReminder");
+				if (bottomText != null && bottomText.gameObject.TryGetComponent(out TextMeshProUGUI bottomTextComp))
+				{
+					Vector4 margin = bottomTextComp.margin;
+					margin.w = -500;
+					bottomTextComp.margin = margin;
+
+					bottomTextComp.text += $"\n{message}";
+				}
+            }
+
 			// Send record
 			if (Plugin.leaderboardToggle.value)
 			{
@@ -163,7 +188,13 @@ namespace AngryLevelLoader.Patches
 					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
 					record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
 					record.time = (int)(__instance.seconds * 1000);
-					AngryLeaderboards.TryPostRecordTask(record);
+					AngryLeaderboards.TryPostRecordTask(record).ContinueWith((t) =>
+					{
+						if (t.Exception != null)
+							Debug.LogException(t.Exception);
+						else
+							AppendInfoToLeaderboard(t.Result);
+					}, TaskScheduler.FromCurrentSynchronizationContext());
 
 					if (__instance.rankScore == 12)
 					{
@@ -188,7 +219,13 @@ namespace AngryLevelLoader.Patches
 					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
 					record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
 					record.time = (int)(__instance.seconds * 1000);
-					AngryLeaderboards.TryPostRecordTask(record);
+					AngryLeaderboards.TryPostRecordTask(record).ContinueWith((t) =>
+					{
+						if (t.Exception != null)
+							Debug.LogException(t.Exception);
+						else
+							AppendInfoToLeaderboard(t.Result);
+					}, TaskScheduler.FromCurrentSynchronizationContext());
 				}
 			}
 
@@ -244,10 +281,10 @@ namespace AngryLevelLoader.Patches
 			}
 
 			// Set challenge text
-			Transform challengeTextRect = __instance.fr.transform.Find("Challenge/Text");
+			Transform challengeTextRect = __instance.fr.transform.Find("Challenge/ChallengeText");
 			if (challengeTextRect != null)
 			{
-				challengeTextRect.GetComponent<Text>().text = AngrySceneManager.currentLevelData.levelChallengeEnabled ? AngrySceneManager.currentLevelData.levelChallengeText : "No challenge available for the level";
+				challengeTextRect.GetComponent<TextMeshProUGUI>().text = AngrySceneManager.currentLevelData.levelChallengeEnabled ? AngrySceneManager.currentLevelData.levelChallengeText : "No challenge available for the level";
 			}
 			else
 				Plugin.logger.LogWarning("Could not find challenge text");

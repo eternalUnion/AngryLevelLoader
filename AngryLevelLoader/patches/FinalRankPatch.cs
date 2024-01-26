@@ -3,6 +3,7 @@ using AngryLevelLoader.Managers;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,7 +41,7 @@ namespace AngryLevelLoader.Patches
                 Transform titleTrans = __instance.transform.Find("Title/Text");
                 if (titleTrans != null)
                 {
-                    titleTrans.GetComponent<Text>().text = AngrySceneManager.currentLevelData.levelName;
+                    titleTrans.GetComponent<TextMeshProUGUI>().text = AngrySceneManager.currentLevelData.levelName;
                 }
                 else
                 {

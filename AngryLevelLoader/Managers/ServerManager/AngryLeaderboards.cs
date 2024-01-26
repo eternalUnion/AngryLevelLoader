@@ -125,13 +125,13 @@ namespace AngryLevelLoader.Managers.ServerManager
 		}
 		public static List<Task> postRecordTasks = new List<Task>();
 
-		private static async Task TryPostRecordInternalTask(PostRecordInfo info)
+		private static async Task<string> TryPostRecordInternalTask(PostRecordInfo info)
 		{
 			// Cheats + major assists check
 			if (!GameStateManager.CanSubmitScores)
 			{
 				Plugin.logger.LogWarning("Angry did not post the record because cheats or major assists were used");
-				return;
+				return "<color=red>Failed to post record:\nCheats used</color>";
 			}
 
 			// Difficulty range
@@ -139,7 +139,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			if (difficulty < 0 || difficulty > 3)
 			{
 				Plugin.logger.LogWarning("Angry did not post the record because current difficulty is not valid");
-				return;
+				return "<color=red>Failed to post record:\nInvalid difficulty</color>";
 			}
 
 			// Leaderboard banned mods
@@ -196,7 +196,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			if (bannedModsFound)
 			{
 				Plugin.logger.LogWarning("Angry did not post the record because there were banned mods found");
-				return;
+				return "<color=red>Failed to post record:\nBanned mods found</color>";
 			}
 
 			Plugin.logger.LogInfo("Environment safe to send record. Posting to angry servers...");
@@ -208,6 +208,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 				if (postResult.status == PostRecordStatus.OK)
 				{
 					Plugin.logger.LogInfo($"Record posted successfully! Ranking: {postResult.response.ranking}, New Best: {postResult.response.newBest}");
+					return $"<color=green>Record posted! Rank {postResult.response.ranking}{(postResult.response.newBest ? "\n(NEW BEST)" : "")}</color>";
 				}
 				else
 				{
@@ -215,30 +216,30 @@ namespace AngryLevelLoader.Managers.ServerManager
 					{
 						case PostRecordStatus.BANNED:
 							Plugin.logger.LogError("User banned from the leaderboards");
-							break;
+							return "<color=red>Failed to post record:\nBanned</color>";
 
 						case PostRecordStatus.INVALID_BUNDLE:
 						case PostRecordStatus.INVALID_ID:
 							Plugin.logger.LogWarning("Level's leaderboards were not enabled");
-							break;
+							return "<color=red>Failed to post record:\nLeaderboards disabled for this level</color>";
 
 						case PostRecordStatus.RATE_LIMITED:
 							Plugin.logger.LogWarning("Too many requests sent. Adding record to the pending list");
 							Plugin.AddPendingRecord(info);
-							break;
+							return "<color=red>Failed to post record:\nSent too many requests, added to pending list</color>";
 
 						case PostRecordStatus.INVALID_HASH:
 							Plugin.logger.LogWarning("Current bundle version is not up to date with the leaderboard");
-							break;
+							return "<color=red>Failed to post record:\nBundle out of date</color>";
 
 						case PostRecordStatus.INVALID_TIME:
 							Plugin.logger.LogWarning($"Angry server rejected the sent time {info.time}");
-							break;
+							return "<color=red>Failed to post record:\nInvalid time</color>";
 
 						default:
 							Plugin.logger.LogWarning($"Encountered an unknown error while posting record. Status: {postResult.status}, Message: '{postResult.message}'. Adding record to the pending list");
 							Plugin.AddPendingRecord(info);
-							break;
+							return "<color=red>Failed to post record:\nReason unknown</color>";
 					}
 				}
 			}
@@ -246,12 +247,13 @@ namespace AngryLevelLoader.Managers.ServerManager
 			{
 				Plugin.logger.LogWarning($"Encountered a network error while posting record. Adding to the pending list");
 				Plugin.AddPendingRecord(info);
+				return "<color=red>Failed to post record:\nNetwork error, added to the pending list</color>";
 			}
 		}
 
-		public static Task TryPostRecordTask(PostRecordInfo info)
+		public static Task<string> TryPostRecordTask(PostRecordInfo info)
 		{
-			Task postRecordTask = TryPostRecordInternalTask(info);
+			Task<string> postRecordTask = TryPostRecordInternalTask(info);
 			postRecordTasks.Add(postRecordTask);
 			postRecordTask.ContinueWith((task) =>
 			{
