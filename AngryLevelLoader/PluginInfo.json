@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.7.4",
+  "latestVersion": "2.7.6",
   "updates": [
     {
       "version": "1.0.0",
@@ -88,6 +88,10 @@
     {
       "version": "2.7.4",
       "updateText": "- Fixed ufg softban (Hydra pr)\n- Added AbruptLevelChanger support (Hydra pr)\n- Leaderboards merged to single difficulty, filter still available\n- Added difficulty post information below the leaderboard panel\n- Fixed challenges not working"
+    },
+    {
+      "version": "2.7.6",
+      "updateText": "- Fixed locked levels causing errors\n- Fixed getting stuck on level ends and not going into the other level"
     }
   ]
 }
