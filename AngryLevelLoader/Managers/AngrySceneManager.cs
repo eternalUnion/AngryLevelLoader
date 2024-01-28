@@ -353,7 +353,7 @@ namespace AngryLevelLoader.Managers
             {
                 foreach (LevelContainer levelContainer in container.levels.Values)
                 {
-                    if (level.data.uniqueIdentifier == id)
+                    if (levelContainer.data.uniqueIdentifier == id)
                     {
                         level = levelContainer;
                         return true;
