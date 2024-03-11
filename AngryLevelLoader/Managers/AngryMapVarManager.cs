@@ -22,12 +22,13 @@ namespace AngryLevelLoader.Managers
         private const string FILE_EXTENSION = ".vars.json";
         private string angryMapVarsDirectory => Path.Combine(MapVarSaver.MapVarDirectory, Plugin.PLUGIN_NAME);
         private string GetBundleDirectory() => Path.Combine(angryMapVarsDirectory, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
+        private string GetLevelDirectory() => Path.Combine(angryMapVarsDirectory, "Levels");
 
         //for storing bundle persistent mapvars
         private string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + FILE_EXTENSION);
 
         //for storing level persistent mapvars
-        private string GetLevelFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + FILE_EXTENSION);
+        private string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + FILE_EXTENSION);
 
         private void Awake()
         {
@@ -445,16 +446,24 @@ namespace AngryLevelLoader.Managers
         private void Save()
         {
             //Save the stores.
-            if (levelPersistentKeys.Count > 0)
-            {
-                VarStore levelPersistentVars = currentStore.ExtractSet(levelPersistentKeys);
-                UpdateWriteVarStore(GetLevelFilePath(), levelPersistentVars);
-            }
-
             if (bundlePersistentKeys.Count > 0)
             {
                 VarStore bundlePersistentVars = currentStore.ExtractSet(bundlePersistentKeys);
+
+                if (!Directory.Exists(GetBundleDirectory()))
+                    Directory.CreateDirectory(GetBundleDirectory());
+
                 UpdateWriteVarStore(GetBundleFilePath(), bundlePersistentVars);
+            }
+
+            if (levelPersistentKeys.Count > 0)
+            {
+                VarStore levelPersistentVars = currentStore.ExtractSet(levelPersistentKeys);
+
+                if(!Directory.Exists(GetLevelDirectory()))
+                    Directory.CreateDirectory(GetLevelDirectory());
+
+                UpdateWriteVarStore(GetLevelFilePath(), levelPersistentVars);
             }
         }
 
