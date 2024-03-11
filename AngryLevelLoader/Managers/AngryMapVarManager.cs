@@ -42,9 +42,13 @@ namespace AngryLevelLoader.Managers
             levelPersistentKeys = new HashSet<string>();
             bundlePersistentKeys = new HashSet<string>();
             currentStore = new VarStore();
-            
+
             //Handle config preset change
-            Plugin.config.postPresetChangeEvent += (_, __) => ReloadMapVars();
+            Plugin.config.postPresetChangeEvent += (_, __) =>
+            {
+                if(AngrySceneManager.isInCustomLevel)
+                    ReloadMapVars();
+            };
             
             //Handle config preset reset
             Plugin.config.postPresetResetEvent += (_) =>
@@ -52,7 +56,8 @@ namespace AngryLevelLoader.Managers
                 if(Directory.Exists(GetCurrentMapVarsDirectory()))
                     Directory.Delete(GetCurrentMapVarsDirectory(), true);
 
-                ReloadMapVars();
+                if (AngrySceneManager.isInCustomLevel)
+                    ReloadMapVars();
             };
 
             Instance = this;
