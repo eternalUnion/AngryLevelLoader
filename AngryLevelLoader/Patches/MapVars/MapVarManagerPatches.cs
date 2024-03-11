@@ -61,6 +61,20 @@ namespace AngryLevelLoader.Patches.MapVars
             return false;
         }
 
+        [HarmonyPatch(nameof(MapVarManager.ResetStores))]
+        [HarmonyPrefix]
+        public static bool OnResetMapVars(MapVarManager __instance)
+        {
+            if (!AngrySceneManager.isInCustomLevel)
+                return true;
+
+            if (!__instance.TryGetComponent<AngryMapVarManager>(out AngryMapVarManager angryMapVarManager))
+                __instance.gameObject.AddComponent<AngryMapVarManager>();
+
+            angryMapVarManager.ResetStores();
+            return false;
+        }
+
         //Replace the getters with the Angry ones
         [HarmonyPatch(nameof(MapVarManager.GetInt))]
         [HarmonyPostfix]

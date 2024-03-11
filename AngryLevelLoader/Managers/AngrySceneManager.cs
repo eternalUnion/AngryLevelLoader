@@ -313,7 +313,6 @@ namespace AngryLevelLoader.Managers
 				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
 
 			SceneHelper.LoadScene(levelPath);
-            MapVarManager.Instance?.ReloadMapVars();
             Plugin.UpdateLastPlayed(bundleContainer);
         }
 

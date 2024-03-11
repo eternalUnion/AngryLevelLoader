@@ -110,7 +110,7 @@ namespace AngryLevelLoader.Managers
             RestorePersistent();
         }
 
-        private void ResetStores()
+        public void ResetStores()
         {
             currentStore.Clear();
             stashedStore = null;
@@ -296,19 +296,27 @@ namespace AngryLevelLoader.Managers
             //Load existing persistent keys from files
             VarStore campaignStore = null;
             if (!TryLoadAtPath(GetBundleFilePath(), out campaignStore))
+            {
+                Plugin.logger.LogInfo("No campaign mapvars found at " + GetBundleFilePath());
                 campaignStore = new VarStore();
+            }
 
             VarStore levelStore = null;
             if (!TryLoadAtPath(GetLevelFilePath(), out levelStore))
+            {
+                Plugin.logger.LogInfo("No level mapvars found at " + GetLevelFilePath());
                 levelStore = new VarStore();
+            }
 
             //Append the stores and extract the keys for the current store.
 
             currentStore.AppendDistinct(levelStore);
             levelPersistentKeys = levelStore.ExtractAllKeys();
+            Plugin.logger.LogInfo("Level persistent keys: " + levelPersistentKeys.Count);
 
             currentStore.AppendDistinct(campaignStore);
             bundlePersistentKeys = campaignStore.ExtractAllKeys();
+            Plugin.logger.LogInfo("Bundle persistent keys: " + bundlePersistentKeys.Count);
         }
 
         //Attempts to load a VarStore object at a filepath

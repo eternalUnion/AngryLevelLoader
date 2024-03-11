@@ -36,6 +36,7 @@ using System.Threading.Tasks;
 using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Managers.LegacyPatches;
+using Logic;
 
 namespace AngryLevelLoader
 {
@@ -1656,6 +1657,9 @@ namespace AngryLevelLoader
 
 					Logger.LogInfo("Checking bundle file status");
 					AngrySceneManager.currentBundleContainer.CheckReloadPrompt();
+
+					//Make sure mapvars are ready to go
+					MapVarManager.Instance.ReloadMapVars();
 				}
 				else if (SceneHelper.CurrentScene == "Main Menu")
 				{
