@@ -1,6 +1,7 @@
 ﻿using AngryLevelLoader.Managers;
 using HarmonyLib;
 using Logic;
+using System.Collections.Generic;
 
 namespace AngryLevelLoader.Patches.MapVars
 {
@@ -99,6 +100,16 @@ namespace AngryLevelLoader.Patches.MapVars
                 return;
 
             __result = AngryMapVarManager.Instance.GetString(key);
+        }
+
+        [HarmonyPatch(nameof(MapVarManager.GetAllVariables))]
+        [HarmonyPostfix]
+        public static void OnGetAllVariables(ref List<VariableSnapshot> __result)
+        {
+            if (!AngrySceneManager.isInCustomLevel)
+                return;
+
+            __result = AngryMapVarManager.Instance.GetAllVariables();
         }
 
         //Failsafe for the setters using MapVarManager through scripting

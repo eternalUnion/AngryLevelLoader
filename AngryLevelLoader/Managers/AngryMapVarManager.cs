@@ -29,11 +29,6 @@ namespace AngryLevelLoader.Managers
         //for storing level persistent mapvars
         private string GetLevelFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + FILE_EXTENSION);
 
-        private string GetBundlePersistentPath()
-        {
-            return Path.Combine(MapVarSaver.MapVarDirectory, Plugin.PLUGIN_NAME, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
-        }
-
         private void Awake()
         {
             levelPersistentKeys = new HashSet<string>();
@@ -160,7 +155,16 @@ namespace AngryLevelLoader.Managers
 
         public void SetBool(string key, bool value, VariablePersistence persistence = VariablePersistence.Session)
         {
+            bool isDirty = true;
+
+            if (currentStore.boolStore.ContainsKey(key))
+            {
+                if (currentStore.boolStore[key] == value)
+                    isDirty = false;
+            }
+
             currentStore.boolStore[key] = value;
+
             if (MapVarManager.Instance.boolSubscribers.ContainsKey(key))
                 foreach (var subscriber in MapVarManager.Instance.boolSubscribers[key])
                     subscriber?.Invoke(value);
@@ -173,13 +177,22 @@ namespace AngryLevelLoader.Managers
             SetMapVarPersistence(key, persistence);
 
             //Save the store
-            if (persistence != VariablePersistence.Session)
+            if (persistence != VariablePersistence.Session && isDirty)
                 Save();
         }
 
         public void SetInt(string key, int value, VariablePersistence persistence = VariablePersistence.Session)
         {
+            bool isDirty = true;
+
+            if (currentStore.intStore.ContainsKey(key))
+            {
+                if (currentStore.intStore[key] == value)
+                    isDirty = false;
+            }
+
             currentStore.intStore[key] = value;
+            
             if (MapVarManager.Instance.intSubscribers.ContainsKey(key))
                 foreach (var subscriber in MapVarManager.Instance.intSubscribers[key])
                     subscriber?.Invoke(value);
@@ -192,13 +205,22 @@ namespace AngryLevelLoader.Managers
             SetMapVarPersistence(key, persistence);
 
             //Save the store
-            if (persistence != VariablePersistence.Session)
+            if (persistence != VariablePersistence.Session && isDirty)
                 Save();
         }
 
         public void SetFloat(string key, float value, VariablePersistence persistence = VariablePersistence.Session)
         {
+            bool isDirty = true;
+
+            if (currentStore.floatStore.ContainsKey(key))
+            {
+                if (currentStore.floatStore[key] == value)
+                    isDirty = false;
+            }
+
             currentStore.floatStore[key] = value;
+
             if (MapVarManager.Instance.floatSubscribers.ContainsKey(key))
                 foreach (var subscriber in MapVarManager.Instance.floatSubscribers[key])
                     subscriber?.Invoke(value);
@@ -211,13 +233,22 @@ namespace AngryLevelLoader.Managers
             SetMapVarPersistence(key, persistence);
 
             //Save the store
-            if (persistence != VariablePersistence.Session)
+            if (persistence != VariablePersistence.Session && isDirty)
                 Save();
         }
 
         public void SetString(string key, string value, VariablePersistence persistence = VariablePersistence.Session)
         {
+            bool isDirty = true;
+
+            if (currentStore.stringStore.ContainsKey(key))
+            {
+                if (currentStore.stringStore[key] == value)
+                    isDirty = false;
+            }
+
             currentStore.stringStore[key] = value;
+
             if (MapVarManager.Instance.stringSubscribers.ContainsKey(key))
                 foreach (var subscriber in MapVarManager.Instance.stringSubscribers[key])
                     subscriber?.Invoke(value);
@@ -230,7 +261,7 @@ namespace AngryLevelLoader.Managers
             SetMapVarPersistence(key, persistence);
 
             //Save the store
-            if (persistence != VariablePersistence.Session)
+            if (persistence != VariablePersistence.Session && isDirty)
                 Save();
         }
 
@@ -264,7 +295,7 @@ namespace AngryLevelLoader.Managers
 
             //Load existing persistent keys from files
             VarStore campaignStore = null;
-            if (!TryLoadAtPath(GetBundlePersistentPath(), out campaignStore))
+            if (!TryLoadAtPath(GetBundleFilePath(), out campaignStore))
                 campaignStore = new VarStore();
 
             VarStore levelStore = null;
