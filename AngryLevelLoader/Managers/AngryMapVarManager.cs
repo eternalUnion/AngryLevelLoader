@@ -20,9 +20,14 @@ namespace AngryLevelLoader.Managers
         private HashSet<string> bundlePersistentKeys;
 
         private const string FILE_EXTENSION = ".vars.json";
-        private string angryMapVarsDirectory => Path.Combine(MapVarSaver.MapVarDirectory, Plugin.PLUGIN_NAME);
-        private string GetBundleDirectory() => Path.Combine(angryMapVarsDirectory, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
-        private string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), "Levels");
+        private const string LEVELS_DIRECTORY = "Levels";
+        private const string BUNDLES_DIRECTORY = "BundleDefined";
+
+        private string angryMapVarsDirectory => AngryPaths.MapVarsPath;
+
+        private string GetCurrentMapVarsDirectory() => Path.Combine(angryMapVarsDirectory, configPresetID);
+        private string GetBundleDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), BUNDLES_DIRECTORY, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
+        private string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), LEVELS_DIRECTORY);
 
         //for storing bundle persistent mapvars
         private string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + FILE_EXTENSION);
@@ -30,14 +35,29 @@ namespace AngryLevelLoader.Managers
         //for storing level persistent mapvars
         private string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + FILE_EXTENSION);
 
+        private string configPresetID => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? "default" : Plugin.config.currentPresetId ;
+
         private void Awake()
         {
             levelPersistentKeys = new HashSet<string>();
             bundlePersistentKeys = new HashSet<string>();
             currentStore = new VarStore();
+            
+            //Handle config preset change
+            Plugin.config.postPresetChangeEvent += (_, __) => ReloadMapVars();
+            
+            //Handle config preset reset
+            Plugin.config.postPresetResetEvent += (_) =>
+            {
+                if(Directory.Exists(GetCurrentMapVarsDirectory()))
+                    Directory.Delete(GetCurrentMapVarsDirectory(), true);
+
+                ReloadMapVars();
+            };
 
             Instance = this;
         }
+
 
         public void StashStore()
         {
