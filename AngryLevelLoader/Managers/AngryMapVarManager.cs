@@ -22,7 +22,7 @@ namespace AngryLevelLoader.Managers
         private const string FILE_EXTENSION = ".vars.json";
         private string angryMapVarsDirectory => Path.Combine(MapVarSaver.MapVarDirectory, Plugin.PLUGIN_NAME);
         private string GetBundleDirectory() => Path.Combine(angryMapVarsDirectory, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
-        private string GetLevelDirectory() => Path.Combine(angryMapVarsDirectory, "Levels");
+        private string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), "Levels");
 
         //for storing bundle persistent mapvars
         private string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + FILE_EXTENSION);
