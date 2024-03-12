@@ -79,9 +79,10 @@ namespace AngryLevelLoader
 		public static string tempFolderPath;
 		public static string dataPath;
         public static string levelsPath;
+        public static string mapVarsFolderPath;
 
-		// This is the path angry addressables use
-		public static string angryCatalogPath;
+        // This is the path angry addressables use
+        public static string angryCatalogPath;
 
         public static Plugin instance;
 		public static ManualLogSource logger;
@@ -1577,6 +1578,7 @@ namespace AngryLevelLoader
 					NotificationPanel.Open(new LeaderboardPermissionNotification());
 				}
 			});
+
 			leaderboardToggle.postValueChangeEvent += (newVal =>
 			{
 				leaderboardsDivision.hidden = newVal;
@@ -1592,6 +1594,8 @@ namespace AngryLevelLoader
             IOUtils.TryCreateDirectory(levelsPath);
             tempFolderPath = Path.Combine(dataPath, "LevelsUnpacked");
             IOUtils.TryCreateDirectory(tempFolderPath);
+			mapVarsFolderPath = Path.Combine(dataPath, "MapVars");
+			IOUtils.TryCreateDirectory(mapVarsFolderPath);
 
 			AngryPaths.TryCreateAllPaths();
 
@@ -1708,7 +1712,7 @@ namespace AngryLevelLoader
 
             ScanForLevels();
 
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+            Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
 		float lastPress = 0;

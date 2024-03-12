@@ -1,9 +1,12 @@
-﻿using Logic;
-using Newtonsoft.Json;
-using System;
+﻿using AngryLevelLoader.DataTypes.MapVarHandlers;
+using AngryLevelLoader.Extensions;
+using Logic;
+using RudeLevelScripts;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Managers
 {
@@ -13,40 +16,56 @@ namespace AngryLevelLoader.Managers
     {
         public static AngryMapVarManager Instance { get; private set; }
 
-        private VarStore currentStore;
-        private VarStore stashedStore;
-
-        private HashSet<string> levelPersistentKeys;
-        private HashSet<string> bundlePersistentKeys;
-
-        private const string FILE_EXTENSION = ".vars.json";
+        private const string MAPVAR_FILE_EXTENSION = ".vars.json";
         private const string LEVELS_DIRECTORY = "Levels";
         private const string BUNDLES_DIRECTORY = "BundleDefined";
+        private const string USER_DEFINED_DIRECTORY = "UserDefined";
+        private const string DEFAULT_PRESET_NAME = "default";
 
-        private string angryMapVarsDirectory => AngryPaths.MapVarsPath;
+        //Pathes
 
-        private string GetCurrentMapVarsDirectory() => Path.Combine(angryMapVarsDirectory, configPresetID);
+        //Root MapVars directory
+        private string angryMapVarsDirectory => Plugin.mapVarsFolderPath;
+
+        //Directory for the current config preset
+        private string GetCurrentMapVarsDirectory() => Path.Combine(angryMapVarsDirectory, GetConfigPresetID());
+        
+        //Bundle directory, the directory root of a .angry bundle file
         private string GetBundleDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), BUNDLES_DIRECTORY, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
+        
+        //Levels directory within a bundle
         private string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), LEVELS_DIRECTORY);
+        
+        //for storing user defined persistent mapvar files
+        private string GetCurrentUserMapVarsDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), USER_DEFINED_DIRECTORY);
 
         //for storing bundle persistent mapvars
-        private string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + FILE_EXTENSION);
+        private string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + MAPVAR_FILE_EXTENSION);
 
         //for storing level persistent mapvars
-        private string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + FILE_EXTENSION);
+        private string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + MAPVAR_FILE_EXTENSION);
 
-        private string configPresetID => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? "default" : Plugin.config.currentPresetId ;
+        //Current config preset. default if there is no preset.
+        private string GetConfigPresetID() => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? DEFAULT_PRESET_NAME : Plugin.config.currentPresetId ;
+
+        public MapVarHandler UltrakillSessionVars { get; private set; }
+        public PersistentMapVarHandler UltrakillLevelVars { get; private set; }
+        public PersistentMapVarHandler UltrakillBundleVars { get; private set; }
+
+        private List<MapVarHandler> allHandlers;
+
+        private Dictionary<string, PersistentMapVarHandler> userDefined;
+        private Dictionary<string, string> userDefinedMapVarKeyToFileMap;
 
         private void Awake()
         {
-            levelPersistentKeys = new HashSet<string>();
-            bundlePersistentKeys = new HashSet<string>();
-            currentStore = new VarStore();
+            Instance = this;
+            allHandlers = new List<MapVarHandler>();
 
             //Handle config preset change
             Plugin.config.postPresetChangeEvent += (_, __) =>
             {
-                if(AngrySceneManager.isInCustomLevel)
+                if (AngrySceneManager.isInCustomLevel)
                     ReloadMapVars();
             };
             
@@ -60,547 +79,293 @@ namespace AngryLevelLoader.Managers
                     ReloadMapVars();
             };
 
-            Instance = this;
+            SceneManager.sceneLoaded += (_,__) =>
+            {
+                if (AngrySceneManager.isInCustomLevel)
+                    InitializeMapVarHandlers();
+            };
+
+            InitializeMapVarHandlers();
+        }
+
+        //Called in level load.
+        private void InitializeMapVarHandlers()
+        {
+            if(!AngrySceneManager.isInCustomLevel)
+                return;
+
+            allHandlers.Clear();
+
+            //for Testing since I dont want to update the scripts in editor just yet.
+            if(SceneHelper.CurrentScene == "hydra-level test one")
+            {
+                GameObject go = new GameObject("mapvarman");
+                RudeMapVarHandler rude = go.AddComponent<RudeMapVarHandler>();
+                rude.fileID = "MyCustomTestFile";
+                rude.varList = new List<string> {  "testfloat.bundle", "testbool.bundle" };
+
+                RudeMapVarHandler rude2 = go.AddComponent<RudeMapVarHandler>();
+                rude2.fileID = "MyCustomTestFile2";
+                rude2.varList = new List<string> { "teststring.bundle", "testinteger.bundle" };
+            }
+
+            if (SceneHelper.CurrentScene == "hydra-level test two")
+            {
+                GameObject go = new GameObject("mapvarman");
+                RudeMapVarHandler rude = go.AddComponent<RudeMapVarHandler>();
+                rude.fileID = "MyCustomTestFile";
+                rude.varList = new List<string> { "testfloat.bundle", "testbool.bundle" };
+
+                RudeMapVarHandler rude2 = go.AddComponent<RudeMapVarHandler>();
+                rude2.fileID = "MyCustomTestFile2";
+                rude2.varList = new List<string> { "teststring.bundle", "testinteger.bundle" };
+            }
+
+            //Default system
+            UltrakillSessionVars = new MapVarHandler();
+            UltrakillSessionVars.ReloadMapVars();
+            allHandlers.Add(UltrakillSessionVars);
+
+            UltrakillLevelVars = new PersistentMapVarHandler(GetLevelFilePath());
+            UltrakillLevelVars.ReloadMapVars();
+            Plugin.logger.LogInfo($"Level mapvars loaded: {UltrakillLevelVars.GetAllVariables().Count}");
+            allHandlers.Add(UltrakillLevelVars);
+
+            UltrakillBundleVars = new PersistentMapVarHandler(GetBundleFilePath());
+            UltrakillBundleVars.ReloadMapVars();
+            Plugin.logger.LogInfo($"Bundle mapvars loaded: {UltrakillLevelVars.GetAllVariables().Count}");
+            allHandlers.Add(UltrakillBundleVars);
+
+            //Rude system
+            RudeMapVarHandler[] userDefinedHandlers = FindObjectsOfType<RudeMapVarHandler>();
+
+            userDefinedMapVarKeyToFileMap = new Dictionary<string, string>();
+            userDefined = new Dictionary<string, PersistentMapVarHandler>();
+
+            //Loop through all the user defined handlers and register their mapvar keys with the fileID
+            foreach (var handler in userDefinedHandlers)
+            {
+                foreach (var visibleVarKey in handler.varList)
+                {
+                    if (!userDefinedMapVarKeyToFileMap.ContainsKey(visibleVarKey))
+                    {
+                        userDefinedMapVarKeyToFileMap.Add(visibleVarKey, handler.fileID);
+                    }
+                    else if (userDefinedMapVarKeyToFileMap[visibleVarKey] != handler.fileID)
+                    {
+                        Plugin.logger.LogError($"Duplicate mapvar key found: {visibleVarKey} in {handler.fileID} and {userDefinedMapVarKeyToFileMap[visibleVarKey]}");
+                    }
+                }
+
+                //Create a new handler and load the file
+                if (!userDefined.ContainsKey(handler.fileID)) //Merge with existing.
+                {
+                    userDefined[handler.fileID] = new AngryMapVarHandler(Path.Combine(GetCurrentUserMapVarsDirectory(), handler.fileID + MAPVAR_FILE_EXTENSION), handler);
+                    userDefined[handler.fileID].ReloadMapVars();
+                    allHandlers.Add(userDefined[handler.fileID]);
+                    Plugin.logger.LogInfo($"Loaded custom mapvar file ({handler.fileID}): {userDefined[handler.fileID].GetAllVariables().Count}");
+                }
+            }
         }
 
 
         public void StashStore()
         {
-            if (currentStore.intStore.Count == 0 && currentStore.boolStore.Count == 0 && currentStore.floatStore.Count == 0 && currentStore.stringStore.Count == 0)
-            {
-                stashedStore = null;
-                return;
-            }
-
-            stashedStore = currentStore.DuplicateStore();
+            foreach (var handler in allHandlers)
+                handler.StashStore();
         }
 
         public void RestoreStashedStore()
         {
-            if (stashedStore == null)
-                return;
-
-            currentStore = stashedStore.DuplicateStore();
+            foreach (var handler in allHandlers)
+                handler.RestoreStashedStore();
         }
 
         public List<VariableSnapshot> GetAllVariables()
         {
-            List<VariableSnapshot> snapshots = new List<VariableSnapshot>();
-
-            foreach (var boolVar in currentStore.boolStore)
-            {
-                snapshots.Add(new VariableSnapshot()
-                {
-                    type = typeof(bool),
-                    value = boolVar.Value,
-                    name = boolVar.Key
-                });
-            }
-
-            foreach (var intVar in currentStore.intStore)
-            {
-                snapshots.Add(new VariableSnapshot()
-                {
-                    type = typeof(int),
-                    value = intVar.Value,
-                    name = intVar.Key
-                });
-            }
-
-            foreach (var floatVar in currentStore.floatStore)
-            {
-                snapshots.Add(new VariableSnapshot()
-                {
-                    type = typeof(float),
-                    value = floatVar.Value,
-                    name = floatVar.Key
-                });
-            }
-
-            foreach (var stringVar in currentStore.stringStore)
-            {
-                snapshots.Add(new VariableSnapshot()
-                {
-                    type = typeof(string),
-                    value = stringVar.Value,
-                    name = stringVar.Key
-                });
-            }
-
-            return snapshots;
+            return allHandlers.SelectMany(handler => handler.GetAllVariables()).ToList();
         }
 
         public void ReloadMapVars()
         {
-            ResetStores();
-            RestorePersistent();
+            foreach (var handler in allHandlers)
+                handler.ReloadMapVars();
         }
 
         public void ResetStores()
         {
-            currentStore.Clear();
-            stashedStore = null;
-
-            bundlePersistentKeys.Clear();
-            levelPersistentKeys.Clear();
+            foreach (var handler in allHandlers)
+                handler.ResetStores();
         }
-
-
 
         public bool? GetBool(string key)
         {
-            if (currentStore.boolStore.TryGetValue(key, out bool value))
-                return new bool?(value);
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
+            {
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler userHandler = userDefined[fileID];
+                return userHandler.GetBool(key);
+            }
 
-            return null;
+            MapVarHandler handler = allHandlers.Where(handler => handler.GetStore().ContainsBoolKey(key)).FirstOrDefault();
+            
+            if(handler == null)
+                return null;
+
+            return handler.GetBool(key);
         }
 
         public int? GetInt(string key)
         {
-            if (currentStore.intStore.TryGetValue(key, out int value))
-                return new int?(value);
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
+            {
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler userHandler = userDefined[fileID];
+                return userHandler.GetInt(key);
+            }
 
-            return null;
+            MapVarHandler handler = allHandlers.Where(handler => handler.GetStore().ContainsIntKey(key)).FirstOrDefault();
+
+            if (handler == null)
+                return null;
+
+            return handler.GetInt(key);
         }
 
         public float? GetFloat(string key)
         {
-            if (currentStore.floatStore.TryGetValue(key, out float value))
-                return new float?(value);
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
+            {
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler userHandler = userDefined[fileID];
+                return userHandler.GetFloat(key);
+            }
 
-            return null;
+            MapVarHandler handler = allHandlers.Where(handler => handler.GetStore().ContainsFloatKey(key)).FirstOrDefault();
+
+            if (handler == null)
+                return null;
+
+            return handler.GetFloat(key);
         }
 
         public string GetString(string key)
         {
-            if (currentStore.stringStore.TryGetValue(key, out string value))
-                return value;
+            if(userDefinedMapVarKeyToFileMap.ContainsKey(key))
+            {
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler userHandler = userDefined[fileID];
+                return userHandler.GetString(key);
+            }
+            
+            MapVarHandler handler = allHandlers.Where(handler => handler.GetStore().ContainsStringKey(key)).FirstOrDefault();
 
-            return null;
+            if (handler == null)
+                return null;
+
+            return handler.GetString(key);
         }
 
         public void SetBool(string key, bool value, VariablePersistence persistence = VariablePersistence.Session)
         {
-            bool isDirty = true;
-
-            if (currentStore.boolStore.ContainsKey(key))
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
-                if (currentStore.boolStore[key] == value)
-                    isDirty = false;
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler handler = userDefined[fileID];
+                handler.SetBool(key, value);
+                return;
             }
 
-            currentStore.boolStore[key] = value;
-
-            if (MapVarManager.Instance.boolSubscribers.ContainsKey(key))
-                foreach (var subscriber in MapVarManager.Instance.boolSubscribers[key])
-                    subscriber?.Invoke(value);
-
-            if (MapVarManager.Instance.globalSubscribers.Count > 0)
-                foreach (var subscriber in MapVarManager.Instance.globalSubscribers)
-                    subscriber?.Invoke(key, value);
-
-            //Mark it's persistence
-            SetMapVarPersistence(key, persistence);
-
-            //Save the store
-            if (persistence != VariablePersistence.Session && isDirty)
-                Save();
+            switch (persistence)
+            {
+                case VariablePersistence.SavedAsMap:
+                    UltrakillLevelVars.SetBool(key, value);
+                    break;
+                case VariablePersistence.SavedAsCampaign:
+                    UltrakillBundleVars.SetBool(key, value);
+                    break;
+                case VariablePersistence.Session:
+                default:
+                    UltrakillSessionVars.SetBool(key, value);
+                    break;
+            }
         }
 
         public void SetInt(string key, int value, VariablePersistence persistence = VariablePersistence.Session)
         {
-            bool isDirty = true;
-
-            if (currentStore.intStore.ContainsKey(key))
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
-                if (currentStore.intStore[key] == value)
-                    isDirty = false;
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler handler = userDefined[fileID];
+                handler.SetInt(key, value);
+                return;
             }
 
-            currentStore.intStore[key] = value;
-            
-            if (MapVarManager.Instance.intSubscribers.ContainsKey(key))
-                foreach (var subscriber in MapVarManager.Instance.intSubscribers[key])
-                    subscriber?.Invoke(value);
-
-            if (MapVarManager.Instance.globalSubscribers.Count > 0)
-                foreach (var subscriber in MapVarManager.Instance.globalSubscribers)
-                    subscriber?.Invoke(key, value);
-
-            //Mark it's persistence
-            SetMapVarPersistence(key, persistence);
-
-            //Save the store
-            if (persistence != VariablePersistence.Session && isDirty)
-                Save();
+            switch (persistence)
+            {
+                case VariablePersistence.SavedAsMap:
+                    UltrakillLevelVars.SetInt(key, value);
+                    break;
+                case VariablePersistence.SavedAsCampaign:
+                    UltrakillBundleVars.SetInt(key, value);
+                    break;
+                case VariablePersistence.Session:
+                default:
+                    UltrakillSessionVars.SetInt(key, value);
+                    break;
+            }
         }
 
         public void SetFloat(string key, float value, VariablePersistence persistence = VariablePersistence.Session)
         {
-            bool isDirty = true;
-
-            if (currentStore.floatStore.ContainsKey(key))
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
-                if (currentStore.floatStore[key] == value)
-                    isDirty = false;
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler handler = userDefined[fileID];
+                handler.SetFloat(key, value);
+                return;
             }
 
-            currentStore.floatStore[key] = value;
-
-            if (MapVarManager.Instance.floatSubscribers.ContainsKey(key))
-                foreach (var subscriber in MapVarManager.Instance.floatSubscribers[key])
-                    subscriber?.Invoke(value);
-
-            if (MapVarManager.Instance.globalSubscribers.Count > 0)
-                foreach (var subscriber in MapVarManager.Instance.globalSubscribers)
-                    subscriber?.Invoke(key, value);
-
-            //Mark it's persistence
-            SetMapVarPersistence(key, persistence);
-
-            //Save the store
-            if (persistence != VariablePersistence.Session && isDirty)
-                Save();
+            switch (persistence)
+            {
+                case VariablePersistence.SavedAsMap:
+                    UltrakillLevelVars.SetFloat(key, value);
+                    break;
+                case VariablePersistence.SavedAsCampaign:
+                    UltrakillBundleVars.SetFloat(key, value);
+                    break;
+                case VariablePersistence.Session:
+                default:
+                    UltrakillSessionVars.SetFloat(key, value);
+                    break;
+            }
         }
 
         public void SetString(string key, string value, VariablePersistence persistence = VariablePersistence.Session)
         {
-            bool isDirty = true;
-
-            if (currentStore.stringStore.ContainsKey(key))
+            if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
-                if (currentStore.stringStore[key] == value)
-                    isDirty = false;
+                string fileID = userDefinedMapVarKeyToFileMap[key];
+                MapVarHandler handler = userDefined[fileID];
+                handler.SetString(key, value);
+                return;
             }
 
-            currentStore.stringStore[key] = value;
-
-            if (MapVarManager.Instance.stringSubscribers.ContainsKey(key))
-                foreach (var subscriber in MapVarManager.Instance.stringSubscribers[key])
-                    subscriber?.Invoke(value);
-
-            if (MapVarManager.Instance.globalSubscribers.Count > 0)
-                foreach (var subscriber in MapVarManager.Instance.globalSubscribers)
-                    subscriber?.Invoke(key, value);
-
-            //Mark it's persistence
-            SetMapVarPersistence(key, persistence);
-
-            //Save the store
-            if (persistence != VariablePersistence.Session && isDirty)
-                Save();
-        }
-
-        //Marks the key with the provided persistence type.
-        private void SetMapVarPersistence(string key, VariablePersistence persistence)
-        {
-            currentStore.persistentKeys.Remove(key); //We're not using this.
             switch (persistence)
             {
                 case VariablePersistence.SavedAsMap:
-                    levelPersistentKeys.Add(key);
-                    bundlePersistentKeys.Remove(key);
+                    UltrakillLevelVars.SetString(key, value);
                     break;
                 case VariablePersistence.SavedAsCampaign:
-                    levelPersistentKeys.Remove(key);
-                    bundlePersistentKeys.Add(key);
+                    UltrakillBundleVars.SetString(key, value);
                     break;
                 case VariablePersistence.Session:
                 default:
-                    levelPersistentKeys.Remove(key);
-                    bundlePersistentKeys.Remove(key);
+                    UltrakillSessionVars.SetString(key, value);
                     break;
             }
-        }
-
-        //Serialization
-
-        private void RestorePersistent()
-        {
-            currentStore = new VarStore();
-
-            //Load existing persistent keys from files
-            VarStore campaignStore = null;
-            if (!TryLoadAtPath(GetBundleFilePath(), out campaignStore))
-            {
-                Plugin.logger.LogInfo("No campaign mapvars found at " + GetBundleFilePath());
-                campaignStore = new VarStore();
-            }
-
-            VarStore levelStore = null;
-            if (!TryLoadAtPath(GetLevelFilePath(), out levelStore))
-            {
-                Plugin.logger.LogInfo("No level mapvars found at " + GetLevelFilePath());
-                levelStore = new VarStore();
-            }
-
-            //Append the stores and extract the keys for the current store.
-
-            currentStore.AppendDistinct(levelStore);
-            levelPersistentKeys = levelStore.ExtractAllKeys();
-            Plugin.logger.LogInfo("Level persistent keys: " + levelPersistentKeys.Count);
-
-            currentStore.AppendDistinct(campaignStore);
-            bundlePersistentKeys = campaignStore.ExtractAllKeys();
-            Plugin.logger.LogInfo("Bundle persistent keys: " + bundlePersistentKeys.Count);
-        }
-
-        //Attempts to load a VarStore object at a filepath
-        private bool TryLoadAtPath(string filePath, out VarStore store)
-        {
-            store = null;
-
-            if (!File.Exists(filePath))
-                return false;
-
-            try
-            {
-                string json = File.ReadAllText(filePath);
-                PersistentSavedStore savedStore = JsonConvert.DeserializeObject<PersistentSavedStore>(json);
-                if (savedStore == null)
-                    return false;
-
-                store = new VarStore();
-
-                foreach (SavedVariable variable in savedStore.variables)
-                {
-                    if (variable == null)
-                        continue;
-
-                    LoadVariable(variable, store);
-                }
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                Plugin.logger.LogError("Failed to load mapvars at " + filePath + " with exception: " + e);
-            }
-
-            return false;
-        }
-
-        //VarStore.LoadVariable does not deserialize properly, so this is a fix.
-        private static void LoadVariable(SavedVariable variable, VarStore store)
-        {
-            switch (variable.value.type)
-            {
-                case "System.Boolean":
-                    store.boolStore[variable.name] = bool.Parse(variable.value.value.ToString());
-                    break;
-                case "System.Int32":
-                    store.intStore[variable.name] = int.Parse(variable.value.value.ToString());
-                    break;
-                case "System.Single":
-                    store.floatStore[variable.name] = float.Parse(variable.value.value.ToString());
-                    break;
-                case "System.String":
-                    store.stringStore[variable.name] = variable.value.value.ToString();
-                    break;
-            }
-        }
-
-        //Serializes a varstore to a file using the same method as the original MapVarManager
-        private void WriteStore(string filePath, VarStore store)
-        {
-            List<SavedVariable> savedMapVar = new List<SavedVariable>();
-            foreach (var boolVar in store.boolStore)
-                savedMapVar.Add(new SavedVariable()
-                {
-                    name = boolVar.Key,
-                    value = new SavedValue
-                    {
-                        type = typeof(bool).FullName,
-                        value = boolVar.Value
-                    }
-                });
-
-            foreach (var intVar in store.intStore)
-                savedMapVar.Add(new SavedVariable()
-                {
-                    name = intVar.Key,
-                    value = new SavedValue
-                    {
-                        type = typeof(int).FullName,
-                        value = intVar.Value
-                    }
-                });
-
-            foreach (var floatVar in store.floatStore)
-                savedMapVar.Add(new SavedVariable()
-                {
-                    name = floatVar.Key,
-                    value = new SavedValue
-                    {
-                        type = typeof(float).FullName,
-                        value = floatVar.Value
-                    }
-                });
-
-            foreach (var stringVar in store.stringStore)
-                savedMapVar.Add(new SavedVariable()
-                {
-                    name = stringVar.Key,
-                    value = new SavedValue
-                    {
-                        type = typeof(string).FullName,
-                        value = stringVar.Value
-                    }
-                });
-
-
-            if (savedMapVar.Count == 0)
-                return;
-
-            try
-            {
-                string json = JsonConvert.SerializeObject(new PersistentSavedStore()
-                {
-                    variables = savedMapVar
-                });
-
-                File.WriteAllText(filePath, json);
-            }
-            catch (Exception e)
-            {
-                Plugin.logger.LogError("Failed to save mapvars at " + filePath + " with exception: " + e);
-            }
-        }
-
-        //Saves current persistent mapvars to their respective files.
-        private void Save()
-        {
-            //Save the stores.
-            if (bundlePersistentKeys.Count > 0)
-            {
-                VarStore bundlePersistentVars = currentStore.ExtractSet(bundlePersistentKeys);
-
-                if (!Directory.Exists(GetBundleDirectory()))
-                    Directory.CreateDirectory(GetBundleDirectory());
-
-                UpdateWriteVarStore(GetBundleFilePath(), bundlePersistentVars);
-            }
-
-            if (levelPersistentKeys.Count > 0)
-            {
-                VarStore levelPersistentVars = currentStore.ExtractSet(levelPersistentKeys);
-
-                if(!Directory.Exists(GetLevelDirectory()))
-                    Directory.CreateDirectory(GetLevelDirectory());
-
-                UpdateWriteVarStore(GetLevelFilePath(), levelPersistentVars);
-            }
-        }
-
-        //Appends and updates the store values to the file. If the file doesn't exist, it will create a new one.
-        private void UpdateWriteVarStore(string filePath, VarStore store)
-        {
-            if (!TryLoadAtPath(filePath, out VarStore existing))
-                existing = new VarStore();
-
-            existing.Update(store);
-            WriteStore(filePath, existing);
         }
     }
 
-    public static class VarStoreExtensions
-    {
-        //Adds distinct values from the source store to the target store.
-        public static void AppendDistinct(this VarStore target, VarStore source)
-        {
-            foreach (var boolVal in source.boolStore)
-            {
-                if (!target.boolStore.ContainsKey(boolVal.Key))
-                    target.boolStore.Add(boolVal.Key, boolVal.Value);
-            }
-
-            foreach (var intVal in source.intStore)
-            {
-                if (!target.intStore.ContainsKey(intVal.Key))
-                    target.intStore.Add(intVal.Key, intVal.Value);
-            }
-
-            foreach (var floatVal in source.floatStore)
-            {
-                if (!target.floatStore.ContainsKey(floatVal.Key))
-                    target.floatStore.Add(floatVal.Key, floatVal.Value);
-            }
-
-            foreach (var stringVal in source.stringStore)
-            {
-                if (!target.stringStore.ContainsKey(stringVal.Key))
-                    target.stringStore.Add(stringVal.Key, stringVal.Value);
-            }
-        }
-
-        //Creates a new VarStore with only the keys within the provided set.
-        public static VarStore ExtractSet(this VarStore store, HashSet<string> keys)
-        {
-            VarStore newStore = new VarStore();
-
-            foreach (var key in keys)
-            {
-                if (store.boolStore.ContainsKey(key))
-                    newStore.boolStore.Add(key, store.boolStore[key]);
-
-                if (store.intStore.ContainsKey(key))
-                    newStore.intStore.Add(key, store.intStore[key]);
-
-                if (store.floatStore.ContainsKey(key))
-                    newStore.floatStore.Add(key, store.floatStore[key]);
-
-                if (store.stringStore.ContainsKey(key))
-                    newStore.stringStore.Add(key, store.stringStore[key]);
-            }
-
-            return newStore;
-        }
-
-        //Returns all keys from the VarStore.
-        public static HashSet<string> ExtractAllKeys(this VarStore varstore)
-        {
-            HashSet<string> keys = new HashSet<string>();
-            keys.UnionWith(varstore.boolStore.Keys);
-            keys.UnionWith(varstore.intStore.Keys);
-            keys.UnionWith(varstore.floatStore.Keys);
-            keys.UnionWith(varstore.stringStore.Keys);
-            return keys;
-        }
-
-        //Updates the store with the values from the source store, replacing existing and adding new ones without removing any.
-        public static void Update(this VarStore target, VarStore source)
-        {
-            foreach (var boolVal in source.boolStore)
-            {
-                if (!target.boolStore.ContainsKey(boolVal.Key))
-                    target.boolStore.Add(boolVal.Key, boolVal.Value);
-                else
-                    target.boolStore[boolVal.Key] = boolVal.Value;
-            }
-
-            foreach (var intVal in source.intStore)
-            {
-                if (!target.intStore.ContainsKey(intVal.Key))
-                    target.intStore.Add(intVal.Key, intVal.Value);
-                else
-                    target.intStore[intVal.Key] = intVal.Value;
-            }
-
-            foreach (var floatVal in source.floatStore)
-            {
-                if (!target.floatStore.ContainsKey(floatVal.Key))
-                    target.floatStore.Add(floatVal.Key, floatVal.Value);
-                else
-                    target.floatStore[floatVal.Key] = floatVal.Value;
-            }
-
-            foreach (var stringVal in source.stringStore)
-            {
-                if (!target.stringStore.ContainsKey(stringVal.Key))
-                    target.stringStore.Add(stringVal.Key, stringVal.Value);
-                else
-                    target.stringStore[stringVal.Key] = stringVal.Value;
-            }
-        }
-    }
+    
 }

@@ -21,7 +21,6 @@ namespace AngryLevelLoader
             IOUtils.TryCreateDirectory(ConfigFolderPath);
             IOUtils.TryCreateDirectory(OnlineCacheFolderPath);
             IOUtils.TryCreateDirectory(ThumbnailCacheFolderPath);
-            IOUtils.TryCreateDirectory(MapVarsPath);
         }
 
         public static string ConfigFolderPath
@@ -63,13 +62,6 @@ namespace AngryLevelLoader
 		{
 			get => Path.Combine(ConfigFolderPath, "lastUpdateMap.txt");
 		}
-
-        public static string MapVarsPath
-        {
-            get => Path.Combine(ConfigFolderPath, "MapVars");
-        }
-
-
-
+        
 	}
 }
