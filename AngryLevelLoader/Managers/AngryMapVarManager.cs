@@ -10,8 +10,7 @@ using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Managers
 {
-    //The original MapVarManager is lacking scoped persistence entirely.
-    //This is more or less a re-write with the features needed. (presumably how PITR intended it to work)
+    //This will act as a replacement for the MapVarManager, it will sit on the same GameObject as the MapVarManager and will not be destroyed on scene change.
     public class AngryMapVarManager : MonoBehaviour
     {
         public static AngryMapVarManager Instance { get; private set; }
@@ -48,13 +47,13 @@ namespace AngryLevelLoader.Managers
         //Current config preset. default if there is no preset.
         private string GetConfigPresetID() => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? DEFAULT_PRESET_NAME : Plugin.config.currentPresetId ;
 
-        public MapVarHandler UltrakillSessionVars { get; private set; }
-        public PersistentMapVarHandler UltrakillLevelVars { get; private set; }
-        public PersistentMapVarHandler UltrakillBundleVars { get; private set; }
-
         private List<MapVarHandler> allHandlers;
 
-        private Dictionary<string, PersistentMapVarHandler> userDefined;
+        private MapVarHandler ultrakillSessionVars;
+        private PersistentMapVarHandler ultrakillLevelVars;
+        private PersistentMapVarHandler ultrakillBundleVars;
+
+        private Dictionary<string, AngryMapVarHandler> userDefinedVars;
         private Dictionary<string, string> userDefinedMapVarKeyToFileMap;
 
         private void Awake()
@@ -79,11 +78,8 @@ namespace AngryLevelLoader.Managers
                     ReloadMapVars();
             };
 
-            SceneManager.sceneLoaded += (_,__) =>
-            {
-                if (AngrySceneManager.isInCustomLevel)
-                    InitializeMapVarHandlers();
-            };
+            //Handle scene change
+            SceneManager.sceneLoaded += (_,__) => InitializeMapVarHandlers();
 
             InitializeMapVarHandlers();
         }
@@ -109,26 +105,30 @@ namespace AngryLevelLoader.Managers
                 rude2.varList = new List<string> { "teststring.bundle", "testinteger.bundle" };
             }
 
+            //TODO Fix session vars not stashing properly on checkpoint.
+
             //Default system
-            UltrakillSessionVars = new MapVarHandler();
-            UltrakillSessionVars.ReloadMapVars();
-            allHandlers.Add(UltrakillSessionVars);
+            ultrakillSessionVars = new MapVarHandler();
+            ultrakillSessionVars.ReloadMapVars();
+            allHandlers.Add(ultrakillSessionVars);
 
-            UltrakillLevelVars = new PersistentMapVarHandler(GetLevelFilePath());
-            UltrakillLevelVars.ReloadMapVars();
-            Plugin.logger.LogInfo($"Level mapvars loaded: {UltrakillLevelVars.GetAllVariables().Count}");
-            allHandlers.Add(UltrakillLevelVars);
+            //Initialize handler for level vars with the level's file path
+            ultrakillLevelVars = new PersistentMapVarHandler(GetLevelFilePath());
+            ultrakillLevelVars.ReloadMapVars();
+            Plugin.logger.LogInfo($"Level mapvars loaded: {ultrakillLevelVars.GetAllVariables().Count}");
+            allHandlers.Add(ultrakillLevelVars);
 
-            UltrakillBundleVars = new PersistentMapVarHandler(GetBundleFilePath());
-            UltrakillBundleVars.ReloadMapVars();
-            Plugin.logger.LogInfo($"Bundle mapvars loaded: {UltrakillLevelVars.GetAllVariables().Count}");
-            allHandlers.Add(UltrakillBundleVars);
+            //Initialize handler for bundle vars with the bundle's file path
+            ultrakillBundleVars = new PersistentMapVarHandler(GetBundleFilePath());
+            ultrakillBundleVars.ReloadMapVars();
+            Plugin.logger.LogInfo($"Bundle mapvars loaded: {ultrakillLevelVars.GetAllVariables().Count}");
+            allHandlers.Add(ultrakillBundleVars);
 
             //Rude system
             RudeMapVarHandler[] userDefinedHandlers = FindObjectsOfType<RudeMapVarHandler>();
 
             userDefinedMapVarKeyToFileMap = new Dictionary<string, string>();
-            userDefined = new Dictionary<string, PersistentMapVarHandler>();
+            userDefinedVars = new Dictionary<string, AngryMapVarHandler>();
 
             //Loop through all the user defined handlers and register their mapvar keys with the fileID
             foreach (var handler in userDefinedHandlers)
@@ -146,12 +146,12 @@ namespace AngryLevelLoader.Managers
                 }
 
                 //Create a new handler and load the file
-                if (!userDefined.ContainsKey(handler.fileID)) //Merge with existing.
+                if (!userDefinedVars.ContainsKey(handler.fileID)) //Merge with existing.
                 {
-                    userDefined[handler.fileID] = new AngryMapVarHandler(Path.Combine(GetCurrentUserMapVarsDirectory(), handler.fileID + MAPVAR_FILE_EXTENSION), handler);
-                    userDefined[handler.fileID].ReloadMapVars();
-                    allHandlers.Add(userDefined[handler.fileID]);
-                    Plugin.logger.LogInfo($"Loaded custom mapvar file ({handler.fileID}): {userDefined[handler.fileID].GetAllVariables().Count}");
+                    userDefinedVars[handler.fileID] = new AngryMapVarHandler(Path.Combine(GetCurrentUserMapVarsDirectory(), handler.fileID + MAPVAR_FILE_EXTENSION), handler);
+                    userDefinedVars[handler.fileID].ReloadMapVars();
+                    allHandlers.Add(userDefinedVars[handler.fileID]);
+                    Plugin.logger.LogInfo($"Loaded custom mapvar file ({handler.fileID}): {userDefinedVars[handler.fileID].GetAllVariables().Count}");
                 }
             }
         }
@@ -191,7 +191,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler userHandler = userDefined[fileID];
+                MapVarHandler userHandler = userDefinedVars[fileID];
                 return userHandler.GetBool(key);
             }
 
@@ -208,7 +208,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler userHandler = userDefined[fileID];
+                MapVarHandler userHandler = userDefinedVars[fileID];
                 return userHandler.GetInt(key);
             }
 
@@ -225,7 +225,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler userHandler = userDefined[fileID];
+                MapVarHandler userHandler = userDefinedVars[fileID];
                 return userHandler.GetFloat(key);
             }
 
@@ -242,7 +242,7 @@ namespace AngryLevelLoader.Managers
             if(userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler userHandler = userDefined[fileID];
+                MapVarHandler userHandler = userDefinedVars[fileID];
                 return userHandler.GetString(key);
             }
             
@@ -259,7 +259,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler handler = userDefined[fileID];
+                MapVarHandler handler = userDefinedVars[fileID];
                 handler.SetBool(key, value);
                 return;
             }
@@ -267,14 +267,14 @@ namespace AngryLevelLoader.Managers
             switch (persistence)
             {
                 case VariablePersistence.SavedAsMap:
-                    UltrakillLevelVars.SetBool(key, value);
+                    ultrakillLevelVars.SetBool(key, value);
                     break;
                 case VariablePersistence.SavedAsCampaign:
-                    UltrakillBundleVars.SetBool(key, value);
+                    ultrakillBundleVars.SetBool(key, value);
                     break;
                 case VariablePersistence.Session:
                 default:
-                    UltrakillSessionVars.SetBool(key, value);
+                    ultrakillSessionVars.SetBool(key, value);
                     break;
             }
         }
@@ -284,7 +284,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler handler = userDefined[fileID];
+                MapVarHandler handler = userDefinedVars[fileID];
                 handler.SetInt(key, value);
                 return;
             }
@@ -292,14 +292,14 @@ namespace AngryLevelLoader.Managers
             switch (persistence)
             {
                 case VariablePersistence.SavedAsMap:
-                    UltrakillLevelVars.SetInt(key, value);
+                    ultrakillLevelVars.SetInt(key, value);
                     break;
                 case VariablePersistence.SavedAsCampaign:
-                    UltrakillBundleVars.SetInt(key, value);
+                    ultrakillBundleVars.SetInt(key, value);
                     break;
                 case VariablePersistence.Session:
                 default:
-                    UltrakillSessionVars.SetInt(key, value);
+                    ultrakillSessionVars.SetInt(key, value);
                     break;
             }
         }
@@ -309,7 +309,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler handler = userDefined[fileID];
+                MapVarHandler handler = userDefinedVars[fileID];
                 handler.SetFloat(key, value);
                 return;
             }
@@ -317,14 +317,14 @@ namespace AngryLevelLoader.Managers
             switch (persistence)
             {
                 case VariablePersistence.SavedAsMap:
-                    UltrakillLevelVars.SetFloat(key, value);
+                    ultrakillLevelVars.SetFloat(key, value);
                     break;
                 case VariablePersistence.SavedAsCampaign:
-                    UltrakillBundleVars.SetFloat(key, value);
+                    ultrakillBundleVars.SetFloat(key, value);
                     break;
                 case VariablePersistence.Session:
                 default:
-                    UltrakillSessionVars.SetFloat(key, value);
+                    ultrakillSessionVars.SetFloat(key, value);
                     break;
             }
         }
@@ -334,7 +334,7 @@ namespace AngryLevelLoader.Managers
             if (userDefinedMapVarKeyToFileMap.ContainsKey(key))
             {
                 string fileID = userDefinedMapVarKeyToFileMap[key];
-                MapVarHandler handler = userDefined[fileID];
+                MapVarHandler handler = userDefinedVars[fileID];
                 handler.SetString(key, value);
                 return;
             }
@@ -342,14 +342,14 @@ namespace AngryLevelLoader.Managers
             switch (persistence)
             {
                 case VariablePersistence.SavedAsMap:
-                    UltrakillLevelVars.SetString(key, value);
+                    ultrakillLevelVars.SetString(key, value);
                     break;
                 case VariablePersistence.SavedAsCampaign:
-                    UltrakillBundleVars.SetString(key, value);
+                    ultrakillBundleVars.SetString(key, value);
                     break;
                 case VariablePersistence.Session:
                 default:
-                    UltrakillSessionVars.SetString(key, value);
+                    ultrakillSessionVars.SetString(key, value);
                     break;
             }
         }
