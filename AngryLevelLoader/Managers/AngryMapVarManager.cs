@@ -92,21 +92,6 @@ namespace AngryLevelLoader.Managers
 
             allHandlers.Clear();
 
-            //for Testing since I dont want to update the scripts in editor just yet.
-            if(SceneHelper.CurrentScene == "hydra-level test one" || SceneHelper.CurrentScene == "hydra-level test two")
-            {
-                GameObject go = new GameObject("mapvarman");
-                RudeMapVarHandler rude = go.AddComponent<RudeMapVarHandler>();
-                rude.fileID = "MyCustomTestFile";
-                rude.varList = new List<string> {  "testfloat.bundle", "testbool.bundle" };
-
-                RudeMapVarHandler rude2 = go.AddComponent<RudeMapVarHandler>();
-                rude2.fileID = "MyCustomTestFile2";
-                rude2.varList = new List<string> { "teststring.bundle", "testinteger.bundle" };
-            }
-
-            //TODO Fix session vars not stashing properly on checkpoint.
-
             //Default system
             ultrakillSessionVars = new MapVarHandler();
             ultrakillSessionVars.ReloadMapVars();
