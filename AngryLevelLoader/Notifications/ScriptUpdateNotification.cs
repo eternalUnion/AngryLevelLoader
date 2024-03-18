@@ -221,8 +221,12 @@ namespace AngryLevelLoader.Notifications
         public RudeLevelData levelData;
         public string levelName;
 
+        private bool autodownloading = true;
+
         public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
+            autodownloading = Plugin.scriptAutoUpdate.value;
+
             this.scripts = scripts;
             this.bundleContainer = bundleContainer;
             this.levelContainer = levelContainer;
@@ -266,10 +270,50 @@ namespace AngryLevelLoader.Notifications
                 }
             }
 
-            if (ui != null)
+			ui.update.interactable = interactable;
+			ui.continueButton.interactable = interactable;
+
+			if (interactable && autodownloading)
             {
-                ui.update.interactable = interactable;
-                ui.continueButton.interactable = interactable;
+                bool autodownloadCompletedSuccessfuly = true;
+				foreach (var field in fields)
+                {
+                    if (field.scriptStatus == ScriptUpdateProgressField.ScriptStatus.NotFound)
+                    {
+                        autodownloadCompletedSuccessfuly = false;
+						autodownloading = false;
+						break;
+					}
+
+                    if (field != callingField && field.downloading)
+                    {
+                        autodownloadCompletedSuccessfuly = false;
+						break;
+                    }
+
+                    if (field.downloadError)
+                    {
+						autodownloadCompletedSuccessfuly = false;
+						autodownloading = false;
+						break;
+					}
+
+                    if (field.downloaded)
+                    {
+						if (ScriptManager.ScriptLoaded(field.scriptName))
+                        {
+							autodownloadCompletedSuccessfuly = false;
+							autodownloading = false;
+                            break;
+                        }
+					}
+                }
+			
+                if (autodownloadCompletedSuccessfuly)
+                {
+                    autodownloading = false;
+                    ui.continueButton.onClick.Invoke();
+                }
             }
         }
 
@@ -322,7 +366,10 @@ namespace AngryLevelLoader.Notifications
                 Close();
                 AngrySceneManager.LoadLevelWithScripts(scripts, bundleContainer, levelContainer, levelData, levelName);
             });
-        }
+
+            if (autodownloading)
+                ui.update.onClick.Invoke();
+		}
 
         public static void Test()
         {

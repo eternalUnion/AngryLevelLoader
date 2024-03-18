@@ -450,6 +450,7 @@ namespace AngryLevelLoader
 		public static BoolField levelUpdateNotifierToggle;
 		public static BoolField levelUpdateIgnoreCustomBuilds;
 		public static BoolField newLevelNotifierToggle;
+		public static BoolField scriptAutoUpdate;
 		public static List<string> scriptCertificateIgnore = new List<string>();
 		public static StringMultilineField scriptCertificateIgnoreField;
 		public static BoolField useDevelopmentBranch;
@@ -1009,6 +1010,7 @@ namespace AngryLevelLoader
 			};
 			new ConfigHeader(settingsPanel, "Scripts") { textColor = new Color(0.6248745f, 1f, 0.617f) };
 			scriptUpdateIgnoreCustom = new BoolField(settingsPanel, "Ignore updates for custom builds", "s_scriptUpdateIgnoreCustom", false);
+			scriptAutoUpdate = new BoolField(settingsPanel, "Auto update scripts", "s_scriptAutoUpdate", true);
 			scriptCertificateIgnoreField = new StringMultilineField(settingsPanel, "Certificate ignore", "s_scriptCertificateIgnore", "", true);
 			scriptCertificateIgnore = scriptCertificateIgnoreField.value.Split('\n').ToList();
 
