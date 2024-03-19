@@ -62,5 +62,6 @@ namespace AngryLevelLoader
 		{
 			get => Path.Combine(ConfigFolderPath, "lastUpdateMap.txt");
 		}
+        
 	}
 }

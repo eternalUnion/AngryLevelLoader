@@ -2,6 +2,7 @@
 using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
+using Logic;
 using PluginConfig;
 using RudeLevelScript;
 using System.Collections.Generic;
@@ -311,6 +312,8 @@ namespace AngryLevelLoader.Managers
 			else
 				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
 
+            //Clear the map vars before loading the level.
+            AngryMapVarManager.Instance.ResetStores();
 			SceneHelper.LoadScene(levelPath);
             Plugin.UpdateLastPlayed(bundleContainer);
         }

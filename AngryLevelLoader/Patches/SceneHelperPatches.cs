@@ -1,12 +1,13 @@
-﻿using HarmonyLib;
-using UnityEngine.SceneManagement;
+﻿using AngryLevelLoader.Managers;
+using HarmonyLib;
+using Logic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using AngryLevelLoader.Managers;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Patches
 {
-	[HarmonyPatch(typeof(SceneHelper))]
+    [HarmonyPatch(typeof(SceneHelper))]
 	public static class SceneHelperPatches
 	{
 		[HarmonyPatch(nameof(SceneHelper.LoadScene))]
@@ -20,6 +21,7 @@ namespace AngryLevelLoader.Patches
 
 			return true;
 		}
+
 
 		[HarmonyPatch(nameof(SceneHelper.RestartScene))]
 		[HarmonyPrefix]
@@ -47,7 +49,10 @@ namespace AngryLevelLoader.Patches
 			if (SceneHelper.Instance.loadingBlocker != null)
 				SceneHelper.Instance.loadingBlocker.SetActive(true);
 
-			return false;
+			//call will be rerouted to AngryMapVarManager.
+			MapVarManager.Instance?.ReloadMapVars();
+
+            return false;
 		}
 
 		internal static bool forceDisableIsInCustomLevel = false;
