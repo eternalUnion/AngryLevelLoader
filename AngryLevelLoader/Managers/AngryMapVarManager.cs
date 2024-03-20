@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 namespace AngryLevelLoader.Managers
 {
@@ -61,9 +62,10 @@ namespace AngryLevelLoader.Managers
             Instance = this;
             allHandlers = new List<MapVarHandler>();
 
-            //Handle config preset change
+            //Handle config preset change, 
             Plugin.config.postPresetChangeEvent += (_, __) =>
             {
+                //I dont think this is possible to do in level but just in case.
                 if (AngrySceneManager.isInCustomLevel)
                     ReloadMapVars();
             };
@@ -71,6 +73,7 @@ namespace AngryLevelLoader.Managers
             //Handle config preset reset
             Plugin.config.postPresetResetEvent += (_) =>
             {
+                //Delete the preset's mapvar directory.
                 if(Directory.Exists(GetCurrentMapVarsDirectory()))
                     Directory.Delete(GetCurrentMapVarsDirectory(), true);
 
@@ -80,7 +83,6 @@ namespace AngryLevelLoader.Managers
 
             //Handle scene change
             SceneManager.sceneLoaded += (_,__) => InitializeMapVarHandlers();
-
             InitializeMapVarHandlers();
         }
 

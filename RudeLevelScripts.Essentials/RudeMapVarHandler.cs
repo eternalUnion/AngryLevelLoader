@@ -8,7 +8,7 @@ namespace RudeLevelScripts
 {
     public class RudeMapVarHandler : MonoBehaviour
     {
-        [Header("This is the id of the file to register the list of MapVars below with. fileID will be globally accessible.")]
+        [Header("This is the id of the file to register the list of MapVars below with. Keep in mind, fileID's are not bundle or level specific.")]
         public string fileID;
 
         [Space(10)]
