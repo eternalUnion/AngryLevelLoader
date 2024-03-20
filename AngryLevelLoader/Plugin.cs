@@ -1079,109 +1079,112 @@ namespace AngryLevelLoader
 				devPanel.hidden = true;
 
 			new ConfigHeader(devPanel, "Angry Server Interface");
-			ConfigHeader output = new ConfigHeader(devPanel, "Output", 18, TextAnchor.MiddleLeft);
 			ConfigDivision devDiv = new ConfigDivision(devPanel, "devDiv");
 			ButtonField addAllBundles = new ButtonField(devDiv, "Update All Bundles", "updateAllBundles");
+			
+			new ConfigHeader(devPanel, "Output", 18, TextAnchor.MiddleLeft);
+			ConfigHeader processInfo = new ConfigHeader(devPanel, "", 18, TextAnchor.MiddleLeft);
+			ConfigHeader debugInfo = new ConfigHeader(devPanel, "", 18, TextAnchor.MiddleLeft);
 			addAllBundles.onClick += async () =>
 			{
 				devDiv.interactable = false;
+				processInfo.text = "";
+				debugInfo.text = "";
 
 				try
 				{
 					if (OnlineLevelsManager.catalog == null)
 					{
-						output.text = "Catalog is not loaded";
+						processInfo.text = "<color=red>Catalog is not loaded</color>";
 						return;
 					}
 
-					output.text = "<color=grey>Fetching existing bundles...</color>";
+					debugInfo.text = "<color=grey>Fetching existing bundles...</color>";
 
 					var existingBundles = await AngryAdmin.GetAllLevelInfoTask();
 					if (existingBundles.networkError)
 					{
-						output.text += "\nNetwork error, check connection";
+						processInfo.text = "Network error, check connection";
 						return;
 					}
 					if (existingBundles.httpError)
 					{
-						output.text += "\nHttp error, check server";
+						processInfo.text = "Http error, check server";
 						return;
 					}
 					if (existingBundles.status != AngryAdmin.GetAllLevelInfoStatus.OK)
 					{
-						output.text += $"\nStatus error: {existingBundles.message}:{existingBundles.status}";
+						processInfo.text = $"Status error: {existingBundles.message}:{existingBundles.status}";
 						return;
 					}
 
-					output.text += "\n<color=grey>Updating all bundles...</color>";
-
 					foreach (var bundle in OnlineLevelsManager.catalog.Levels)
 					{
-						output.text += $"\nChecking {bundle.Name}...";
+						processInfo.text = $"\nChecking {bundle.Name}...";
 						var existingBundle = existingBundles.response.result.Where(b => b.bundleGuid == bundle.Guid).FirstOrDefault();
 
 						if (existingBundle == null)
 						{
-							output.text += $"\nMissing, adding to the server";
-							output.text += $"\n<color=grey>command: add_bundle {bundle.Guid}</color>";
+							debugInfo.text += $"\nMissing, adding to the server";
+							debugInfo.text += $"\n<color=grey>command: add_bundle {bundle.Guid}</color>";
 							AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {bundle.Guid}");
 
 							if (res.completedSuccessfully && res.status == AngryAdmin.CommandStatus.OK)
 							{
-								output.text += $"\n{res.response.result}";
+								debugInfo.text += $"\n{res.response.result}";
 							}
 							else if (res.networkError)
 							{
-								output.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
+								debugInfo.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
 							}
 							else if (res.httpError)
 							{
-								output.text += $"\n<color=red>HTTP ERROR</color> Check server";
+								debugInfo.text += $"\n<color=red>HTTP ERROR</color> Check server";
 							}
 							else
 							{
 								if (res.response != null)
-									output.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
+									debugInfo.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
 								else
-									output.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
+									debugInfo.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
 							}
 						}
 
 						if (existingBundle == null || existingBundle.hash != bundle.Hash)
 						{
-							output.text += $"\nOut of date hash, updating";
-							output.text += $"\n<color=grey>command: update_leaderboard_hash {bundle.Guid} {bundle.Hash}</color>";
+							debugInfo.text += $"\nOut of date hash, updating";
+							debugInfo.text += $"\n<color=grey>command: update_leaderboard_hash {bundle.Guid} {bundle.Hash}</color>";
 							AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"update_leaderboard_hash {bundle.Guid} {bundle.Hash}");
 
 							if (res.completedSuccessfully && res.status == AngryAdmin.CommandStatus.OK)
 							{
-								output.text += $"\n{res.response.result}";
+								debugInfo.text += $"\n{res.response.result}";
 							}
 							else if (res.networkError)
 							{
-								output.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
+								debugInfo.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
 							}
 							else if (res.httpError)
 							{
-								output.text += $"\n<color=red>HTTP ERROR</color> Check server";
+								debugInfo.text += $"\n<color=red>HTTP ERROR</color> Check server";
 							}
 							else
 							{
 								if (res.response != null)
-									output.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
+									debugInfo.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
 								else
-									output.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
+									debugInfo.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
 							}
 						}
 					
 						AngryBundleContainer container = GetAngryBundleByGuid(bundle.Guid);
 						if (container == null)
 						{
-							output.text += $"\n<color=red>Bundle not installed locally to check levels</color>";
+							debugInfo.text += $"\n<color=red>Bundle not installed locally to check levels</color>";
 						}
 						else if (container.bundleData.buildHash != bundle.Hash)
 						{
-							output.text += $"\n<color=red>Local level out of date</color>";
+							debugInfo.text += $"\n<color=red>Local level out of date</color>";
 						}
 						else
 						{
@@ -1201,39 +1204,39 @@ namespace AngryLevelLoader
 
 								if (levelId.Contains('~'))
 								{
-									output.text += $"\n<color=red>Level ID '{levelId}' contains ~. Cannot process</color>";
+									debugInfo.text += $"\n<color=red>Level ID '{levelId}' contains ~. Cannot process</color>";
 									continue;
 								}
 
 								string commandId = levelId.Replace(' ', '~');
 
-								output.text += $"\n<color=grey>command: add_leaderboard {bundle.Guid} {bundle.Hash} {commandId}</color>";
+								debugInfo.text += $"\n<color=grey>command: add_leaderboard {bundle.Guid} {bundle.Hash} {commandId}</color>";
 								AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_leaderboard {bundle.Guid} {bundle.Hash} {commandId}");
 
 								if (res.completedSuccessfully && res.status == AngryAdmin.CommandStatus.OK)
 								{
-									output.text += $"\n{res.response.result}";
+									debugInfo.text += $"\n{res.response.result}";
 								}
 								else if (res.networkError)
 								{
-									output.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
+									debugInfo.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
 								}
 								else if (res.httpError)
 								{
-									output.text += $"\n<color=red>HTTP ERROR</color> Check server";
+									debugInfo.text += $"\n<color=red>HTTP ERROR</color> Check server";
 								}
 								else
 								{
 									if (res.response != null)
-										output.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
+										debugInfo.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
 									else
-										output.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
+										debugInfo.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
 								}
 							}
 						}
 					}
 
-					output.text += $"\n<color=lime>done</color>";
+					processInfo.text = $"<color=lime>Done!</color>";
 				}
 				finally
 				{
