@@ -1037,8 +1037,16 @@ namespace AngryLevelLoader
 				IOUtils.TryCreateDirectory(newLevelsFolder);
 				foreach (string levelFile in Directory.GetFiles(levelsPath))
 				{
-					File.Copy(levelFile, Path.Combine(newLevelsFolder, Path.GetFileName(levelFile)), true);
-					File.Delete(levelFile);
+					string destinationLevelFile = Path.Combine(newLevelsFolder, Path.GetFileName(levelFile));
+					if (File.Exists(destinationLevelFile))
+					{
+						File.Copy(levelFile, destinationLevelFile, true);
+						File.Delete(levelFile);
+					}
+					else
+					{
+						File.Move(levelFile, destinationLevelFile);
+					}
 				}
 				Directory.Delete(levelsPath, true);
 				levelsPath = newLevelsFolder;
@@ -1055,6 +1063,19 @@ namespace AngryLevelLoader
 				}
 				Directory.Delete(tempFolderPath, true);
 				tempFolderPath = newLevelsUnpackedFolder;
+
+				string newMapVarsFolder = Path.Combine(newPath, "MapVars");
+				IOUtils.TryCreateDirectory(newMapVarsFolder);
+				foreach (string mapVarPresetFolder in Directory.GetDirectories(Path.Combine(dataPath, "MapVars")))
+				{
+					string dest = Path.Combine(newMapVarsFolder, Path.GetFileName(mapVarPresetFolder));
+					if (Directory.Exists(dest))
+						Directory.Delete(dest, true);
+
+					IOUtils.DirectoryCopy(mapVarPresetFolder, dest, true, true);
+				}
+				if (Directory.Exists(Path.Combine(dataPath, "MapVars")))
+					Directory.Delete(Path.Combine(dataPath, "MapVars"), true);
 
 				dataInfo.text = "<color=red>RESTART REQUIRED</color>";
 				dataInfo.hidden = false;
