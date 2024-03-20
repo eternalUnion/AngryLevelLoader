@@ -118,6 +118,19 @@ namespace AngryLevelLoader.Managers
             //Loop through all the user defined handlers and register their mapvar keys with the fileID
             foreach (var handler in userDefinedHandlers)
             {
+                //Validate the handler's fileID before using it.
+                if(!handler.IsValid())
+                {
+                    Plugin.logger.LogError($"({handler.name}) {nameof(RudeMapVarHandler)}.{nameof(RudeMapVarHandler.fileID)} is invalid and will not be used.");
+                    continue;
+                }
+
+                if (handler.varList == null || handler.varList.Count <= 0)
+                {
+                    Plugin.logger.LogWarning($"({handler.name}) {nameof(RudeMapVarHandler)}.{nameof(RudeMapVarHandler.varList)} contains no MapVar keys and will not be used.");
+                    continue;
+                }
+
                 foreach (var visibleVarKey in handler.varList)
                 {
                     if (!userDefinedMapVarKeyToFileMap.ContainsKey(visibleVarKey))
