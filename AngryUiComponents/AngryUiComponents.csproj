@@ -12,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\AngryLevelLoader\libs\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\AngryLevelLoader\libs\UnityEngine.UI.dll</HintPath>
     </Reference>

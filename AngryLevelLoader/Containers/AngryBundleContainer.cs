@@ -245,6 +245,17 @@ namespace AngryLevelLoader.Containers
             return GetAllLevelData().Select(data => data.scenePath);
         }
 
+        public void UpdateAllUI()
+        {
+            foreach (RudeLevelData data in GetAllLevelData())
+            {
+                if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
+                    container.UpdateUI();
+            }
+
+            RecalculateFinalRank();
+		}
+
         private async Task UpdateScenesTask(bool forceReload, bool lazyLoad)
         {
             if (!File.Exists(pathToAngryBundle))

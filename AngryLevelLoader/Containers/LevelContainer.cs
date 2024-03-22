@@ -52,6 +52,7 @@ namespace AngryLevelLoader.Containers
 
             field.finalRank = finalRank.value[0];
             field.secrets = secrets.value.ToCharArray().Count(c => c == 'T');
+            field.secretsString = secrets.value;
             field.challenge = challenge.value;
             field.discovered = discovered.value;
 
@@ -101,7 +102,35 @@ namespace AngryLevelLoader.Containers
                     onLevelButtonPress.Invoke();
             };
 
-            time = new FloatField(panel, "", $"l_{data.uniqueIdentifier}_time", 0, true, false) { hidden = true, presetLoadPriority = -1 };
+            field.onResetStats += () =>
+            {
+                time.value = 0;
+                timeRank.value = "-";
+                kills.value = 0;
+                killsRank.value = "-";
+                style.value = 0;
+                styleRank.value = "-";
+
+                finalRank.value = "-";
+
+                container.UpdateAllUI();
+            };
+
+			field.onResetSecrets += () =>
+			{
+                secrets.value = "".PadRight(data.secretCount, 'F');
+
+				container.UpdateAllUI();
+			};
+
+			field.onResetChallenge += () =>
+			{
+                challenge.value = false;
+
+				container.UpdateAllUI();
+			};
+
+			time = new FloatField(panel, "", $"l_{data.uniqueIdentifier}_time", 0, true, false) { hidden = true, presetLoadPriority = -1 };
             timeRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_timeRank", "-", true, true, false) { hidden = true };
             kills = new IntField(panel, "", $"l_{data.uniqueIdentifier}_kills", 0, true, false) { hidden = true };
             killsRank = new StringField(panel, "", $"l_{data.uniqueIdentifier}_killsRank", "-", true, true, false) { hidden = true };

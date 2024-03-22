@@ -6,6 +6,7 @@ using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using RudeLevelScript;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -29,9 +30,14 @@ namespace AngryLevelLoader.Fields
         public int style = 0;
         public char styleRank = '-';
         public int secrets = 0;
+        public string secretsString = "";
         public char finalRank = '-';
         public bool challenge = false;
         public bool discovered = true;
+
+        public Action onResetStats;
+        public Action onResetSecrets;
+        public Action onResetChallenge;
 
         private RectTransform container;
         private AngryLevelFieldComponent currentUi;
@@ -110,6 +116,7 @@ namespace AngryLevelLoader.Fields
                 OnCreateUI(container);
         }
 
+        private static GameObject lastActiveSettingsPanel = null;
         public void UpdateUI()
         {
             if (currentUi == null)
@@ -128,9 +135,44 @@ namespace AngryLevelLoader.Fields
                 currentUi.timeText.text = $"{GetTimeStringFromSeconds(time)} {RankUtils.GetFormattedRankText(timeRank)}";
                 currentUi.killText.text = $"{kills} {RankUtils.GetFormattedRankText(killsRank)}";
                 currentUi.styleText.text = $"{style} {RankUtils.GetFormattedRankText(styleRank)}";
-                currentUi.secretsText.text = $"{secrets} / {data.secretCount}";
-                if (secrets == data.secretCount)
-                    currentUi.secretsText.text = $"<color=aqua>{currentUi.secretsText.text}</color>";
+
+                if (data.secretCount == 0)
+                {
+                    currentUi.secretsHeader.gameObject.SetActive(false);
+                    currentUi.secretsText.gameObject.SetActive(false);
+                    currentUi.secretsIconContainer.gameObject.SetActive(false);
+                }
+                else if (data.secretCount >= 1 && data.secretCount <= 5)
+                {
+					currentUi.secretsHeader.gameObject.SetActive(true);
+					currentUi.secretsText.gameObject.SetActive(false);
+					currentUi.secretsIconContainer.gameObject.SetActive(true);
+
+                    if (secretsString.Length != data.secretCount)
+                        secretsString = secretsString.PadRight(data.secretCount, 'F');
+
+                    for (int i = 0; i < data.secretCount; i++)
+                    {
+                        currentUi.secretsIcons[i].gameObject.SetActive(true);
+                        currentUi.secretsIcons[i].fillCenter = secretsString[i] == 'T';
+					}
+
+					for (int i = data.secretCount; i < 5; i++)
+                    {
+						currentUi.secretsIcons[i].gameObject.SetActive(false);
+					}
+				}
+                else
+                {
+					currentUi.secretsHeader.gameObject.SetActive(true);
+					currentUi.secretsText.gameObject.SetActive(true);
+					currentUi.secretsIconContainer.gameObject.SetActive(false);
+
+                    currentUi.secretsText.text = $"{secrets} / {data.secretCount}";
+                    if (secrets == data.secretCount)
+                        currentUi.secretsText.text = $"<color=aqua>{currentUi.secretsText.text}</color>";
+				}
+
                 currentUi.finalRankText.text = RankUtils.GetFormattedRankText(finalRank);
                 currentUi.challengeContainerImage.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
                 currentUi.challengeContainer.gameObject.SetActive(data.levelChallengeEnabled);
@@ -163,6 +205,8 @@ namespace AngryLevelLoader.Fields
                 currentUi.challengeContainer.gameObject.SetActive(false);
 
                 currentUi.leaderboardsButton.interactable = false;
+                currentUi.openSettingsButton.interactable = false;
+                currentUi.settingsPanel.SetActive(false);
             }
             else
             {
@@ -173,6 +217,7 @@ namespace AngryLevelLoader.Fields
                     currentUi.levelThumbnail.sprite = data.levelPreviewImage;
 
 				currentUi.leaderboardsButton.interactable = true;
+				currentUi.openSettingsButton.interactable = true;
 			}
 
             hidden = !discovered && data.hideIfNotPlayed;
@@ -212,10 +257,6 @@ namespace AngryLevelLoader.Fields
 			currentUiRect.anchorMax = new Vector2(0, 1);
 			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
-			currentUi.levelHeader.text = data == null ? "???" : data.levelName;
-            if (data.levelPreviewImage != null)
-                currentUi.levelThumbnail.sprite = data.levelPreviewImage;
-
             currentUi.levelButton.onClick.AddListener(() =>
             {
                 if (locked)
@@ -230,25 +271,60 @@ namespace AngryLevelLoader.Fields
                 NotificationPanel.Open(new LeaderboardNotification(bundleContainer.bundleData.bundleName, data.levelName, bundleContainer.bundleData.bundleGuid, data.uniqueIdentifier));
             });
 
-            currentUi.timeText.text = $"{GetTimeStringFromSeconds(time)} {RankUtils.GetFormattedRankText(timeRank)}";
+            currentUi.openSettingsButton.onClick.AddListener(() =>
+            {
+                if (lastActiveSettingsPanel != null)
+                    lastActiveSettingsPanel.SetActive(false);
 
-            currentUi.killText.text = $"{kills} {RankUtils.GetFormattedRankText(killsRank)}";
+                lastActiveSettingsPanel = currentUi.settingsPanel;
+                currentUi.settingsPanel.SetActive(true);
 
-            currentUi.styleText.text = $"{style} {RankUtils.GetFormattedRankText(styleRank)}";
+                currentUi.StopAllCoroutines();
 
-            currentUi.secretsText.text = $"{secrets} / {data.secretCount}";
-            if (secrets == data.secretCount)
-                currentUi.secretsText.text = $"<color=aqua>{currentUi.secretsText.text}</color>";
+				currentUi.resetStatsText.text = "Reset Stats";
+				currentUi.resetSecretsText.text = "Reset Secrets";
+				currentUi.resetChallengeText.text = "Reset Challenge";
 
-            currentUi.finalRankText.text = RankUtils.GetFormattedRankText(finalRank);
+				currentUi.resetStatsButton.interactable = finalRank != '-';
+				currentUi.resetSecretsButton.interactable = !data.isSecretLevel && data.secretCount != 0 && secrets != 0;
+				currentUi.resetChallengeButton.interactable = !data.isSecretLevel && data.levelChallengeEnabled && challenge;
 
-            currentUi.challengeContainerImage.color = challenge ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+                currentUi.ResetSettingsButtons();
+			});
 
-            currentUi.challengeText.text = data.levelChallengeEnabled ? data.levelChallengeText : "No challenge available for the level";
+            currentUi.closeSettingsButton.onClick.AddListener(() =>
+            {
+                currentUi.settingsPanel.SetActive(false);
+            });
 
-            currentUi.challengeContainer.gameObject.SetActive(data.levelChallengeEnabled);
+            currentUi.onResetStats = () =>
+            {
+                currentUi.resetStatsButton.interactable = false;
+				currentUi.resetStatsText.text = "Reset Stats";
 
-            UpdateUI();
+                if (onResetStats != null)
+                    onResetStats();
+			};
+
+			currentUi.onResetSecrets = () =>
+			{
+				currentUi.resetSecretsButton.interactable = false;
+				currentUi.resetSecretsText.text = "Reset Secrets";
+
+				if (onResetSecrets != null)
+					onResetSecrets();
+			};
+
+			currentUi.onResetChallenge = () =>
+			{
+				currentUi.resetChallengeButton.interactable = false;
+				currentUi.resetChallengeText.text = "Reset Challenge";
+
+				if (onResetChallenge != null)
+					onResetChallenge();
+			};
+
+			UpdateUI();
         }
 
         private static string GetTimeStringFromSeconds(float s)
