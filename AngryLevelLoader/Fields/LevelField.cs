@@ -8,6 +8,7 @@ using PluginConfig.API.Fields;
 using RudeLevelScript;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -285,11 +286,22 @@ namespace AngryLevelLoader.Fields
 				currentUi.resetSecretsText.text = "Reset Secrets";
 				currentUi.resetChallengeText.text = "Reset Challenge";
 
+                currentUi.resetLevelVarsText.text = "Reset Level Variables";
+				currentUi.resetBundleVarsText.text = "Reset Bundle Variables";
+				currentUi.resetUserVarsText.text = "Reset User Variables";
+
 				currentUi.resetStatsButton.interactable = finalRank != '-';
 				currentUi.resetSecretsButton.interactable = !data.isSecretLevel && data.secretCount != 0 && secrets != 0;
 				currentUi.resetChallengeButton.interactable = !data.isSecretLevel && data.levelChallengeEnabled && challenge;
 
-                currentUi.ResetSettingsButtons();
+                string levelMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, AngryMapVarManager.LEVELS_DIRECTORY, data.uniqueIdentifier + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+				string bundleMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, bundleContainer.bundleData.bundleGuid + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+
+				currentUi.resetLevelVarsButton.interactable = File.Exists(levelMapVarFilePath);
+                currentUi.resetBundleVarsButton.interactable = File.Exists(bundleMapVarFilePath);
+                currentUi.resetUserVarsButton.interactable = true;
+
+				currentUi.ResetSettingsButtons();
 			});
 
             currentUi.closeSettingsButton.onClick.AddListener(() =>
@@ -323,6 +335,33 @@ namespace AngryLevelLoader.Fields
 				if (onResetChallenge != null)
 					onResetChallenge();
 			};
+
+            currentUi.onResetLevelVars = () =>
+            {
+				currentUi.resetLevelVarsButton.interactable = false;
+				currentUi.resetLevelVarsText.text = "Reset Level Variables";
+
+				string levelMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, AngryMapVarManager.LEVELS_DIRECTORY, data.uniqueIdentifier + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+                if (File.Exists(levelMapVarFilePath))
+                    File.Delete(levelMapVarFilePath);
+            };
+
+            currentUi.onResetBundleVars = () =>
+            {
+				currentUi.resetBundleVarsButton.interactable = false;
+				currentUi.resetBundleVarsText.text = "Reset Bundle Variables";
+
+				string bundleMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, bundleContainer.bundleData.bundleGuid + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+			    if (File.Exists(bundleMapVarFilePath))
+                    File.Delete(bundleMapVarFilePath);
+            };
+
+            currentUi.onResetUserVars = () =>
+            {
+				currentUi.resetUserVarsText.text = "Reset User Variables";
+
+				NotificationPanel.Open(new ResetUserMapVarNotification());
+            };
 
 			UpdateUI();
         }

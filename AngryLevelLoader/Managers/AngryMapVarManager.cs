@@ -15,37 +15,37 @@ namespace AngryLevelLoader.Managers
     {
         public static AngryMapVarManager Instance { get; private set; }
 
-        private const string MAPVAR_FILE_EXTENSION = ".vars.json";
-        private const string LEVELS_DIRECTORY = "Levels";
-        private const string BUNDLES_DIRECTORY = "BundleDefined";
-        private const string USER_DEFINED_DIRECTORY = "UserDefined";
-        private const string DEFAULT_PRESET_NAME = "default";
+        internal const string MAPVAR_FILE_EXTENSION = ".vars.json";
+        internal const string LEVELS_DIRECTORY = "Levels";
+        internal const string BUNDLES_DIRECTORY = "BundleDefined";
+        internal const string USER_DEFINED_DIRECTORY = "UserDefined";
+        internal const string DEFAULT_PRESET_NAME = "default";
 
-        //Pathes
+		//Pathes
 
-        //Root MapVars directory
-        private string angryMapVarsDirectory => Plugin.mapVarsFolderPath;
+		//Root MapVars directory
+		internal static string angryMapVarsDirectory => Plugin.mapVarsFolderPath;
 
-        //Directory for the current config preset
-        private string GetCurrentMapVarsDirectory() => Path.Combine(angryMapVarsDirectory, GetConfigPresetID());
-        
-        //Bundle directory, the directory root of a .angry bundle file
-        private string GetBundleDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), BUNDLES_DIRECTORY, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
-        
-        //Levels directory within a bundle
-        private string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), LEVELS_DIRECTORY);
-        
-        //for storing user defined persistent mapvar files
-        private string GetCurrentUserMapVarsDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), USER_DEFINED_DIRECTORY);
+		//Directory for the current config preset
+		internal static string GetCurrentMapVarsDirectory() => Path.Combine(angryMapVarsDirectory, GetConfigPresetID());
 
-        //for storing bundle persistent mapvars
-        private string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + MAPVAR_FILE_EXTENSION);
+		//Bundle directory, the directory root of a .angry bundle file
+		internal static string GetBundleDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), BUNDLES_DIRECTORY, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
 
-        //for storing level persistent mapvars
-        private string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + MAPVAR_FILE_EXTENSION);
+		//Levels directory within a bundle
+		internal static string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), LEVELS_DIRECTORY);
 
-        //Current config preset. default if there is no preset.
-        private string GetConfigPresetID() => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? DEFAULT_PRESET_NAME : Plugin.config.currentPresetId ;
+		//for storing user defined persistent mapvar files
+		internal static string GetCurrentUserMapVarsDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), USER_DEFINED_DIRECTORY);
+
+		//for storing bundle persistent mapvars
+		internal static string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + MAPVAR_FILE_EXTENSION);
+
+		//for storing level persistent mapvars
+		internal static string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + MAPVAR_FILE_EXTENSION);
+
+		//Current config preset. default if there is no preset.
+		internal static string GetConfigPresetID() => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? DEFAULT_PRESET_NAME : Plugin.config.currentPresetId ;
 
         private List<MapVarHandler> allHandlers;
 

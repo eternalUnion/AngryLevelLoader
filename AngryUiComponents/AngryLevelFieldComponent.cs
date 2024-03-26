@@ -37,10 +37,20 @@ namespace AngryUiComponents
 		public TextMeshProUGUI resetSecretsText;
 		public Button resetChallengeButton;
 		public TextMeshProUGUI resetChallengeText;
+        public Button resetLevelVarsButton;
+        public TextMeshProUGUI resetLevelVarsText;
+        public Button resetBundleVarsButton;
+        public TextMeshProUGUI resetBundleVarsText;
+        public Button resetUserVarsButton;
+        public TextMeshProUGUI resetUserVarsText;
 
         public Action onResetStats;
         public Action onResetSecrets;
         public Action onResetChallenge;
+
+        public Action onResetLevelVars;
+        public Action onResetBundleVars;
+        public Action onResetUserVars;
 
         private class OnDisableCallback : MonoBehaviour
         {
@@ -74,6 +84,15 @@ namespace AngryUiComponents
 
             resetChallengeButton.onClick = new Button.ButtonClickedEvent();
             resetChallengeButton.onClick.AddListener(OnResetChallenge);
+
+            resetLevelVarsButton.onClick = new Button.ButtonClickedEvent();
+            resetLevelVarsButton.onClick.AddListener(OnResetLevelVars);
+
+            resetBundleVarsButton.onClick = new Button.ButtonClickedEvent();
+            resetBundleVarsButton.onClick.AddListener(OnResetBundleVars);
+
+            resetUserVarsButton.onClick = new Button.ButtonClickedEvent();
+            resetUserVarsButton.onClick.AddListener(onResetUserVars.Invoke);
         }
 
         public void OnResetStats()
@@ -94,6 +113,18 @@ namespace AngryUiComponents
 			StartCoroutine(ResetButtonCoroutine(resetChallengeButton, resetChallengeText, onResetChallenge));
 		}
 
+        public void OnResetLevelVars()
+        {
+            resetLevelVarsButton.interactable = false;
+            StartCoroutine(ResetButtonCoroutine(resetLevelVarsButton, resetLevelVarsText, onResetLevelVars));
+        }
+
+        public void OnResetBundleVars()
+        {
+            resetBundleVarsButton.interactable = false;
+            StartCoroutine(ResetButtonCoroutine(resetBundleVarsButton, resetBundleVarsText, onResetBundleVars));
+        }
+
 		private IEnumerator ResetButtonCoroutine(Button btn, TextMeshProUGUI txt, Action cb)
         {
 			btn.interactable = false;
@@ -104,7 +135,7 @@ namespace AngryUiComponents
                 yield return new WaitForSecondsRealtime(1f);
             }
 
-			txt.text = "Are you sure?";
+			txt.text = "<color=red>Are you sure?</color>";
 
 			btn.interactable = true;
 			btn.onClick = new Button.ButtonClickedEvent();
