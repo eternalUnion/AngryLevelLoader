@@ -41,7 +41,30 @@ namespace AngryLevelLoader.Managers
             return newTask;
         }
 
-        private static async Task<SteamUserCache> GetSteamUserTask(ulong steamId)
+		public static void RequestUser(ulong steamId, Action<SteamUserCache> callback)
+		{
+			if (steamUserCacheDict.TryGetValue(steamId, out SteamUserCache cachedUser))
+			{
+                callback(cachedUser);
+                return;
+			}
+
+			if (requestDict.TryGetValue(steamId, out Task<SteamUserCache> reqTask))
+            {
+                reqTask.ContinueWith((task) => callback(task.Result), TaskScheduler.FromCurrentSynchronizationContext());
+                return;
+            }
+
+			Task<SteamUserCache> newTask = GetSteamUserTask(steamId);
+			newTask.ContinueWith((task) =>
+			{
+                callback(task.Result);
+				requestDict.Remove(steamId);
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+			requestDict[steamId] = newTask;
+		}
+
+		private static async Task<SteamUserCache> GetSteamUserTask(ulong steamId)
         {
             if (steamUserCacheDict.TryGetValue(steamId, out SteamUserCache cachedUser))
                 return cachedUser;

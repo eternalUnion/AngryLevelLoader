@@ -1,6 +1,7 @@
 ﻿using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryUiComponents;
+using Discord;
 using PluginConfig;
 using System;
 using System.Collections.Generic;
@@ -292,7 +293,6 @@ namespace AngryLevelLoader.Notifications
 								return;
 							}
 
-							List<Task> toWait = new List<Task>();
 							for (int i = 0; i < page.response.records.Length; i++)
 							{
 								var entry = UnityEngine.Object.Instantiate(currentUi.recordTemplate, currentUi.recordContainer);
@@ -304,37 +304,24 @@ namespace AngryLevelLoader.Notifications
 								if (steamId.ToString() == Steamworks.SteamClient.SteamId.ToString())
 									entry.reportButton.interactable = false;
 
-								if (SteamCacheManager.TryGetUser(steamId, out SteamUserCache cachedUser))
+								entry.username.text = "<color=grey>Loading...</color>";
+								if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
+									entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
+
+								SteamCacheManager.RequestUser(steamId, (user) =>
 								{
-									entry.username.text = cachedUser.name;
+									if (entry == null)
+										return;
+
+									entry.username.text = user.name;
 									if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
 										entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
-									entry.profile.texture = cachedUser.profilePicture;
-									entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), cachedUser.name));
-								}
-								else
-								{
-									var userReqTask = SteamCacheManager.RequestUser(steamId);
-									toWait.Add(userReqTask);
-									_ = userReqTask.ContinueWith((task) =>
-									{
-										if (entry == null)
-											return;
-
-										var userReq = task.Result;
-										entry.username.text = userReq.name;
-										if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
-											entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
-										entry.profile.texture = userReq.profilePicture;
-										entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
-									}, TaskScheduler.FromCurrentSynchronizationContext());
-								}
+									entry.profile.texture = user.profilePicture;
+									entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), user.name));
+								});
 
 								entry.gameObject.SetActive(true);
 							}
-
-							foreach (var task in toWait)
-								await task;
 						}
 						else
 						{
@@ -431,7 +418,6 @@ namespace AngryLevelLoader.Notifications
 				if (currentUi != null)
 				{
 					int limit = Math.Min(5, friendRecords.Length - currentPage * 5);
-					List<Task> toWait = new List<Task>();
 					for (int i = 0; i < limit; i++)
 					{
 						int realIndex = i + currentPage * 5;
@@ -444,37 +430,25 @@ namespace AngryLevelLoader.Notifications
 						ulong steamId = ulong.Parse(friendRecords[realIndex].steamId);
 						if (steamId.ToString() == Steamworks.SteamClient.SteamId.ToString())
 							entry.reportButton.interactable = false;
-						if (SteamCacheManager.TryGetUser(steamId, out SteamUserCache cachedUser))
+
+						entry.username.text = $"<color=grey>Loading...</color> <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
+						if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
+							entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
+
+						SteamCacheManager.RequestUser(steamId, (user) =>
 						{
-							entry.username.text = $"{cachedUser.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
+							if (entry == null)
+								return;
+
+							entry.username.text = $"{user.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
 							if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
 								entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
-							entry.profile.texture = cachedUser.profilePicture;
-							entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), cachedUser.name));
-						}
-						else
-						{
-							var userReqTask = SteamCacheManager.RequestUser(steamId);
-							toWait.Add(userReqTask);
-							_ = userReqTask.ContinueWith((task) =>
-							{
-								if (entry == null)
-									return;
-
-								var userReq = task.Result;
-								entry.username.text = $"{userReq.name} <color=silver>(global #{friendRecords[realIndex].globalRank})</color>";
-								if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
-									entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
-								entry.profile.texture = userReq.profilePicture;
-								entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), userReq.name));
-							}, TaskScheduler.FromCurrentSynchronizationContext());
-						}
+							entry.profile.texture = user.profilePicture;
+							entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), user.name));
+						});
 
 						entry.gameObject.SetActive(true);
 					}
-
-					foreach (var task in toWait)
-						await task;
 				}
 			}
 

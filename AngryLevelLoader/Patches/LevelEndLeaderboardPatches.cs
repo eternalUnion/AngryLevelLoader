@@ -175,42 +175,27 @@ namespace AngryLevelLoader.Patches
 				instance.templateTime.text = string.Format("{0}:{1:00.000}", minutes, seconds);
 
 				TMP_Text text = instance.templateUsername;
-				text.text = "<unknown>";
+				text.text = "Loading...";
 				instance.templateDifficulty.text = record.difficulty;
 
-				if (SteamCacheManager.TryGetUser(steamIdNumeric, out SteamUserCache cachedSteamUser))
+				GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(instance.template, instance.container);
+
+				Transform newUsernameFieldTrans = gameObject.transform.Find("Username Field");
+				TextMeshProUGUI newUsernameField = null;
+				if (newUsernameFieldTrans != null)
+					newUsernameField = newUsernameFieldTrans.GetComponent<TextMeshProUGUI>();
+				RawImage profilePicture = gameObject.GetComponentInChildren<RawImage>();
+
+				SteamCacheManager.RequestUser(steamIdNumeric, (result) =>
 				{
-					text.text = cachedSteamUser.name;
+					if (newUsernameField != null)
+						newUsernameField.text = result.name;
 
-					GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(instance.template, instance.container);
-					gameObject.SetActive(true);
+					if (result.profilePicture != null && profilePicture != null)
+						profilePicture.texture = result.profilePicture;
+				});
 
-					RawImage profilePicture = gameObject.GetComponentInChildren<RawImage>();
-					profilePicture.texture = cachedSteamUser.profilePicture;
-				}
-				else
-				{
-					GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(instance.template, instance.container);
-					gameObject.SetActive(true);
-
-					Transform newUsernameFieldTrans = gameObject.transform.Find("Username Field");
-					TextMeshProUGUI newUsernameField = null;
-					if (newUsernameFieldTrans != null)
-						newUsernameField = newUsernameFieldTrans.GetComponent<TextMeshProUGUI>();
-					RawImage profilePicture = gameObject.GetComponentInChildren<RawImage>();
-
-					var userRequest = SteamCacheManager.RequestUser(steamIdNumeric);
-					userRequest.ContinueWith((task) =>
-					{
-						var result = task.Result;
-
-						if (newUsernameField != null)
-							newUsernameField.text = result.name;
-
-						if (result.profilePicture != null && profilePicture != null)
-							profilePicture.texture = result.profilePicture;
-					}, TaskScheduler.FromCurrentSynchronizationContext());
-				}
+				gameObject.SetActive(true);
 			}
 
 			instance.loadingPanel.SetActive(false);
