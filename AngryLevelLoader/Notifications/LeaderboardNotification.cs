@@ -1,5 +1,5 @@
-﻿using AngryLevelLoader.Managers.ServerManager;
-using AngryLevelLoader.Patches;
+﻿using AngryLevelLoader.Managers;
+using AngryLevelLoader.Managers.ServerManager;
 using AngryUiComponents;
 using PluginConfig;
 using System;
@@ -13,7 +13,7 @@ using UnityEngine.AddressableAssets;
 
 namespace AngryLevelLoader.Notifications
 {
-	public class LeaderboardNotification : NotificationPanel.Notification
+    public class LeaderboardNotification : NotificationPanel.Notification
 	{
 		public readonly string bundleName;
 		public readonly string levelName;
