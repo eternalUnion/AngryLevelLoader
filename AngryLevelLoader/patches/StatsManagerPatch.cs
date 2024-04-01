@@ -290,18 +290,26 @@ namespace AngryLevelLoader.Patches
 				Plugin.logger.LogWarning("Could not find challenge text");
 
 			// Set challenge panel
-			if (AngrySceneManager.currentLevelData.levelChallengeEnabled && (challengeCompletedThisSeason || challengeCompletedBefore))
+			if (FinalRank.Instance != null)
 			{
-				Plugin.logger.LogInfo("Enabling challenge panel since it is completed now or before");
-				ChallengeManager.Instance.challengePanel.GetComponent<Image>().color = usedCheats && !challengeCompletedBefore ? new Color(0, 1, 0, 0.5f) : new Color(1f, 0.696f, 0f, 0.5f);
-                ChallengeManager.Instance.challengePanel.GetComponent<AudioSource>().volume = !challengeCompletedBefore && !usedCheats ? 1f : 0f;
-                ChallengeManager.Instance.challengePanel.SetActive(true);
-            }
-			else
-			{
-                Plugin.logger.LogInfo("Disabling challenge panel since it is not completed now and before");
-                ChallengeManager.Instance.challengePanel.SetActive(false);
-            }
+				GameObject challengePanel = FinalRank.Instance.transform.Find("Challenge/Panel (1)").gameObject;
+
+				if (challengePanel != null)
+				{
+					if (AngrySceneManager.currentLevelData.levelChallengeEnabled && (challengeCompletedThisSeason || challengeCompletedBefore))
+					{
+						Plugin.logger.LogInfo("Enabling challenge panel since it is completed now or before");
+						challengePanel.GetComponent<Image>().color = usedCheats && !challengeCompletedBefore ? new Color(0, 1, 0, 0.5f) : new Color(1f, 0.696f, 0f, 0.5f);
+						challengePanel.GetComponent<AudioSource>().volume = !challengeCompletedBefore && !usedCheats ? 1f : 0f;
+						challengePanel.SetActive(true);
+					}
+					else
+					{
+						Plugin.logger.LogInfo("Disabling challenge panel since it is not completed now and before");
+						challengePanel.SetActive(false);
+					}
+				}
+			}
 		}
 	}
 }
