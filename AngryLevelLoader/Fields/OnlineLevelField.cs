@@ -456,7 +456,7 @@ namespace AngryLevelLoader.Fields
             });
 
             if (hierarchyHidden)
-                currentUi.gameObject.SetActive(false);
+				currentContainer.gameObject.SetActive(false);
 
             UpdateUI();
         }
@@ -510,8 +510,8 @@ namespace AngryLevelLoader.Fields
 
         public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
         {
-            if (currentUi != null)
-                currentUi.gameObject.SetActive(!hierarchyHidden);
+            if (currentContainer != null)
+				currentContainer.gameObject.SetActive(!hierarchyHidden);
         }
 
         private Task downloadTask = null;
