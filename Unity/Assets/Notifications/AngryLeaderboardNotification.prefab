@@ -2716,9 +2716,9 @@ MonoBehaviour:
     m_Font: {fileID: 12800000, guid: 4483fe9467eea534691a0cc112b7a487, type: 3}
     m_FontSize: 14
     m_FontStyle: 0
-    m_BestFit: 0
-    m_MinSize: 10
-    m_MaxSize: 40
+    m_BestFit: 1
+    m_MinSize: 8
+    m_MaxSize: 14
     m_Alignment: 3
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -2868,8 +2868,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 77209c5a660ae0f4aa5e0c9db4b2fc1b, type: 2}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 4ef5dea894d5f244ba4a364a84c7a1a4, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -3008,6 +3008,12 @@ MonoBehaviour:
     - m_Text: ALL
       m_Image: {fileID: 0}
     - m_Text: <color=yellow>P</color> RANK
+      m_Image: {fileID: 0}
+    - m_Text: CHALLENGE
+      m_Image: {fileID: 0}
+    - m_Text: NO MONSTERS
+      m_Image: {fileID: 0}
+    - m_Text: NO MONSTERS/WEAPONS
       m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:
@@ -3204,9 +3210,9 @@ MonoBehaviour:
     m_Font: {fileID: 12800000, guid: 4483fe9467eea534691a0cc112b7a487, type: 3}
     m_FontSize: 14
     m_FontStyle: 0
-    m_BestFit: 0
+    m_BestFit: 1
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 14
     m_Alignment: 3
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -3657,7 +3663,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7881638a76c7ee546900c31f960f7166, type: 2}
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3710,7 +3716,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 7718882144523393218}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.2
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -4822,9 +4828,11 @@ MonoBehaviour:
   m_CaptionImage: {fileID: 0}
   m_ItemText: {fileID: 8368530171517891765}
   m_ItemImage: {fileID: 0}
-  m_Value: 3
+  m_Value: 0
   m_Options:
     m_Options:
+    - m_Text: ANY
+      m_Image: {fileID: 0}
     - m_Text: HARMLESS
       m_Image: {fileID: 0}
     - m_Text: LENIENT
@@ -5504,8 +5512,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 77209c5a660ae0f4aa5e0c9db4b2fc1b, type: 2}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 4ef5dea894d5f244ba4a364a84c7a1a4, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -5694,7 +5702,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7881638a76c7ee546900c31f960f7166, type: 2}
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -6093,7 +6101,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: VIOLENT
+  m_Text: ANY
 --- !u!1 &8368530171248847287
 GameObject:
   m_ObjectHideFlags: 0
@@ -6919,7 +6927,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7881638a76c7ee546900c31f960f7166, type: 2}
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -7839,8 +7847,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 77209c5a660ae0f4aa5e0c9db4b2fc1b, type: 2}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 4ef5dea894d5f244ba4a364a84c7a1a4, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
