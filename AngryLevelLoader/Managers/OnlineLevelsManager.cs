@@ -98,7 +98,16 @@ namespace AngryLevelLoader.Managers
                 if (hash == newHash)
                 {
                     Plugin.logger.LogInfo("Cached script catalog up to date");
-                    scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
+                    try
+                    {
+                        scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(catalog);
+                    }
+                    catch(Exception)
+                    {
+                        Debug.LogError("Tried to load the script catalog, but it is corrupted");
+                        scriptCatalog = null;
+					}
+
                     return;
                 }
             }
@@ -115,7 +124,17 @@ namespace AngryLevelLoader.Managers
                     return;
                 }
 
-                scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(updatedCatalogRequest.downloadHandler.text);
+                try
+                {
+                    scriptCatalog = JsonConvert.DeserializeObject<ScriptCatalog>(updatedCatalogRequest.downloadHandler.text);
+                }
+                catch (Exception)
+                {
+                    Debug.LogError("Tried to load script catalog, but it is corrupted");
+                    scriptCatalog = null;
+                    return;
+				}
+
                 File.WriteAllText(cachedCatalogPath, updatedCatalogRequest.downloadHandler.text);
                 string currentHash = CryptographyUtils.GetMD5String(updatedCatalogRequest.downloadHandler.text);
 
@@ -213,7 +232,17 @@ namespace AngryLevelLoader.Managers
         {
             string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
             if (File.Exists(cachedCatalogPath))
-                catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
+            {
+                try
+                {
+                    catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(cachedCatalogPath));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Tried to load cached catalog, but it is corrupted");
+                    catalog = null;
+                }
+            }
 
             var filterPanel = new ConfigPanel(onlineLevelsPanel, "Filters", "online_filters");
             filterPanel.hidden = true;
@@ -404,12 +433,20 @@ namespace AngryLevelLoader.Managers
             {
                 string cachedCatalog = File.ReadAllText(cachedCatalogPath);
                 string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
-                catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
 
-                if (catalogHash == newCatalogHash)
+                try
                 {
-                    Plugin.logger.LogInfo("Current online level catalog is up to date, loading from cache");
-                    return;
+                    catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+
+                    if (catalogHash == newCatalogHash)
+                    {
+                        Plugin.logger.LogInfo("Current online level catalog is up to date, loading from cache");
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    Debug.LogError("Tried to load cached level catalog, but it is corrupted");
                 }
 
                 catalog = null;
@@ -439,7 +476,16 @@ namespace AngryLevelLoader.Managers
             {
                 string cachedCatalog = File.ReadAllText(catalogPath);
                 string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
-                catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+
+                try
+                {
+                    catalog = JsonConvert.DeserializeObject<LevelCatalog>(cachedCatalog);
+                }
+                catch (Exception)
+                {
+                    Debug.LogError("Tried to load level catalog, but it is corrupted");
+                    return;
+                }
 
                 if (catalogHash != newHash)
                 {
