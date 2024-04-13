@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.7.6",
+  "latestVersion": "2.8.0",
   "updates": [
     {
       "version": "1.0.0",
@@ -92,6 +92,10 @@
     {
       "version": "2.7.6",
       "updateText": "- Fixed locked levels causing errors\n- Fixed getting stuck on level ends and not going into the other level"
+    },
+    {
+      "version": "2.8.0",
+      "updateText": "- Made map variables persistent (Hydra push)\n- Leaderboards now show placeholder names and profile pictures instead of blocking\n- Added options to reset ranks/secrets/challenges/map variables to each level field\n- Fixed no monsters and no monsters/weapons difficulty text not appearing on the final rank screen\n- Scripts are now auto downloaded by default\n- Fixed corrupted catalogs from completely breaking the plugin\n- Fixed filtered online level fields leaving large gaps\n- Fixed challenge completion not appearing on final rank screen\n- Improved data mover to move levels faster"
     }
   ]
 }
