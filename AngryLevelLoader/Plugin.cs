@@ -407,7 +407,7 @@ namespace AngryLevelLoader
 		// Defaults to violent
         public static int selectedDifficulty = 3;
 		public static DifficultyField difficultyField;
-		internal static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT" };
+		internal static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT", "BRUTAL" };
 		internal static List<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
 
 		public static bool NoMonsters => difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2;
@@ -480,6 +480,7 @@ namespace AngryLevelLoader
 			Lenient,
 			Standard,
 			Violent,
+			Brutal,
 		}
 		public static EnumField<DefaultLeaderboardDifficulty> defaultLeaderboardDifficulty;
 		public enum DefaultLeaderboardFilter
@@ -613,6 +614,7 @@ namespace AngryLevelLoader
 						case 1:
 						case 2:
 						case 3:
+						case 4:
 							logger.LogInfo($"Angry setting difficulty to {difficultyList[difficulty]}");
 							difficultyField.difficultyListValueIndex = difficulty;
 							break;
@@ -840,9 +842,9 @@ namespace AngryLevelLoader
 				else
 				{
 					if (difficultyName == "ULTRAPAIN")
-						selectedDifficulty = 4;
+						selectedDifficulty = 100;
 					else if (difficultyName == "HEAVEN OR HELL")
-						selectedDifficulty = 5;
+						selectedDifficulty = 101;
 				}
 
 				if (difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2)

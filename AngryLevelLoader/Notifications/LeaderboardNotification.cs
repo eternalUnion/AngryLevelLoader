@@ -223,6 +223,7 @@ namespace AngryLevelLoader.Notifications
 			AngryLeaderboards.RecordDifficulty.LENIENT,
 			AngryLeaderboards.RecordDifficulty.STANDARD,
 			AngryLeaderboards.RecordDifficulty.VIOLENT,
+			AngryLeaderboards.RecordDifficulty.BRUTAL,
 		};
 
 		private static string MillisecondsToString(int milliseconds)

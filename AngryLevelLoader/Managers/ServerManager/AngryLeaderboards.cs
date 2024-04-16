@@ -45,13 +45,15 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public const string RECORD_DIFFICULTY_LENIENT = "lenient";
 		public const string RECORD_DIFFICULTY_STANDARD = "standard";
 		public const string RECORD_DIFFICULTY_VIOLENT = "violent";
+		public const string RECORD_DIFFICULTY_BRUTAL = "brutal";
 		public enum RecordDifficulty
 		{
 			ANY,
 			HARMLESS,
 			LENIENT,
 			STANDARD,
-			VIOLENT
+			VIOLENT,
+			BRUTAL,
 		}
 		public static readonly Dictionary<RecordDifficulty, string> RECORD_DIFFICULTY_DICT = new Dictionary<RecordDifficulty, string>()
 		{
@@ -60,6 +62,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			{ RecordDifficulty.LENIENT, RECORD_DIFFICULTY_LENIENT },
 			{ RecordDifficulty.STANDARD, RECORD_DIFFICULTY_STANDARD },
 			{ RecordDifficulty.VIOLENT, RECORD_DIFFICULTY_VIOLENT },
+			{ RecordDifficulty.BRUTAL, RECORD_DIFFICULTY_BRUTAL },
 		};
 		public static RecordDifficulty DifficultyFromInteger(int difficulty)
 		{
@@ -74,6 +77,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 				default:
 				case 3:
 					return RecordDifficulty.VIOLENT;
+				case 4:
+					return RecordDifficulty.BRUTAL;
 			}
 		}
 
@@ -136,7 +141,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			// Difficulty range
 			int difficulty = PrefsManager.Instance.GetInt("difficulty", -1);
-			if (difficulty < 0 || difficulty > 3)
+			if (difficulty < 0 || difficulty > 4)
 			{
 				Plugin.logger.LogWarning("Angry did not post the record because current difficulty is not valid");
 				return "<color=red>Failed to post record:\nInvalid difficulty</color>";

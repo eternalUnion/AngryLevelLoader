@@ -287,11 +287,11 @@ namespace AngryLevelLoader.Managers
 
             if (Plugin.difficultyField.gamemodeListValueIndex == 0)
             {
-                if (Plugin.selectedDifficulty == 4)
+                if (Plugin.selectedDifficulty == 100)
                 {
                     SetToUltrapainDifficulty();
                 }
-                else if (Plugin.selectedDifficulty == 5)
+                else if (Plugin.selectedDifficulty == 101)
                 {
                     SetToHeavenOrHellDifficulty();
                 }
