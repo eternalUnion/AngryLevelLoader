@@ -576,14 +576,24 @@ namespace AngryLevelLoader
 					optionsMenu.gameObject.SetActive(true);
 
 					// Open plugin config panel
-					Transform pluginConfigButton = optionsMenu.transform.Find("PluginConfiguratorButton(Clone)");
+					Transform pluginConfigButton = optionsMenu.transform.Find("Panel/PluginConfiguratorButton(Clone)");
 					if (pluginConfigButton == null)
-						pluginConfigButton = optionsMenu.transform.Find("PluginConfiguratorButton");
+						pluginConfigButton = optionsMenu.transform.Find("Panel/PluginConfiguratorButton");
 
 					if (pluginConfigButton == null)
 					{
 						logger.LogError("Angry tried to find the plugin configurator button but failed!");
 						return;
+					}
+
+					// Two buttons may be highlighted at the same time if the menu is not opened before
+					Transform panel = optionsMenu.Find("Panel");
+					if (panel != null && panel.gameObject.TryGetComponent(out ButtonHighlightParent highlightManager))
+					{
+						if (highlightManager.buttons == null || highlightManager.buttons.Length == 0)
+						{
+							highlightManager.Start();
+						}
 					}
 
 					// Click the plugin config button and open the main panel of angry
