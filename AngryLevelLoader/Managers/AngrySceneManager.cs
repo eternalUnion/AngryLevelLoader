@@ -309,6 +309,8 @@ namespace AngryLevelLoader.Managers
 			int levelVersion = bundleContainer.bundleData.bundleVersion;
 			if (levelVersion == 2)
 				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver2);
+            else if (levelVersion == 3)
+				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver3);
 			else
 				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
 
@@ -338,7 +340,7 @@ namespace AngryLevelLoader.Managers
                 }
             }
 
-            if (currentBundleContainer.bundleData.bundleVersion != 3)
+            if (currentBundleContainer.bundleData.bundleVersion == 2)
             {
                 HudMessageReceiver hudMsg = HudMessageReceiver.Instance;
                 if (hudMsg != null)

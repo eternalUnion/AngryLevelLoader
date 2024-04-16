@@ -10,7 +10,8 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 	public enum LegacyPatchState
 	{
 		None,
-		Ver2
+		Ver2,
+		Ver3,
 	}
 
 	public class LegacyPatchManager
@@ -25,6 +26,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		{
 			V2LegacyAudioPatches.Init();
 			V2LegacyEnemyPatches.Init();
+			V3LegacyEnemyPatches.Init();
 		}
 
 		public static void SetLegacyPatchState(LegacyPatchState state)
@@ -62,10 +64,27 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 					prefix: new HarmonyMethod(typeof(V2LegacyHookPointPatches).GetMethod(nameof(V2LegacyHookPointPatches.FixSlingshots), STATIC)));
 
 				legacyHarmony.Patch(typeof(CheckPoint).GetMethod(nameof(CheckPoint.Start), INSTANCE),
-						prefix: new HarmonyMethod(typeof(V2LegacyCheckpointPatches).GetMethod(nameof(V2LegacyCheckpointPatches.FixCheckpoint), STATIC)));
+					prefix: new HarmonyMethod(typeof(V2LegacyCheckpointPatches).GetMethod(nameof(V2LegacyCheckpointPatches.FixCheckpoint), STATIC)));
+
+				legacyHarmony.Patch(typeof(ZombieMelee).GetMethod(nameof(ZombieMelee.OnEnable), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyEnemyPatches).GetMethod(nameof(V3LegacyEnemyPatches.FixFilth), STATIC)));
+			}
+			if (state == LegacyPatchState.Ver2 || state == LegacyPatchState.Ver3)
+			{
+				legacyHarmony.Patch(typeof(SpiderBody).GetMethod(nameof(SpiderBody.Start), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyEnemyPatches).GetMethod(nameof(V3LegacyEnemyPatches.FixSpider), STATIC)));
+
+				legacyHarmony.Patch(typeof(Streetcleaner).GetMethod(nameof(Streetcleaner.Start), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyEnemyPatches).GetMethod(nameof(V3LegacyEnemyPatches.FixStreetCleaner), STATIC)));
+
+				legacyHarmony.Patch(typeof(ZombieMelee).GetMethod(nameof(ZombieMelee.OnEnable), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyEnemyPatches).GetMethod(nameof(V3LegacyEnemyPatches.FixFilth), STATIC)));
+
+				legacyHarmony.Patch(typeof(SwordsMachine).GetMethod(nameof(SwordsMachine.OnEnable), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyEnemyPatches).GetMethod(nameof(V3LegacyEnemyPatches.FixSwordsmachine), STATIC)));
 
 				legacyHarmony.Patch(typeof(RevolverBeam).GetMethod(nameof(RevolverBeam.Start), INSTANCE),
-						prefix: new HarmonyMethod(typeof(V2LegacyRevolverBeamPatches).GetMethod(nameof(V2LegacyRevolverBeamPatches.FixBeam), STATIC)));
+					prefix: new HarmonyMethod(typeof(V3LegacyRevolverBeamPatches).GetMethod(nameof(V3LegacyRevolverBeamPatches.FixBeam), STATIC)));
 			}
 		}
 	}

@@ -1657,6 +1657,8 @@ namespace AngryLevelLoader
 
 					if (levelVersion == 2)
 						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver2);
+					else if (levelVersion == 3)
+						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver3);
 					else
 						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
 				}

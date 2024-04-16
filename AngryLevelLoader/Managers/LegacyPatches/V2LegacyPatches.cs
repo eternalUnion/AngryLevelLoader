@@ -192,7 +192,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		{
 			if (__instance.spiderBeam != null && __instance.spiderBeam.TryGetComponent(out RevolverBeam beam))
 			{
-				if (beam.hitParticle == null || string.IsNullOrEmpty(beam.hitParticle.AssetGUID))
+				if (beam.hitParticle == null)
 					__instance.spiderBeam = spiderBody.spiderBeam;
 			}
 
@@ -256,24 +256,6 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 			if (__instance.activateEffect == null || string.IsNullOrEmpty(__instance.activateEffect.AssetGUID))
 				__instance.activateEffect = checkpoint.activateEffect;
-
-			return true;
-		}
-	}
-
-	public static class V2LegacyRevolverBeamPatches
-	{
-		private static AssetReference hitParticle = null;
-
-		public static bool FixBeam(RevolverBeam __instance)
-		{
-			if (__instance.hitParticle == null || string.IsNullOrEmpty(__instance.hitParticle.AssetGUID))
-			{
-				if (hitParticle == null)
-					hitParticle = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Revolver Beam.prefab").WaitForCompletion().GetComponent<RevolverBeam>().hitParticle;
-
-				__instance.hitParticle = hitParticle;
-			}
 
 			return true;
 		}
