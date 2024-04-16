@@ -25,8 +25,6 @@ namespace AngryLevelLoader.Patches.NoMo
 			if (text == null)
 				return;
 
-			if (__instance.txt != null)
-				__instance.txt.text = text;
 			if (__instance.txt2 != null)
 				__instance.txt2.text = text;
 		}
