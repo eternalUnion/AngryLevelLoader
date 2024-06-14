@@ -26,6 +26,7 @@ using PluginConfig;
 using AngryLevelLoader.Notifications;
 using System.Threading.Tasks;
 using UnityEngine.UI;
+using System.Text.RegularExpressions;
 
 namespace AngryLevelLoader.Containers
 {
@@ -45,6 +46,81 @@ namespace AngryLevelLoader.Containers
         public ConfigDivision sceneDiv;
         public IntField finalRankScore;
         public Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
+
+        internal void ResetSearch()
+        {
+            if (bundleData == null)
+            {
+				rootPanel.hidden = true;
+				return;
+			}
+
+            string bundleName = bundleData.bundleName;
+            if (string.IsNullOrEmpty(bundleName))
+            {
+                if (File.Exists(pathToAngryBundle))
+                    bundleName = Path.GetFileNameWithoutExtension(bundleName);
+                else
+                    bundleName = "<Unknown Bundle>";
+            }
+
+            rootPanel.displayName = bundleName;
+			if (!string.IsNullOrEmpty(bundleData.bundleAuthor))
+			{
+				rootPanel.displayName += $"\n<color=#909090>by {bundleData.bundleAuthor}</color>";
+			}
+		}
+
+        internal bool ApplySearch(string[] keywords)
+        {
+            if (bundleData == null)
+            {
+                rootPanel.hidden = true;
+                return false;
+            }
+
+			Regex richText = new Regex(@"<[^>]*>");
+            string bundleName = richText.Replace(bundleData.bundleName == null ? "" : bundleData.bundleName, string.Empty);
+            string authorName = richText.Replace(bundleData.bundleAuthor == null ? "" : bundleData.bundleAuthor, string.Empty);
+
+            WordHighlighter formattedName = new WordHighlighter(bundleName);
+            WordHighlighter formattedAuthor = new WordHighlighter(authorName);
+
+            bundleName = bundleName.ToLower();
+            authorName = authorName.ToLower();
+
+            foreach (string keyword in keywords)
+            {
+                bool matches = false;
+                
+                int currentIndex = bundleName.IndexOf(keyword);
+                while (currentIndex != -1)
+                {
+                    matches = true;
+
+                    formattedName.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+                    currentIndex = bundleName.IndexOf(keyword, currentIndex + keyword.Length);
+                }
+
+				currentIndex = authorName.IndexOf(keyword);
+				while (currentIndex != -1)
+				{
+					matches = true;
+
+					formattedAuthor.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+					currentIndex = authorName.IndexOf(keyword, currentIndex + keyword.Length);
+				}
+
+                if (!matches)
+                    return false;
+			}
+
+            rootPanel.displayName = formattedName.GenerateFormattedText("<color=yellow><b>", "</b></color>");
+            if (!string.IsNullOrEmpty(authorName))
+				rootPanel.displayName += "\n<color=#909090>by " + formattedAuthor.GenerateFormattedText("<color=yellow><b>", "</b></color>") + "</color>";
+
+            return true;
+		}
 
         private async Task Unload()
         {
@@ -536,6 +612,7 @@ namespace AngryLevelLoader.Containers
 
             pathToAngryBundle = "";
             pathToTempFolder = "";
+            bundleData = null;
             rootPanel.hidden = true;
 
             await Unload();

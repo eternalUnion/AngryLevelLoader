@@ -16,7 +16,7 @@ namespace AngryLevelLoader.Notifications
         private const string ASSET_PATH = "AngryLevelLoader/Notifications/LevelUpdateNotification.prefab";
 
         public string currentHash;
-        public LevelInfo onlineInfo;
+        public BundleInfo onlineInfo;
         public OnlineLevelField callback;
 
         public override void OnUI(RectTransform panel)

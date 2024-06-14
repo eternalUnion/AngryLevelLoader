@@ -37,6 +37,7 @@ using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Managers.LegacyPatches;
 using Logic;
+using System.ComponentModel;
 
 namespace AngryLevelLoader
 {
@@ -105,6 +106,112 @@ namespace AngryLevelLoader
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
 
+		public static Dictionary<string, FolderButtonField> pathToFolderMap = new Dictionary<string, FolderButtonField>();
+		public static Dictionary<FolderButtonField, List<AngryBundleContainer>> folderToBundleMap = new Dictionary<FolderButtonField, List<AngryBundleContainer>>();
+		public static Dictionary<FolderButtonField, List<FolderButtonField>> folderToFolderMap = new Dictionary<FolderButtonField, List<FolderButtonField>>();
+		public static Stack<FolderButtonField> folderStack = new Stack<FolderButtonField>();
+
+		public class FolderEnumerator : IEnumerator<AngryBundleContainer>, IEnumerable<AngryBundleContainer>
+		{
+			private static AngryBundleContainer[] Test()
+			{
+				return new FolderEnumerator(pathToFolderMap["/"]).ToArray();
+			}
+
+			public readonly FolderButtonField sourceFolder;
+
+			private int currentBundleIndex = -1;
+			private Stack<FolderButtonField> currentFolderStack = new Stack<FolderButtonField>();
+			private List<AngryBundleContainer> currentBundles;
+
+			//private List<List<AngryBundleContainer>> folderIterator = new List<List<AngryBundleContainer>>();
+
+			public FolderEnumerator(FolderButtonField folder)
+			{
+				sourceFolder = folder;
+				currentFolderStack.Push(folder);
+
+				currentBundles = folderToBundleMap[folder];
+			}
+
+			public AngryBundleContainer Current => currentBundles[currentBundleIndex];
+
+			object IEnumerator.Current => Current;
+
+			public void Dispose()
+			{
+			}
+
+			public bool MoveNext()
+			{
+				currentBundleIndex += 1;
+				if (currentBundleIndex < currentBundles.Count)
+					return true;
+
+				currentBundleIndex = 0;
+				while (currentFolderStack.Count != 0)
+				{
+					FolderButtonField currentFolder = currentFolderStack.Peek();
+					if (folderToFolderMap.TryGetValue(currentFolder, out var subFolders) && subFolders.Count != 0)
+					{
+						currentFolder = subFolders[0];
+						currentBundles = folderToBundleMap[currentFolder];
+						currentFolderStack.Push(currentFolder);
+
+						if (currentBundles.Count == 0)
+							continue;
+						return true;
+					}
+
+					while (currentFolderStack.Count > 1)
+					{
+						currentFolder = currentFolderStack.Pop();
+						FolderButtonField parentFolder = currentFolderStack.Peek();
+						var parentSubFolders = folderToFolderMap[parentFolder];
+						int nextFolderIndex = parentSubFolders.IndexOf(currentFolder) + 1;
+
+						if (nextFolderIndex >= parentSubFolders.Count)
+							continue;
+
+						currentFolder = parentSubFolders[nextFolderIndex];
+						currentFolderStack.Push(currentFolder);
+						currentBundles = folderToBundleMap[currentFolder];
+
+						if (currentBundles.Count != 0)
+							return true;
+						break;
+					}
+
+					if (currentFolderStack.Count <= 1)
+						return false;
+				}
+
+				return false;
+			}
+
+			public void Reset()
+			{
+				currentFolderStack.Clear();
+				currentFolderStack.Push(sourceFolder);
+
+				currentBundles = folderToBundleMap[sourceFolder];
+				currentBundleIndex = -1;
+			}
+
+			public IEnumerator<AngryBundleContainer> GetEnumerator()
+			{
+				return this;
+			}
+
+			IEnumerator IEnumerable.GetEnumerator()
+			{
+				return this;
+			}
+		}
+
+		internal static string[] currentSearchKeywords = new string[0];
+
+		#region Last played and update tracker
 		// System which tracks when a bundle was played last in unix time
 		public static Dictionary<string, long> lastPlayed = new Dictionary<string, long>();
 		public static void LoadLastPlayedMap()
@@ -221,15 +328,130 @@ namespace AngryLevelLoader
 				}
 			}
 		}
+		#endregion
 
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
 			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
 		}
 
-		public static void ProcessPath(string path)
+		internal static void OpenFolder(FolderButtonField folderField)
 		{
-            if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
+			if (folderField == null)
+				folderField = pathToFolderMap["/"];
+
+			List<AngryBundleContainer> bundlesToEnable = folderToBundleMap[folderField];
+			List<FolderButtonField> foldersToEnable = folderToFolderMap[folderField];
+
+			foreach (var bundle in angryBundles.Values)
+				bundle.rootPanel.hidden = true;
+			foreach (var folder in pathToFolderMap.Values)
+				folder.hidden = true;
+
+			foreach (var bundle in bundlesToEnable)
+				if (bundle.bundleData != null)
+					bundle.rootPanel.hidden = false;
+			foreach (var folder in foldersToEnable)
+			{
+				bool hasBundles = folderToBundleMap.TryGetValue(folder, out var subBundles) && subBundles.Count != 0;
+				bool hasFolders = folderToFolderMap.TryGetValue(folder, out var subFolders) && subFolders.Count != 0;
+
+				folder.hidden = !hasBundles && !hasFolders;
+			}
+		}
+
+		private static char[] whitespaceSeparator = new char[] { ' ' };
+		private static void UpdateBundleSearch(string newVal)
+		{
+			string[] newKeywords = newVal.Split(whitespaceSeparator, StringSplitOptions.RemoveEmptyEntries).Select(keyword => keyword.ToLower()).ToArray();
+			if (newKeywords.Length == currentSearchKeywords.Length && newKeywords.SequenceEqual(currentSearchKeywords))
+				return;
+
+			currentSearchKeywords = newKeywords;
+
+			// If not searching anything, open the current folder
+			if (currentSearchKeywords.Length == 0)
+			{
+				folderDivision.hidden = false;
+				searchInfo.hidden = true;
+
+				foreach (AngryBundleContainer bundle in angryBundles.Values)
+					bundle.ResetSearch();
+
+				OpenFolder(folderStack.Peek());
+				return;
+			}
+
+			folderDivision.hidden = true;
+			searchInfo.hidden = false;
+			int filterCount = 0, totalCount = 0;
+			foreach (AngryBundleContainer bundle in angryBundles.Values)
+			{
+				if (bundle.bundleData == null)
+				{
+					bundle.rootPanel.hidden = true;
+					continue;
+				}
+
+				bool matches = bundle.ApplySearch(currentSearchKeywords);
+				bundle.rootPanel.hidden = !matches;
+
+				totalCount += 1;
+				if (matches)
+					filterCount += 1;
+			}
+
+			searchInfo.text = $"Showing {filterCount} of {totalCount} bundles";
+		}
+
+		public static void ProcessPath(string path, string folder)
+		{
+			if (!pathToFolderMap.TryGetValue(folder, out FolderButtonField folderField))
+			{
+				folderField = new FolderButtonField(folderDivision);
+				folderField.folderName = Path.GetFileName(folder);
+				folderField.onPressed.AddListener(() =>
+				{
+					OpenFolder(folderField);
+					folderStack.Push(folderField);
+				});
+
+				pathToFolderMap[folder] = folderField;
+				folderToBundleMap[folderField] = new List<AngryBundleContainer>();
+				folderToFolderMap[folderField] = new List<FolderButtonField>();
+
+				string parentPath = Path.GetDirectoryName(folder).Replace('\\', '/');
+				if (!pathToFolderMap.TryGetValue(parentPath, out FolderButtonField parentFolder))
+				{
+					parentFolder = new FolderButtonField(folderDivision);
+					parentFolder.folderName = Path.GetFileName(parentPath);
+					parentFolder.onPressed.AddListener(() =>
+					{
+						OpenFolder(parentFolder);
+						folderStack.Push(parentFolder);
+					});
+
+					pathToFolderMap[parentPath] = parentFolder;
+					folderToBundleMap[parentFolder] = new List<AngryBundleContainer>();
+					folderToFolderMap[parentFolder] = new List<FolderButtonField>();
+				}
+
+				if (!folderToFolderMap.TryGetValue(parentFolder, out List<FolderButtonField> parentFolderList))
+				{
+					parentFolderList = new List<FolderButtonField>();
+					folderToFolderMap[parentFolder] = parentFolderList;
+				}
+
+				parentFolderList.Add(folderField);
+			}
+
+			if (!folderToBundleMap.TryGetValue(folderField, out List<AngryBundleContainer> folderBundleList))
+			{
+				folderBundleList = new List<AngryBundleContainer>();
+				folderToBundleMap[folderField] = folderBundleList;
+			}
+
+			if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
 			{
                 if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
                 {
@@ -253,12 +475,15 @@ namespace AngryLevelLoader
                     if (newFile)
                         bundle.UpdateScenes(false, false);
 
-                    return;
+					folderBundleList.Add(bundle);
+
+					return;
                 }
 
                 AngryBundleContainer newBundle = new AngryBundleContainer(path, data);
-                angryBundles[data.bundleGuid] = newBundle;
-                newBundle.UpdateOrder();
+				angryBundles[data.bundleGuid] = newBundle;
+				folderBundleList.Add(newBundle);
+				newBundle.UpdateOrder();
 
                 try
                 {
@@ -280,7 +505,7 @@ namespace AngryLevelLoader
                         errorText.text += '\n';
                     errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
                 }
-            }
+			}
 			else
 			{
                 if (AngryFileUtils.IsV1LegacyFile(path))
@@ -302,22 +527,72 @@ namespace AngryLevelLoader
             }
         }
 
+		private static string[] validImageExts = new string[]
+		{
+			".jpg", ".jpeg", ".png"
+		};
+
 		// This does NOT reload the files, only
 		// loads newly added angry levels
 		public static void ScanForLevels()
         {
             errorText.text = "";
-            if (!Directory.Exists(levelsPath))
+
+			currentSearchKeywords = new string[0];
+			folderDivision.hidden = false;
+			foreach (var bundle in angryBundles.Values)
+				bundle.ResetSearch();
+			searchBar.SetValueWithoutNotify("");
+
+			if (!Directory.Exists(levelsPath))
             {
 				logger.LogWarning("Could not find the Levels folder at " + levelsPath);
 				errorText.text = "<color=red>Error: </color>Levels folder not found";
 				return;
             }
 
-			foreach (string path in Directory.GetFiles(levelsPath))
+			if (!pathToFolderMap.TryGetValue("/", out FolderButtonField rootFolder))
 			{
-				ProcessPath(path);
+				rootFolder = new FolderButtonField(config.rootPanel);
+				rootFolder.hidden = true;
+				pathToFolderMap["/"] = rootFolder;
+
+				folderToBundleMap[rootFolder] = new List<AngryBundleContainer>();
+				folderToFolderMap[rootFolder] = new List<FolderButtonField>();
 			}
+
+			foreach (var bundleList in folderToBundleMap.Values)
+				bundleList.Clear();
+
+			foreach (IOUtils.SubFileInfo file in IOUtils.GetAllFilesRecursive(levelsPath))
+			{
+				if (!file.filePath.EndsWith(".angry"))
+					continue;
+				ProcessPath(file.filePath, file.subFolder);
+			}
+
+			foreach (KeyValuePair<string, FolderButtonField> folder in pathToFolderMap)
+			{
+				if (folder.Value == rootFolder)
+					continue;
+
+				string realPath = Path.Combine(levelsPath, folder.Key.Substring(1));
+				if (Directory.Exists(realPath))
+				{
+					string pathToIcon = Directory.GetFiles(realPath).Where(path => validImageExts.Contains(Path.GetExtension(path))).FirstOrDefault();
+					if (!string.IsNullOrEmpty(pathToIcon))
+					{
+						folder.Value.CreateIcon(pathToIcon);
+						continue;
+					}
+				}
+
+				folder.Value.CreateIcon(new FolderEnumerator(folder.Value));
+			}
+
+			OpenFolder(rootFolder);
+			folderStack.Clear();
+			folderStack.Push(rootFolder);
 
 			OnlineLevelsManager.UpdateUI();
 		}
@@ -423,7 +698,10 @@ namespace AngryLevelLoader
 		public static StringField newLevelNotifierLevels;
 		public static BoolField newLevelToggle;
         public static ConfigHeader errorText;
+		public static SearchBarField searchBar;
+		public static ConfigDivision folderDivision;
 		public static ConfigDivision bundleDivision;
+		public static ConfigHeader searchInfo;
 		public static ConfigDivision leaderboardsDivision;
 		public static ConfigPanel bannedModsPanel;
 		public static ConfigHeader bannedModsText;
@@ -1113,11 +1391,15 @@ namespace AngryLevelLoader
 
 			new ConfigHeader(devPanel, "Angry Server Interface");
 			ConfigDivision devDiv = new ConfigDivision(devPanel, "devDiv");
-			ButtonField addAllBundles = new ButtonField(devDiv, "Update All Bundles", "updateAllBundles");
 			
+			ButtonField addAllBundles = new ButtonField(devDiv, "Update All Bundles", "updateAllBundles");
+			StringField angryLevelsPath = new StringField(devDiv, "Path to AngryLevels", "dev_pathToAngryLevels", "/", false);
+			ButtonField updateAngryLevelsCatalog = new ButtonField(devDiv, "Update Angry Levels Catalog", "updateAngryLevelsCatalog");
+
 			new ConfigHeader(devPanel, "Output", 18, TextAnchor.MiddleLeft);
 			ConfigHeader processInfo = new ConfigHeader(devPanel, "", 18, TextAnchor.MiddleLeft);
 			ConfigHeader debugInfo = new ConfigHeader(devPanel, "", 18, TextAnchor.MiddleLeft);
+			
 			addAllBundles.onClick += async () =>
 			{
 				devDiv.interactable = false;
@@ -1213,11 +1495,11 @@ namespace AngryLevelLoader
 						AngryBundleContainer container = GetAngryBundleByGuid(bundle.Guid);
 						if (container == null)
 						{
-							debugInfo.text += $"\n<color=red>Bundle not installed locally to check levels</color>";
+							debugInfo.text += $"\n<color=red>Bundle {bundle.Name} is not installed locally to check levels</color>";
 						}
 						else if (container.bundleData.buildHash != bundle.Hash)
 						{
-							debugInfo.text += $"\n<color=red>Local level out of date</color>";
+							debugInfo.text += $"\n<color=red>Local bundle {bundle.Name} is out of date</color>";
 						}
 						else
 						{
@@ -1269,7 +1551,104 @@ namespace AngryLevelLoader
 						}
 					}
 
-					processInfo.text = $"<color=lime>Done!</color>";
+					processInfo.text = $"<color=#00FF00>Done!</color>";
+				}
+				finally
+				{
+					devDiv.interactable = true;
+				}
+			};
+
+			updateAngryLevelsCatalog.onClick += async () =>
+			{
+				devDiv.interactable = false;
+				processInfo.text = "";
+				debugInfo.text = "";
+
+				try
+				{
+					if (!Directory.Exists(angryLevelsPath.value) || !File.Exists(Path.Combine(angryLevelsPath.value, "LevelCatalog.json")))
+					{
+						processInfo.text = "<color=red>Invalid project path</color>";
+						return;
+					}
+
+					debugInfo.text = "<color=grey>Updating catalog level info</color>";
+
+					LevelCatalog catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(Path.Combine(angryLevelsPath.value, "LevelCatalog.json")));
+
+					foreach (var bundle in catalog.Levels)
+					{
+						string guid = bundle.Guid;
+						if (!angryBundles.TryGetValue(guid, out var localBundle))
+						{
+							debugInfo.text += $"\n<color=red>Bundle {bundle.Name} not installed locally</color>";
+							continue;
+						}
+
+						if (localBundle.bundleData.buildHash != bundle.Hash)
+						{
+							debugInfo.text += $"\n<color=red>Bundle {bundle.Name} not up to date</color>";
+							continue;
+						}
+
+						if (localBundle.locator == null)
+						{
+							if (localBundle.updating)
+								await localBundle.UpdateScenes(false, false);
+							await localBundle.UpdateScenes(false, false);
+						}
+
+						bundle.Levels = new List<BundleInfo.LevelInfo>();
+						
+						string levelThumbnailsPath = Path.Combine(angryLevelsPath.value, "Levels", guid, "LevelThumbnails");
+						if (!Directory.Exists(levelThumbnailsPath))
+							Directory.CreateDirectory(levelThumbnailsPath);
+
+						foreach (var levelData in localBundle.GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+						{
+							bundle.Levels.Add(new BundleInfo.LevelInfo()
+							{
+								LevelName = levelData.levelName,
+								LevelId = levelData.uniqueIdentifier,
+								isSecretLevel = levelData.isSecretLevel,
+								secretCount = levelData.secretCount,
+								levelChallengeEnabled = levelData.levelChallengeEnabled,
+								levelChallengeText = levelData.levelChallengeText,
+								requiredCompletedLevelIdsForUnlock = new List<string>(levelData.requiredCompletedLevelIdsForUnlock ?? new string[0]),
+								requiredDllNames = new List<string>(levelData.requiredDllNames ?? new string[0]),
+							});
+
+							if (levelData.levelPreviewImage != null && levelData.levelPreviewImage.texture != null)
+							{
+								static Texture2D DuplicateTexture(Texture unreadableTexture)
+								{
+									RenderTexture rt = new RenderTexture(unreadableTexture.width, unreadableTexture.height, 24);
+									RenderTexture previous = RenderTexture.active;
+
+									RenderTexture.active = rt;
+									Graphics.Blit(unreadableTexture, rt);
+
+									Texture2D duplicateTexture = new Texture2D(unreadableTexture.width, unreadableTexture.height, TextureFormat.ARGB32, false);
+									duplicateTexture.ReadPixels(new Rect(0, 0, unreadableTexture.width, unreadableTexture.height), 0, 0);
+									duplicateTexture.Apply();
+
+									RenderTexture.active = previous;
+									UnityEngine.Object.Destroy(rt);
+
+									return duplicateTexture;
+								}
+
+								string levelIdHash = CryptographyUtils.GetMD5String(levelData.uniqueIdentifier);
+								Texture2D thumbnail = DuplicateTexture(levelData.levelPreviewImage.texture);
+								File.WriteAllBytes(Path.Combine(levelThumbnailsPath, $"{levelIdHash}.png"), thumbnail.EncodeToPNG());
+								UnityEngine.Object.Destroy(thumbnail);
+							}
+						}
+					}
+
+					File.WriteAllText(Path.Combine(angryLevelsPath.value, "LevelCatalog.json"), JsonConvert.SerializeObject(catalog, Formatting.Indented));
+					processInfo.text = $"<color=#00FF00>Done!</color>";
 				}
 				finally
 				{
@@ -1280,7 +1659,12 @@ namespace AngryLevelLoader
 			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 
 			new ConfigHeader(config.rootPanel, "Level Bundles");
+			searchBar = new SearchBarField(config.rootPanel);
+			folderDivision = new ConfigDivision(config.rootPanel, "div_folders");
 			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
+			searchInfo = new ConfigHeader(config.rootPanel, "", 18);
+			searchInfo.textColor = Color.gray;
+			searchInfo.hidden = true;
 		}
 
 		#region Leaderboards
@@ -1734,6 +2118,32 @@ namespace AngryLevelLoader
 				else
 					AngryLeaderboards.LoadBannedModsList();
 			};
+			config.rootPanel.onPannelOpenEvent += (externally) =>
+			{
+				Button.ButtonClickedEvent backButtonEvent = PluginConfiguratorController.backButton.onClick;
+
+				PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
+				PluginConfiguratorController.backButton.onClick.AddListener(() =>
+				{
+					if (folderStack.Count <= 1 || !string.IsNullOrEmpty(searchBar.value))
+					{
+						backButtonEvent.Invoke();
+					}
+					else
+					{
+						folderStack.Pop();
+
+						if (folderStack.Count != 0)
+							OpenFolder(folderStack.Peek());
+						else
+							OpenFolder(null);
+					}
+				});
+			};
+
+			searchBar.onValueChange += UpdateBundleSearch;
+			searchBar.onReset += () => searchBar.value = "";
+
 			AngryLeaderboards.LoadBannedModsList();
 
 			// TODO: Investigate further on this issue:

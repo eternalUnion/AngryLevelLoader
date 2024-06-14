@@ -23,13 +23,29 @@ namespace AngryLevelLoader.Managers
 {
     #region JSON Object Types
 
-    public class LevelInfo
+    public class BundleInfo
     {
         public class UpdateInfo
         {
             public string Hash { get; set; }
             public string Message { get; set; }
         }
+
+        public class LevelInfo
+        {
+            public string LevelName { get; set; }
+            public string LevelId { get; set; }
+
+            public bool isSecretLevel { get; set; }
+            public List<string> requiredCompletedLevelIdsForUnlock;
+
+            public int secretCount { get; set; }
+
+			public bool levelChallengeEnabled { get; set; }
+			public string levelChallengeText { get; set; }
+
+			public List<string> requiredDllNames;
+		}
 
         public string Name { get; set; }
         public string Author { get; set; }
@@ -42,11 +58,13 @@ namespace AngryLevelLoader.Managers
         public List<string> Parts;
         public long LastUpdate { get; set; }
         public List<UpdateInfo> Updates;
+
+        public List<LevelInfo> Levels;
     }
 
     public class LevelCatalog
     {
-        public List<LevelInfo> Levels;
+        public List<BundleInfo> Levels;
     }
 
     public class ScriptInfo
@@ -225,8 +243,11 @@ namespace AngryLevelLoader.Managers
         public static BoolField showInstalledLevels;
         public static BoolField showUpdateAvailableLevels;
         public static BoolField showNotInstalledLevels;
-        public static StringField authorFilter;
         public static EnumField<SortFilter> sortFilter;
+
+        internal static SearchBarField searchBar;
+        internal static string[] searchKeywords = new string[0];
+        internal static ConfigHeader searchInfo;
 
         public static void Init()
         {
@@ -259,16 +280,39 @@ namespace AngryLevelLoader.Managers
                 sortFilter.value = e.value;
                 SortAll();
             };
-            new ConfigHeader(filterPanel, "Variable Filters");
-            authorFilter = new StringField(filterPanel, "Author", "sf_o_authorFilter", "", true);
-
             var toolbar = new ButtonArrayField(onlineLevelsPanel, "online_toolbar", 2, new float[] { 0.5f, 0.5f }, new string[] { "Refresh", "Filters" });
             toolbar.OnClickEventHandler(0).onClick += RefreshAsync;
             toolbar.OnClickEventHandler(1).onClick += () => filterPanel.OpenPanel();
 
+            searchBar = new SearchBarField(onlineLevelsPanel);
+
             loadingCircle = new LoadingCircleField(onlineLevelsPanel);
             loadingCircle.hidden = true;
             onlineLevelContainer = new ConfigDivision(onlineLevelsPanel, "p_onlineLevelsDiv");
+
+            searchInfo = new ConfigHeader(onlineLevelContainer, "", 18);
+            searchInfo.textColor = Color.gray;
+            searchInfo.hidden = true;
+
+            searchBar.onValueChange = (newVal) =>
+            {
+                string[] newKeywords = newVal.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(e => e.ToLower()).ToArray();
+                if (newKeywords.Length == searchKeywords.Length && newKeywords.SequenceEqual(searchKeywords))
+                    return;
+
+                searchKeywords = newKeywords;
+                UpdateUI();
+
+				if (searchKeywords.Length == 0)
+					searchInfo.hidden = true;
+				else
+				{
+					searchInfo.hidden = false;
+					searchInfo.text = $"Showing {onlineLevels.Values.Where(e => !e.hidden).Count()} of {catalog.Levels.Count} bundles";
+				}
+			};
+
+            searchBar.onReset = () => searchBar.value = "";
 
             LoadThumbnailHashes();
         }
@@ -503,7 +547,7 @@ namespace AngryLevelLoader.Managers
                         newLevels = newLevels.Distinct().ToList();
                         Plugin.newLevelNotifierLevels.value = string.Join("`", newLevels);
 
-                        Plugin.newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
+                        Plugin.newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=#00FF00>New level: {name}</color>"));
                         Plugin.newLevelNotifier.hidden = false;
                         Plugin.newLevelToggle.value = true;
                     }
@@ -571,8 +615,26 @@ namespace AngryLevelLoader.Managers
 
         public static void UpdateUI()
         {
-            foreach (var levelField in onlineLevels.Values)
-                levelField.UpdateUI();
+            foreach (var field in onlineLevels.Values)
+            {
+                field.UpdateUI();
+
+				if (field.status == OnlineLevelField.OnlineLevelStatus.notInstalled)
+				{
+					if (!showNotInstalledLevels.value)
+						field.hidden = true;
+				}
+				else if (field.status == OnlineLevelField.OnlineLevelStatus.installed)
+				{
+					if (!showInstalledLevels.value)
+						field.hidden = true;
+				}
+				else if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
+				{
+					if (!showUpdateAvailableLevels.value)
+						field.hidden = true;
+				}
+			}
 
             // Insertion sort not working properly for now
             SortAll();
@@ -587,7 +649,7 @@ namespace AngryLevelLoader.Managers
 
             bool dirtyThumbnailCacheHashFile = false;
             List<UnityWebRequestAsyncOperation> thumbnailRequests = new List<UnityWebRequestAsyncOperation>();
-            foreach (LevelInfo info in catalog.Levels)
+            foreach (BundleInfo info in catalog.Levels)
             {
                 OnlineLevelField field;
                 bool justCreated = false;
@@ -700,9 +762,8 @@ namespace AngryLevelLoader.Managers
                 if (field.hidden)
                     continue;
 
-                if (!string.IsNullOrEmpty(authorFilter.value) && field.author.ToLower() != authorFilter.value.ToLower())
-                    field.hidden = true;
-            }
+				field.UpdateInfoText();
+			}
 
             if (dirtyThumbnailCacheHashFile)
                 SaveThumbnailHashes();
@@ -710,6 +771,14 @@ namespace AngryLevelLoader.Managers
             CheckLevelUpdateText();
 
             SortAll();
+
+            if (searchKeywords.Length == 0)
+                searchInfo.hidden = true;
+            else
+            {
+                searchInfo.hidden = false;
+                searchInfo.text = $"Showing {onlineLevels.Values.Where(e => !e.hidden).Count()} of {catalog.Levels.Count} bundles";
+            }
         }
 
         public static void CheckLevelUpdateText()
@@ -731,7 +800,7 @@ namespace AngryLevelLoader.Managers
                         AngryBundleContainer container = Plugin.GetAngryBundleByGuid(field.bundleGuid);
                         if (container != null)
                         {
-                            LevelInfo info = catalog.Levels.Where(level => level.Guid == field.bundleGuid).First();
+                            BundleInfo info = catalog.Levels.Where(level => level.Guid == field.bundleGuid).First();
                             if (info.Updates != null && !info.Updates.Select(u => u.Hash).Contains(container.bundleData.buildHash))
                                 continue;
                         }
@@ -739,7 +808,7 @@ namespace AngryLevelLoader.Managers
 
                     if (Plugin.levelUpdateNotifier.text != "")
                         Plugin.levelUpdateNotifier.text += '\n';
-                    Plugin.levelUpdateNotifier.text += $"<color=cyan>Update available for {field.bundleName}</color>";
+                    Plugin.levelUpdateNotifier.text += $"<color=#00FFFF>Update available for {field.bundleName}</color>";
                     Plugin.levelUpdateNotifier.hidden = false;
                 }
             }

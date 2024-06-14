@@ -17,6 +17,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -197,12 +198,70 @@ namespace AngryLevelLoader.Fields
                 return $"<color=lime>Installed</color>";
         }
 
-        public void UpdateInfoText()
+		internal bool ApplySearch(string[] keywords)
+		{
+			Regex richText = new Regex(@"<[^>]*>");
+			string bundleName = richText.Replace(_bundleName, string.Empty);
+			string authorName = richText.Replace(_author, string.Empty);
+
+			WordHighlighter formattedName = new WordHighlighter(bundleName);
+			WordHighlighter formattedAuthor = new WordHighlighter(authorName);
+
+			bundleName = bundleName.ToLower();
+			authorName = authorName.ToLower();
+
+			foreach (string keyword in keywords)
+			{
+				bool matches = false;
+
+				int currentIndex = bundleName.IndexOf(keyword);
+				while (currentIndex != -1)
+				{
+					matches = true;
+
+					formattedName.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+					currentIndex = bundleName.IndexOf(keyword, currentIndex + keyword.Length);
+				}
+
+				currentIndex = authorName.IndexOf(keyword);
+				while (currentIndex != -1)
+				{
+					matches = true;
+
+					formattedAuthor.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+					currentIndex = authorName.IndexOf(keyword, currentIndex + keyword.Length);
+				}
+
+				if (!matches)
+					return false;
+			}
+
+			currentUi.infoText.text = $"{formattedName.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\n<color=#909090>Author: {formattedAuthor.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
+
+			return true;
+		}
+
+		public void UpdateInfoText()
         {
             if (currentUi == null)
                 return;
-            currentUi.infoText.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
-        }
+
+            if (OnlineLevelsManager.searchKeywords.Length == 0)
+            {
+                currentUi.infoText.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
+				hidden = !(OnlineLevelsManager.catalog != null && OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).Any());
+			}
+            else
+            {
+                bool matches = ApplySearch(OnlineLevelsManager.searchKeywords);
+                if (!matches)
+                    hidden = true;
+                else
+                {
+                    hidden = !(OnlineLevelsManager.catalog != null && OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).Any());
+                }
+            }
+		}
 
         public enum VoteStatus
         {
@@ -403,7 +462,7 @@ namespace AngryLevelLoader.Fields
 
 			currentUi.changelog.onClick.AddListener(() =>
             {
-                LevelInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
+                BundleInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
                 LevelUpdateNotification notification = new LevelUpdateNotification();
                 notification.currentHash = (bundle == null || status == OnlineLevelStatus.notInstalled) ? "" : bundle.bundleData.buildHash;
                 notification.onlineInfo = onlineBundle;
@@ -424,7 +483,7 @@ namespace AngryLevelLoader.Fields
 
             currentUi.update.onClick.AddListener(() =>
             {
-                LevelInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
+                BundleInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
 
                 if (onlineBundle.Updates == null)
                 {
@@ -474,6 +533,7 @@ namespace AngryLevelLoader.Fields
         public void UpdateUI(bool calledFromDownloadTask = false)
         {
             UpdateState();
+
             if (currentUi == null)
                 return;
 
@@ -546,7 +606,7 @@ namespace AngryLevelLoader.Fields
                 currentUi.progressBar.localScale = new Vector3(0, 1, 1);
             }
 
-            LevelInfo level = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
+            BundleInfo level = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
 
             List<string> downloadedParts = new List<string>();
             string fileMegabytes = (bundleFileSize / (float)(1024 * 1024)).ToString("0.0");
@@ -679,8 +739,9 @@ namespace AngryLevelLoader.Fields
 
 			if (bundle == null || !IOUtils.PathEquals(bundle.pathToAngryBundle, destinationFile))
             {
-                Plugin.ProcessPath(destinationFile);
-			}
+                // Plugin.ProcessPath(destinationFile);
+                Plugin.ScanForLevels();
+            }
             else
             {
                 Plugin.UpdateLastUpdate(bundle);

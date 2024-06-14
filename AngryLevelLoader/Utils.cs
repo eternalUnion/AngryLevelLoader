@@ -231,6 +231,31 @@ namespace AngryLevelLoader
 
 			return Path.GetFullPath(path1) == Path.GetFullPath(path2);
 		}
+
+		public struct SubFileInfo
+		{
+			public string filePath;
+			public string subFolder;
+
+			public SubFileInfo(string fileName, string subFolder)
+			{
+				this.filePath = fileName;
+				this.subFolder = subFolder;
+			}
+		}
+
+		public static IEnumerable<SubFileInfo> GetAllFilesRecursive(string folderPath, string currentSubFolder = "/")
+		{
+			foreach (string filePath in Directory.GetFiles(folderPath))
+				yield return new SubFileInfo(filePath, currentSubFolder);
+
+			foreach (string subFolderPath in Directory.GetDirectories(folderPath))
+			{
+				string subFolderName = Path.GetFileName(subFolderPath);
+				foreach (SubFileInfo subFile in GetAllFilesRecursive(subFolderPath, currentSubFolder == "/" ? "/" + subFolderName : $"{currentSubFolder}/{subFolderName}"))
+					yield return subFile;
+			}
+		}
 	}
 
 	public static class UIUtils
@@ -431,6 +456,76 @@ namespace AngryLevelLoader
 			Plugin.logger.LogInfo("Second await start");
 			await handle;
 			Plugin.logger.LogInfo("Second await end");
+		}
+	}
+
+	public class WordHighlighter
+	{
+		public string rawText { get; private set; }
+
+		public WordHighlighter(string text)
+		{
+			rawText = text;
+		}
+
+		public List<(int, int)> highlights = new List<(int, int)>();
+
+		public void Highlight(int index, int endIndex)
+		{
+			int insertionIndex = 0;
+			while (insertionIndex < highlights.Count && index > highlights[insertionIndex].Item1)
+				insertionIndex += 1;
+
+			bool removeLeft = false;
+			if (insertionIndex > 0 && highlights[insertionIndex - 1].Item2 >= index - 1)
+			{
+				// Characters already highlighted
+				if (highlights[insertionIndex - 1].Item2 >= endIndex)
+					return;
+
+				index = highlights[insertionIndex - 1].Item1;
+				removeLeft = true;
+			}
+
+			bool removeRight = false;
+			if (insertionIndex < highlights.Count && endIndex >= highlights[insertionIndex].Item1 - 1)
+			{
+				removeRight = true;
+				endIndex = Mathf.Max(endIndex, highlights[insertionIndex].Item2);
+			}
+
+			highlights.Insert(insertionIndex, (index, endIndex));
+			if (removeRight)
+				highlights.RemoveAt(insertionIndex + 1);
+			if (removeLeft)
+				highlights.RemoveAt(insertionIndex - 1);
+		}
+
+		public string GenerateFormattedText(string prefix, string postfix)
+		{
+			if (rawText.Length == 0)
+				return string.Empty;
+
+			StringBuilder sb = new StringBuilder();
+			string text = rawText;
+
+			int currentIndex = 0;
+			foreach ((int index, int endIndex) in highlights)
+			{
+				if (currentIndex < index)
+					sb.Append(text.Substring(currentIndex, index - currentIndex));
+
+				sb.Append(prefix);
+				sb.Append(text.Substring(index, endIndex - index + 1));
+				sb.Append(postfix);
+
+				currentIndex = endIndex + 1;
+			}
+
+			if (currentIndex < text.Length)
+				sb.Append(text.Substring(currentIndex));
+
+			return sb.ToString();
 		}
 	}
 }

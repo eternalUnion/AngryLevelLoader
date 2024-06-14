@@ -82,6 +82,9 @@
     <Reference Include="Unity.Addressables">
       <HintPath>libs\Unity.Addressables.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>libs\Unity.InputSystem.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.ResourceManager">
       <HintPath>libs\Unity.ResourceManager.dll</HintPath>
     </Reference>
