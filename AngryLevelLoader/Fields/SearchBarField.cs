@@ -12,6 +12,32 @@ namespace AngryLevelLoader.Fields
 {
 	public class SearchBarField : CustomConfigField
 	{
+		private class SelectOnEnabled : MonoBehaviour
+		{
+			public bool selectOnEnable = false;
+
+			private Selectable _selectable;
+
+			private void Awake()
+			{
+				_selectable = GetComponent<Selectable>();
+				if (_selectable == null)
+				{
+					Debug.LogError($"Object {gameObject.name} has SelectOnEnabled but is not a Selectable!");
+					enabled = false;
+					return;
+				}
+
+				_selectable.Select();
+			}
+
+			private void OnEnable()
+			{
+				if (selectOnEnable && _selectable != null)
+					_selectable.Select();
+			}
+		}
+
 		private const string ASSET_PATH = "AngryLevelLoader/Fields/SearchBar.prefab";
 
 		private string _value;
@@ -29,10 +55,22 @@ namespace AngryLevelLoader.Fields
 
 		private RectTransform fieldContainer;
 		private TMP_InputField currentInput;
+		private SelectOnEnabled currentSelector;
 		private Button resetButton;
 
 		public Action<string> onValueChange;
 		public Action onReset;
+
+		private bool _selectOnEnable = true;
+		public bool selectOnEnable
+		{
+			get => _selectOnEnable;
+			set {
+				_selectOnEnable = value;
+				if (currentSelector != null)
+					currentSelector.selectOnEnable = value;
+			}
+		}
 
 		private bool _inited = false;
 		public SearchBarField(ConfigPanel rootPanel) : base(rootPanel)
@@ -62,6 +100,11 @@ namespace AngryLevelLoader.Fields
 				if (onValueChange != null)
 					onValueChange.Invoke(newVal);
 			});
+
+			currentSelector = currentInput.gameObject.AddComponent<SelectOnEnabled>();
+			currentSelector.selectOnEnable = _selectOnEnable;
+			if (_selectOnEnable)
+				currentInput.Select();
 
 			resetButton = uiObject.GetComponentInChildren<Button>();
 			resetButton.onClick = new Button.ButtonClickedEvent();
@@ -99,6 +142,17 @@ namespace AngryLevelLoader.Fields
 
 			if (currentInput != null)
 				currentInput.SetTextWithoutNotify(newVal);
+		}
+
+		public bool FocusOnField()
+		{
+			if (currentInput != null && currentInput.gameObject.activeInHierarchy)
+			{
+				currentInput.Select();
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

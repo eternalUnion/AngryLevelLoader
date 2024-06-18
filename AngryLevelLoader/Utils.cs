@@ -487,15 +487,21 @@ namespace AngryLevelLoader
 				removeLeft = true;
 			}
 
-			bool removeRight = false;
-			if (insertionIndex < highlights.Count && endIndex >= highlights[insertionIndex].Item1 - 1)
+			int removeRightCnt = 0;
+			while (true)
 			{
-				removeRight = true;
-				endIndex = Mathf.Max(endIndex, highlights[insertionIndex].Item2);
+				if (insertionIndex < (highlights.Count - removeRightCnt) && endIndex >= highlights[insertionIndex + removeRightCnt].Item1 - 1)
+				{
+					endIndex = Mathf.Max(endIndex, highlights[insertionIndex + removeRightCnt].Item2);
+					removeRightCnt += 1;
+					continue;
+				}
+
+				break;
 			}
 
 			highlights.Insert(insertionIndex, (index, endIndex));
-			if (removeRight)
+			for (int i = 0; i < removeRightCnt; i++)
 				highlights.RemoveAt(insertionIndex + 1);
 			if (removeLeft)
 				highlights.RemoveAt(insertionIndex - 1);
