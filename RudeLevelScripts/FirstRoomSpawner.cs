@@ -436,30 +436,29 @@ namespace RudeLevelScript
 					hellmap.pivot = new Vector2(0.5f, 0.5f);
 					hellmap.sizeDelta = new Vector2(250, 650);
 					hellmap.anchoredPosition = Vector2.zero;
-					hellmap.localScale = Vector3.one;
+					hellmap.localScale = Vector3.one * 0.82244f;
 					hellmap.SetAsFirstSibling();
 					RectTransform hellmapContainer = MakeRect(hellmap.transform);
 					hellmapContainer.name = "Hellmap Container";
-					hellmapContainer.anchorMin = hellmapContainer.anchorMax = new Vector2(0.5f, 0.5f);
+					hellmapContainer.anchorMin = Vector2.zero;
+					hellmapContainer.anchorMax = Vector2.one;
 					hellmapContainer.pivot = new Vector2(0.5f, 0.5f);
-					hellmapContainer.sizeDelta = new Vector2(Screen.width, 650);
+					hellmapContainer.sizeDelta = Vector2.zero;
 					hellmapContainer.anchoredPosition = Vector2.zero;
 					hellmapContainer.localScale = Vector3.one;
-					VerticalLayoutGroup vLayout = hellmapContainer.gameObject.AddComponent<VerticalLayoutGroup>();
-					vLayout.childAlignment = TextAnchor.UpperCenter;
-					vLayout.spacing = 5;
-					vLayout.childForceExpandHeight = false;
-					vLayout.childControlHeight = false;
-					vLayout.childControlWidth = false;
+
+					float currentY = 0;
 
 					foreach (LayerInfo layer in layersAndLevels)
 					{
 						// Add the layer text
 						RectTransform headerContainer = MakeRect(hellmapContainer);
 						headerContainer.anchorMin = headerContainer.anchorMax = new Vector2(0, 1);
-						headerContainer.sizeDelta = new Vector2(Screen.width, 50);
+						headerContainer.sizeDelta = new Vector2(250, 50);
 						headerContainer.pivot = new Vector2(0, 1);
 						headerContainer.localScale = Vector3.one;
+						headerContainer.anchoredPosition = new Vector2(0, currentY == 0 ? -3.051758e-05f : currentY);
+						currentY -= 50;
 
 						Text header = MakeText(headerContainer);
 						header.text = layer.layerName;
@@ -468,25 +467,29 @@ namespace RudeLevelScript
 						header.alignment = TextAnchor.MiddleLeft;
 						header.color = Color.white;
 						RectTransform textRect = header.GetComponent<RectTransform>();
-						textRect.anchorMin = textRect.anchorMax = new Vector2(0.5f, 0.5f);
-						textRect.sizeDelta = new Vector2(Screen.width / 2 + 125, 100);
-						textRect.pivot = new Vector2(0, 0.5f);
+						textRect.anchorMin = Vector2.zero;
+						textRect.anchorMax = Vector2.one;
+						textRect.sizeDelta = Vector2.zero;
+						textRect.pivot = new Vector2(0.5f, 0.5f);
 						textRect.localScale = Vector3.one;
-						textRect.anchoredPosition = new Vector2(-125, 0);
+						textRect.anchoredPosition = Vector2.zero;
 
 						// Add all levels
 						foreach (string level in layer.layerLevels)
 						{
 							RectTransform levelContainer = MakeRect(hellmapContainer);
 							levelContainer.anchorMin = levelContainer.anchorMax = new Vector2(0, 1);
-							levelContainer.pivot = new Vector2(0.5f, 1);
+							levelContainer.pivot = new Vector2(0, 1);
 							levelContainer.localScale = Vector3.one;
+							levelContainer.anchoredPosition = new Vector2(60, currentY);
+							levelContainer.sizeDelta = new Vector2(125, 45);
+							currentY -= 50;
 
 							RectTransform levelPanel = MakeRect(levelContainer.transform);
 							levelPanel.anchorMin = levelPanel.anchorMax = new Vector2(0.5f, 0.5f);
 							levelPanel.sizeDelta = new Vector2(25, 9);
 							levelPanel.anchoredPosition = Vector2.zero;
-							levelPanel.localScale = new Vector3(5, 5, 1);
+							levelPanel.localScale = new Vector3(5, 5, 5);
 							Image levelPanelImg = levelPanel.gameObject.AddComponent<Image>();
 							levelPanelImg.type = Image.Type.Sliced;
 							levelPanelImg.sprite = Utils.levelPanel;
@@ -505,12 +508,8 @@ namespace RudeLevelScript
 							levelTxtRect.sizeDelta = Vector2.zero;
 							levelTxtRect.anchoredPosition = new Vector2(0, 0);
 							levelTxtRect.localScale = Vector3.one;
-
-							levelContainer.sizeDelta = new Vector2(125, 45);
 						}
 					}
-
-					LayoutRebuilder.ForceRebuildLayoutImmediate(hellmapContainer);
 
 					int GetChildIndexFromLayerAndLevel(int layer, int level)
 					{
