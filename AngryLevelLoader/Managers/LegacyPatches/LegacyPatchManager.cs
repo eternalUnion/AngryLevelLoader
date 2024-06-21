@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using Train;
 using UnityEngine;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
@@ -12,6 +13,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		None,
 		Ver2,
 		Ver3,
+		Ver4,
 	}
 
 	public class LegacyPatchManager
@@ -27,6 +29,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			V2LegacyAudioPatches.Init();
 			V2LegacyEnemyPatches.Init();
 			V3LegacyEnemyPatches.Init();
+			V4LegacyPatches.Init();
 		}
 
 		public static void SetLegacyPatchState(LegacyPatchState state)
@@ -85,6 +88,20 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 				legacyHarmony.Patch(typeof(RevolverBeam).GetMethod(nameof(RevolverBeam.Start), INSTANCE),
 					prefix: new HarmonyMethod(typeof(V3LegacyRevolverBeamPatches).GetMethod(nameof(V3LegacyRevolverBeamPatches.FixBeam), STATIC)));
+			
+				legacyHarmony.Patch(typeof(Gutterman).GetMethod(nameof(Gutterman.Start), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyEnemyPatches).GetMethod(nameof(V3LegacyEnemyPatches.FixGutterman), STATIC)));
+
+				legacyHarmony.Patch(typeof(Tram).GetMethod(nameof(Tram.Awake), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V3LegacyPatches).GetMethod(nameof(V3LegacyPatches.PatchTramDeathZones), STATIC)));
+			}
+			if (state == LegacyPatchState.Ver2 || state == LegacyPatchState.Ver3 || state == LegacyPatchState.Ver4)
+			{
+				legacyHarmony.Patch(typeof(TramControl).GetMethod(nameof(TramControl.Awake), INSTANCE),
+					prefix: new HarmonyMethod(typeof(V4LegacyPatches).GetMethod(nameof(V4LegacyPatches.PatchTramControl), STATIC)));
+
+				legacyHarmony.Patch(typeof(AlwaysLookAtCamera).GetMethod(nameof(AlwaysLookAtCamera.Start), INSTANCE),
+					postfix: new HarmonyMethod(typeof(V4LegacyPatches).GetMethod(nameof(V4LegacyPatches.AlwaysLookAtCameraOverwrite), STATIC)));
 			}
 		}
 	}

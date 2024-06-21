@@ -5,11 +5,23 @@ using UnityEngine.AddressableAssets;
 using UnityEngine;
 using System.Linq;
 using System.Reflection;
+using Train;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {
 	public static class V3LegacyPatches
 	{
+		public static void PatchTramDeathZones(Tram __instance)
+		{
+			if (__instance.deathZones == null)
+			{
+				GameObject fakeZone = new GameObject();
+				fakeZone.transform.SetParent(__instance.transform);
+				fakeZone.SetActive(false);
+
+				__instance.deathZones = fakeZone;
+			}
+		}
 	}
 
 	public static class V3LegacyEnemyPatches
@@ -24,6 +36,8 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		private static SwordsMachine swordsMachine;
 		private static Transform slapCheck;
 
+		private static AudioSource rageEffect;
+
 		internal static void Init()
 		{
 			filth = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/Zombie.prefab").WaitForCompletion().GetComponentInChildren<ZombieMelee>(true);
@@ -35,6 +49,8 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 			swordsMachine = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/SwordsMachineNonboss.prefab").WaitForCompletion().GetComponent<SwordsMachine>();
 			slapCheck = swordsMachine.transform.Find("SlapCheck");
+
+			rageEffect = Addressables.LoadAssetAsync<GameObject>("Assets/Particles/Enemies/RageEffect.prefab").WaitForCompletion().GetComponent<AudioSource>();
 		}
 
 		public static bool FixStreetCleaner(Streetcleaner __instance)
@@ -149,6 +165,12 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 				__instance.slapTrail = slapTrail;
 			}
+		}
+
+		public static void FixGutterman(Gutterman __instance)
+		{
+			if (__instance.enrageEffect == null)
+				__instance.enrageEffect = rageEffect;
 		}
 	}
 
