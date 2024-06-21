@@ -99,10 +99,12 @@ namespace AngryLevelLoader.Patches
     class FinalRank_LevelChange_Patch
     {
         [HarmonyPrefix]
-        static bool Prefix()
+        static bool Prefix(FinalRank __instance)
         {
             if (!AngrySceneManager.isInCustomLevel)
                 return true;
+
+            __instance.gameObject.SetActive(false);
 
             //Quit mission if theres no target level
             if (FinalPit_SendInfo_Patch.lastTarget == null || string.IsNullOrEmpty(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId))
@@ -122,7 +124,7 @@ namespace AngryLevelLoader.Patches
             }
 
             //Load the level
-            AngrySceneManager.LoadLevel(level.container, level, level.data, level.data.scenePath);
+            AngrySceneManager.LoadLevel(level.container, level, level.data, level.data.scenePath, showBlocker: false);
             return false;
         }
     }

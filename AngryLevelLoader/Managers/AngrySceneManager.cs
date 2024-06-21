@@ -266,7 +266,7 @@ namespace AngryLevelLoader.Managers
         }
         #endregion
 
-        public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelPath)
+        public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelPath, bool showBlocker = true)
         {
             _isInCustomLevel = true;
             _currentBundleContainer = bundleContainer;
@@ -318,7 +318,7 @@ namespace AngryLevelLoader.Managers
 
             //Clear the map vars before loading the level.
             AngryMapVarManager.Instance.ResetStores();
-			SceneHelper.LoadScene(levelPath);
+			SceneHelper.LoadScene(levelPath, noBlocker: !showBlocker);
             Plugin.UpdateLastPlayed(bundleContainer);
         }
 
