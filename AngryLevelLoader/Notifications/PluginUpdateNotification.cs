@@ -61,9 +61,9 @@ namespace AngryLevelLoader.Notifications
 				Plugin.updateLastVersion.value = json.latestVersion;
 			});
 
-            ui.header.text = "<color=cyan>Changelog</color>";
+            ui.header.text = "<color=#00FFFF>Changelog</color>";
             if (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion))
-                ui.header.text = "<color=lime>UPDATE AVAILABLE</color>";
+                ui.header.text = "<color=#00FF00>UPDATE AVAILABLE</color>";
 
             StringBuilder updateTextBuilder = new StringBuilder();
             bool firstTime = true;
@@ -81,7 +81,7 @@ namespace AngryLevelLoader.Notifications
                 }
                 else
                 {
-                    updateTextBuilder.Append($"V{version} <color=lime>Latest Version</color>");
+                    updateTextBuilder.Append($"V{version} <color=#00FF00>Latest Version</color>");
                 }
 
                 updateTextBuilder.Append("<size=18>\n\n");

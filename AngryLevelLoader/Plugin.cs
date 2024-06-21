@@ -1058,16 +1058,16 @@ namespace AngryLevelLoader
 			{
 				if (newLevelToggle.value)
 				{
-					newLevelNotifier.text = string.Join("\n", newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=lime>New level: {name}</color>"));
+					newLevelNotifier.text = string.Join("\n", newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=#00FF00>New level: {name}</color>"));
 					newLevelNotifier.hidden = false;
 					newLevelNotifierLevels.value = "";
 				}
 				newLevelToggle.value = false;
 			};
 
-			newLevelNotifier = new ConfigHeader(config.rootPanel, "<color=lime>New levels are available!</color>", 16);
+			newLevelNotifier = new ConfigHeader(config.rootPanel, "<color=#00FF00>New levels are available!</color>", 16);
 			newLevelNotifier.hidden = true;
-			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=lime>Level updates available!</color>", 16);
+			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=#00FF00>Level updates available!</color>", 16);
 			levelUpdateNotifier.hidden = true;
 			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
 			new ConfigBridge(OnlineLevelsManager.onlineLevelsPanel, config.rootPanel);
@@ -1880,7 +1880,7 @@ namespace AngryLevelLoader
 				{
 					if (postResult.status == PostRecordStatus.OK)
 					{
-						pendingRecordsStatus.text += $"<color=lime>Record posted successfully!</color> Ranking: #{postResult.response.ranking}, New Best: {postResult.response.newBest}\n\n";
+						pendingRecordsStatus.text += $"<color=#00FF00>Record posted successfully!</color> Ranking: #{postResult.response.ranking}, New Best: {postResult.response.newBest}\n\n";
 					}
 					else
 					{
@@ -1922,7 +1922,7 @@ namespace AngryLevelLoader
 				}
 			}
 
-			pendingRecordsStatus.text += $"<color=lime>Done!</color>";
+			pendingRecordsStatus.text += $"<color=#00FF00>Done!</color>";
 			pendingRecordsField.value = JsonConvert.SerializeObject(failedToSend);
 			UpdatePendingRecordsUI();
 		}

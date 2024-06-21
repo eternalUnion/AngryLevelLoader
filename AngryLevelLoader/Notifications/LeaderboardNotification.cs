@@ -474,7 +474,7 @@ namespace AngryLevelLoader.Notifications
 			currentUi.reportFormToggle.gameObject.SetActive(true);
 			currentUi.reportResultToggle.gameObject.SetActive(false);
 			
-			currentUi.reportBody.text = $"Report <color=cyan>{username}</color>?";
+			currentUi.reportBody.text = $"Report <color=#00FFFF>{username}</color>?";
 			ResetReportUI();
 
 			currentUi.reportSend.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();

@@ -61,14 +61,14 @@ namespace AngryLevelLoader.Notifications
                         if (ScriptManager.ScriptLoaded(scriptName))
                             currentText += "<color=red>RESTART REQUIRED</color>";
                         else
-                            currentText += "<color=lime>Installed!</color>";
+                            currentText += "<color=#00FF00>Installed!</color>";
                     }
                     else
                     {
                         if (scriptStatus == ScriptStatus.NotFound)
                             currentText += "<color=red>Not Available Online</color>";
                         else if (scriptStatus == ScriptStatus.Update)
-                            currentText += $"<color=cyan>Update Available</color> ({fileSizeText})";
+                            currentText += $"<color=#00FFFF>Update Available</color> ({fileSizeText})";
                         else if (scriptStatus == ScriptStatus.Download)
                             currentText += $"<color=orange>Available online</color> ({fileSizeText})";
 

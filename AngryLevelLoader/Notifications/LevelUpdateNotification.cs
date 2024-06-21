@@ -48,7 +48,7 @@ namespace AngryLevelLoader.Notifications
                 }
                 else
                 {
-                    updateTextBuilder.Append("<color=lime>Latest Version</color>");
+                    updateTextBuilder.Append("<color=#00FF00>Latest Version</color>");
                 }
 
                 updateTextBuilder.Append("<size=18>\n");

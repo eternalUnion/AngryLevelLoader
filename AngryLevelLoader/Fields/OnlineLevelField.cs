@@ -193,9 +193,9 @@ namespace AngryLevelLoader.Fields
             if (_status == OnlineLevelStatus.notInstalled)
                 return $"<color=red>Not installed</color>";
             else if (_status == OnlineLevelStatus.updateAvailable)
-                return $"<color=cyan>Update available</color>";
+                return $"<color=#00FFFF>Update available</color>";
             else
-                return $"<color=lime>Installed</color>";
+                return $"<color=#00FF00>Installed</color>";
         }
 
 		internal bool ApplySearch(string[] keywords)
