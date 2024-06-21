@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using UltraFunGuns;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -311,8 +312,21 @@ namespace AngryLevelLoader.Managers
 					searchInfo.text = $"Showing {onlineLevels.Values.Where(e => !e.hidden).Count()} of {catalog.Levels.Count} bundles";
 				}
 			};
+			searchBar.onEndEdit += (bool wasCanceled) =>
+			{
+				if (!wasCanceled)
+					return;
 
-            searchBar.onReset = () => searchBar.value = "";
+				if (!string.IsNullOrWhiteSpace(searchBar.value))
+				{
+					searchBar.value = "";
+					return;
+				}
+
+                Plugin.config.rootPanel.OpenPanel();
+			};
+
+			searchBar.onReset = () => searchBar.value = "";
 
             LoadThumbnailHashes();
         }

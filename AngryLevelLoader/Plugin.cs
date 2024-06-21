@@ -2145,6 +2145,22 @@ namespace AngryLevelLoader
 
 			searchBar.onValueChange += UpdateBundleSearch;
 			searchBar.onReset += () => searchBar.value = "";
+			searchBar.onEndEdit += (bool wasCanceled) =>
+			{
+				if (!wasCanceled)
+					return;
+
+				if (!string.IsNullOrWhiteSpace(searchBar.value))
+				{
+					searchBar.value = "";
+					return;
+				}
+
+				if (folderStack.Count > 1)
+					return;
+
+				config.rootPanel.ClosePanel();
+			};
 
 			AngryLeaderboards.LoadBannedModsList();
 

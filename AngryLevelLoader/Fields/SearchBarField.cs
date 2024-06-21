@@ -60,6 +60,7 @@ namespace AngryLevelLoader.Fields
 
 		public Action<string> onValueChange;
 		public Action onReset;
+		public Action<bool> onEndEdit;
 
 		private bool _selectOnEnable = true;
 		public bool selectOnEnable
@@ -99,6 +100,11 @@ namespace AngryLevelLoader.Fields
 
 				if (onValueChange != null)
 					onValueChange.Invoke(newVal);
+			});
+			currentInput.onEndEdit.AddListener((string newVal) =>
+			{
+				if (onEndEdit != null)
+					onEndEdit.Invoke(currentInput.wasCanceled);
 			});
 
 			currentSelector = currentInput.gameObject.AddComponent<SelectOnEnabled>();
