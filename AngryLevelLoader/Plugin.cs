@@ -358,6 +358,11 @@ namespace AngryLevelLoader
 
 				folder.hidden = !hasBundles && !hasFolders;
 			}
+
+			if (folderField == pathToFolderMap["/"])
+				levelBundlesHeader.text = "Level Bundles";
+			else
+				levelBundlesHeader.text = $"Level Bundles <color=grey>{pathToFolderMap.Where(e => e.Value == folderField).FirstOrDefault().Key}</color>";
 		}
 
 		private static char[] whitespaceSeparator = new char[] { ' ' };
@@ -401,6 +406,7 @@ namespace AngryLevelLoader
 					filterCount += 1;
 			}
 
+			levelBundlesHeader.text = "Level Bundles";
 			searchInfo.text = $"Showing {filterCount} of {totalCount} bundles";
 		}
 
@@ -698,6 +704,7 @@ namespace AngryLevelLoader
 		public static StringField newLevelNotifierLevels;
 		public static BoolField newLevelToggle;
         public static ConfigHeader errorText;
+		public static ConfigHeader levelBundlesHeader;
 		public static SearchBarField searchBar;
 		public static ConfigDivision folderDivision;
 		public static ConfigDivision bundleDivision;
@@ -1658,7 +1665,7 @@ namespace AngryLevelLoader
 
 			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
 
-			new ConfigHeader(config.rootPanel, "Level Bundles");
+			levelBundlesHeader = new ConfigHeader(config.rootPanel, "Level Bundles");
 			searchBar = new SearchBarField(config.rootPanel);
 			folderDivision = new ConfigDivision(config.rootPanel, "div_folders");
 			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
