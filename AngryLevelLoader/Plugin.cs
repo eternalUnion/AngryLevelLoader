@@ -351,12 +351,26 @@ namespace AngryLevelLoader
 			foreach (var bundle in bundlesToEnable)
 				if (bundle.bundleData != null)
 					bundle.rootPanel.hidden = false;
+
 			foreach (var folder in foldersToEnable)
 			{
-				bool hasBundles = folderToBundleMap.TryGetValue(folder, out var subBundles) && subBundles.Count != 0;
-				bool hasFolders = folderToFolderMap.TryGetValue(folder, out var subFolders) && subFolders.Count != 0;
+				// See if any bundles exist
+				Stack<FolderButtonField> foldersToCheck = new Stack<FolderButtonField>();
+				foldersToCheck.Push(folder);
 
-				folder.hidden = !hasBundles && !hasFolders;
+				while (foldersToCheck.Count != 0)
+				{
+					FolderButtonField currentFolder = foldersToCheck.Pop();
+					if (folderToBundleMap.TryGetValue(currentFolder, out var folderBundles) && folderBundles.Count != 0)
+					{
+						folder.hidden = false;
+						break;
+					}
+
+					if (folderToFolderMap.TryGetValue(currentFolder, out var folderFolders))
+						foreach (var folderFolder in folderFolders)
+							foldersToCheck.Push(folderFolder);
+				}
 			}
 
 			if (folderField == pathToFolderMap["/"])
@@ -426,29 +440,43 @@ namespace AngryLevelLoader
 				folderToBundleMap[folderField] = new List<AngryBundleContainer>();
 				folderToFolderMap[folderField] = new List<FolderButtonField>();
 
-				string parentPath = Path.GetDirectoryName(folder).Replace('\\', '/');
-				if (!pathToFolderMap.TryGetValue(parentPath, out FolderButtonField parentFolder))
-				{
-					parentFolder = new FolderButtonField(folderDivision);
-					parentFolder.folderName = Path.GetFileName(parentPath);
-					parentFolder.onPressed.AddListener(() =>
+				string currentPath = folder;
+				FolderButtonField currentFolder = folderField;
+                while (currentPath != "/")
+                {
+                    string parentPath = Path.GetDirectoryName(currentPath).Replace('\\', '/');
+                    bool parentFolderExisted = true;
+
+					if (!pathToFolderMap.TryGetValue(parentPath, out FolderButtonField parentFolder))
 					{
-						OpenFolder(parentFolder);
-						folderStack.Push(parentFolder);
-					});
+						parentFolderExisted = false;
 
-					pathToFolderMap[parentPath] = parentFolder;
-					folderToBundleMap[parentFolder] = new List<AngryBundleContainer>();
-					folderToFolderMap[parentFolder] = new List<FolderButtonField>();
-				}
+                        parentFolder = new FolderButtonField(folderDivision);
+                        parentFolder.folderName = Path.GetFileName(parentPath);
+                        parentFolder.onPressed.AddListener(() =>
+                        {
+                            OpenFolder(parentFolder);
+                            folderStack.Push(parentFolder);
+                        });
 
-				if (!folderToFolderMap.TryGetValue(parentFolder, out List<FolderButtonField> parentFolderList))
-				{
-					parentFolderList = new List<FolderButtonField>();
-					folderToFolderMap[parentFolder] = parentFolderList;
-				}
+                        pathToFolderMap[parentPath] = parentFolder;
+                        folderToBundleMap[parentFolder] = new List<AngryBundleContainer>();
+                        folderToFolderMap[parentFolder] = new List<FolderButtonField>();
+                    }
 
-				parentFolderList.Add(folderField);
+					if (!folderToFolderMap.TryGetValue(parentFolder, out List<FolderButtonField> parentFolderList))
+					{
+						parentFolderList = new List<FolderButtonField>();
+						folderToFolderMap[parentFolder] = parentFolderList;
+					}
+
+					parentFolderList.Add(currentFolder);
+                    if (parentFolderExisted)
+                        break;
+
+                    currentFolder = parentFolder;
+					currentPath = parentPath;
+                }
 			}
 
 			if (!folderToBundleMap.TryGetValue(folderField, out List<AngryBundleContainer> folderBundleList))
