@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "2.10.0",
+  "latestVersion": "2.10.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -100,6 +100,10 @@
     {
       "version": "2.10.0",
       "updateText": "- Be able to show folders inside the level folder\n   - Default folder icon is combination of 4 bundle icons inside the folder. If there is  a png inside the folder it will be used as an icon instead\n- Bring search bar to levels and online levels tab\n- Patch older angry files\n  - Pre brutal update: Fix gutterman enrage error on brutal difficulty\n  - Trams: Fix errors caused by missing zap objects\n  - Fix fire sprites in older levels\n- Correct hellmap size\n- No loading text during level change\n- Color tag fixes caused by TMP text"
+    },
+    {
+      "version": "2.10.1",
+      "updateText": "- Seasonal hats now appear in completed custom levels, cutscene skips are no longer available in incomplete custom levels (thanks to Bobot for implementation)\n- Fixed several bugs related to the folder system"
     }
   ]
 }
