@@ -96,5 +96,15 @@ namespace AngryLevelLoader.Patches
 		{
 			forceDisableIsInCustomLevel = false;
 		}
-	}
+
+        [HarmonyPatch(nameof(SceneHelper.IsSceneRankless), MethodType.Getter)]
+        [HarmonyPostfix]
+        public static void IsSceneRanklessFix(ref bool __result)
+        {
+            if (AngrySceneManager.isInCustomLevel)
+            {
+				__result = AngrySceneManager.currentLevelContainer.finalRank.value != "-";
+            }
+        }
+    }
 }
