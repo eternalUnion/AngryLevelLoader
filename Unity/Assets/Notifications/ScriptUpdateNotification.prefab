@@ -1111,7 +1111,6 @@ GameObject:
   - component: {fileID: 6748517793897981100}
   - component: {fileID: 561272351387468494}
   - component: {fileID: 6243004149134981116}
-  - component: {fileID: 6199436821760403646}
   m_Layer: 5
   m_Name: ConcretePanel
   m_TagString: Untagged
@@ -1188,24 +1187,6 @@ MonoBehaviour:
   m_OnBack:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6199436821760403646
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7404914050099043658}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1799968721, guid: e66381c3ac1971a46a76c618e5f00f45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  header: {fileID: 6635922494853780214}
-  layout: {fileID: 2050777709833868241}
-  trans: {fileID: 7317447670412826258}
-  rect: {fileID: 3768525831964102588}
-  content: {fileID: 7317447670412826258}
-  contentSizeFitter: {fileID: 1654147354321231667}
 --- !u!1 &8145253719934049443
 GameObject:
   m_ObjectHideFlags: 0

@@ -223,7 +223,6 @@ GameObject:
   - component: {fileID: 8686181555904041350}
   - component: {fileID: 2514700800349321188}
   - component: {fileID: 8327034787411657430}
-  - component: {fileID: 8296998059775466900}
   m_Layer: 5
   m_Name: ConcretePanel
   m_TagString: Untagged
@@ -300,24 +299,6 @@ MonoBehaviour:
   m_OnBack:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &8296998059775466900
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4895275559404644448}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1799968721, guid: e66381c3ac1971a46a76c618e5f00f45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  header: {fileID: 0}
-  layout: {fileID: 0}
-  trans: {fileID: 0}
-  rect: {fileID: 0}
-  content: {fileID: 0}
-  contentSizeFitter: {fileID: 0}
 --- !u!1 &5844994265911979192
 GameObject:
   m_ObjectHideFlags: 0
@@ -1139,7 +1120,7 @@ MonoBehaviour:
   m_text: Reset User Map Variables
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c665f735df1f4db43a715b3cb44a57c0, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: ed8ff3548d4b61442ad2954a1deac55f, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 240b769a52dbaa3f84461820c7b801c8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

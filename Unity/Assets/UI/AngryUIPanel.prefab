@@ -440,7 +440,6 @@ GameObject:
   - component: {fileID: 2557643985247815149}
   - component: {fileID: 2557643985247815150}
   - component: {fileID: 2557643985247815151}
-  - component: {fileID: 2557643985247815144}
   m_Layer: 5
   m_Name: IgnoreButton
   m_TagString: Untagged
@@ -548,21 +547,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &2557643985247815144
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2557643985247815146}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -177560143, guid: e66381c3ac1971a46a76c618e5f00f45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  text: {fileID: 2557643985590792371}
-  button: {fileID: 2557643985247815151}
-  rect: {fileID: 2557643985247815145}
 --- !u!1 &2557643985590792381
 GameObject:
   m_ObjectHideFlags: 0
@@ -653,7 +637,6 @@ GameObject:
   - component: {fileID: 3963183882487402367}
   - component: {fileID: 3856048588828300990}
   - component: {fileID: 3856070291741896092}
-  - component: {fileID: 8095158875259030604}
   m_Layer: 5
   m_Name: ReloadButton
   m_TagString: Untagged
@@ -761,21 +744,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &8095158875259030604
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3751918556206241733}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -177560143, guid: e66381c3ac1971a46a76c618e5f00f45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  text: {fileID: 3855751775824483528}
-  button: {fileID: 3856070291741896092}
-  rect: {fileID: 3965437893808987429}
 --- !u!1 &3752562792058491159
 GameObject:
   m_ObjectHideFlags: 0
