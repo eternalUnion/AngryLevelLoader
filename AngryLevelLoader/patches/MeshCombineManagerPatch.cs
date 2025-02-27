@@ -11,20 +11,50 @@ namespace AngryLevelLoader.Patches
 {
 	// To prevent error if the shader is not attached
 
-	[HarmonyPatch(typeof(MeshCombineManager), nameof(MeshCombineManager.Awake))]
-	public static class MeshCombineManager_Awake_Patch
+	[HarmonyPatch(typeof(MeshCombineManager))]
+	public static class MeshCombineManagerPatches
 	{
-		static bool Prefix(MeshCombineManager __instance)
+		static Shader atlasedShader;
+		static Shader vertexlitShader;
+
+		public static void Initialize()
+		{
+            if (atlasedShader == null)
+            {
+                var handler = Addressables.LoadAssetAsync<Shader>("Assets/Shaders/Main/ULTRAKILL-vertexlit-atlas.shader");
+                handler.Completed += (s) =>
+                {
+                    if (handler.Status == UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationStatus.Failed)
+                        return;
+
+                    atlasedShader = handler.Result;
+                };
+
+            }
+
+            if (vertexlitShader == null)
+            {
+                var handler = Addressables.LoadAssetAsync<Shader>("Assets/Shaders/Main/ULTRAKILL-vertexlit.shader");
+                handler.Completed += (s) =>
+                {
+                    if (handler.Status == UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationStatus.Failed)
+                        return;
+
+                    vertexlitShader = handler.Result;
+                };
+
+            }
+        }
+
+        [HarmonyPatch(nameof(MeshCombineManager.Awake))]
+        [HarmonyPrefix]
+        static bool LinkNecessaryShaders(MeshCombineManager __instance)
 		{
 			if (__instance.atlasedShader == null)
-			{
-				__instance.atlasedShader = Addressables.LoadAssetAsync<Shader>("Assets/Shaders/Main/ULTRAKILL-vertexlit-atlas.shader").WaitForCompletion();
-			}
+                __instance.atlasedShader = atlasedShader;
 
 			if (__instance.allowedShadersToBatch == null || __instance.allowedShadersToBatch.Length == 0)
-			{
-				__instance.allowedShadersToBatch = new Shader[] { Addressables.LoadAssetAsync<Shader>("Assets/Shaders/Main/ULTRAKILL-vertexlit.shader").WaitForCompletion() };
-			}
+                __instance.allowedShadersToBatch = new Shader[] { vertexlitShader };
 
 			return true;
 		}

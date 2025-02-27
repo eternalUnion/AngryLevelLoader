@@ -95,7 +95,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			goldenEye = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/DroneFleshCamera Variant.prefab").WaitForCompletion().GetComponent<Drone>();
 			fleshDrone = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/DroneFlesh.prefab").WaitForCompletion().GetComponent<Drone>();
 
-			statueBoss = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/StatueEnemy.prefab").WaitForCompletion().GetComponentInChildren<StatueBoss>(true);
+			statueBoss = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/Cerberus.prefab").WaitForCompletion().GetComponentInChildren<StatueBoss>(true);
 
 			streetCleaner = Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Enemies/Streetcleaner.prefab").WaitForCompletion().GetComponent<Streetcleaner>();
 

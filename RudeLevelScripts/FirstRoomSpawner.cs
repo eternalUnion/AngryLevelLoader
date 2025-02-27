@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader;
+using AngryLevelLoader.Containers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -371,7 +372,7 @@ namespace RudeLevelScript
 				return;
 
 			GameObject firstRoomInst = gameObject;
-			GameObject firstRoomRef = Utils.LoadObject<GameObject>(secretRoom ? "FirstRoom Secret" : primeRoom ? "FirstRoom Prime" : "FirstRoom");
+			GameObject firstRoomRef = Addressables.LoadAssetAsync<GameObject>(secretRoom ? "FirstRoom Secret" : primeRoom ? "FirstRoom Prime" : "FirstRoom").WaitForCompletion();
 			if (!doNotReplace)
 			{
 				firstRoomInst = Instantiate(firstRoomRef, transform.parent);
@@ -420,9 +421,8 @@ namespace RudeLevelScript
 				FinalDoorOpener opener = firstRoomInst.transform.Find("Room/FinalDoor/FinalDoorOpener").GetComponent<FinalDoorOpener>();
 				opener.startMusic = startMusic;
 				FinalDoor door = firstRoomInst.transform.Find("Room/FinalDoor").GetComponent<FinalDoor>();
-				door.levelNameOnOpen = displayLevelTitle;
 
-				GameObject hellmapObj = null;
+                GameObject hellmapObj = null;
 				if (enableHellMap)
 				{
 					Deserialize();
@@ -449,6 +449,7 @@ namespace RudeLevelScript
 
 					float currentY = 0;
 
+					Stack<RectTransform> sidebars = new Stack<RectTransform>();
 					foreach (LayerInfo layer in layersAndLevels)
 					{
 						// Add the layer text
@@ -509,6 +510,37 @@ namespace RudeLevelScript
 							levelTxtRect.anchoredPosition = new Vector2(0, 0);
 							levelTxtRect.localScale = Vector3.one;
 						}
+
+						// Add the sidebar
+						if (layer.layerLevels.Length == 0)
+							continue;
+
+                        RectTransform sidebar = MakeRect(hellmapContainer);
+                        sidebar.anchorMin = sidebar.anchorMax = new Vector2(0.5f, 1);
+						sidebar.pivot = new Vector2(0.5f, 0);
+						sidebar.anchoredPosition = new Vector2(-95f, currentY + 25f);
+						sidebar.sizeDelta = new Vector2(3f, layer.layerLevels.Length * 50f - 27.5f);
+                        sidebar.localScale = Vector3.one;
+						sidebar.gameObject.AddComponent<Image>();
+
+                        for (int i = 0; i < layer.layerLevels.Length; i++)
+						{
+                            RectTransform step = MakeRect(sidebar);
+                            step.anchorMin = step.anchorMax = new Vector2(0.5f, 0);
+                            step.pivot = new Vector2(0, 0.5f);
+                            step.sizeDelta = new Vector2(20f, 3f);
+                            step.anchoredPosition = new Vector2(-1.5f, i * 50f);
+                            step.localScale = Vector3.one;
+                            step.gameObject.AddComponent<Image>();
+                        }
+
+						sidebars.Push(sidebar);
+                    }
+
+					while (sidebars.Count != 0)
+					{
+						RectTransform sidebar = sidebars.Pop();
+						sidebar.SetAsLastSibling();
 					}
 
 					int GetChildIndexFromLayerAndLevel(int layer, int level)
@@ -520,15 +552,15 @@ namespace RudeLevelScript
 					}
 
 					Vector2 startLevelPosition = hellmapContainer.GetChild(GetChildIndexFromLayerAndLevel(layerIndexToStartFrom, levelIndexToStartFrom)).GetComponent<RectTransform>().anchoredPosition;
-					startLevelPosition = new Vector2(35, startLevelPosition.y - 22.5f);
+					startLevelPosition = new Vector2(210, startLevelPosition.y - 22.5f);
 					Vector2 endLevelPosition = hellmapContainer.GetChild(GetChildIndexFromLayerAndLevel(layerIndexToEndAt, levelIndexToEndAt)).GetComponent<RectTransform>().anchoredPosition;
-					endLevelPosition = new Vector2(35, endLevelPosition.y - 22.5f);
+					endLevelPosition = new Vector2(210, endLevelPosition.y - 22.5f);
 
 					RectTransform cursor = MakeRect(hellmap);
 					cursor.anchorMin = cursor.anchorMax = new Vector2(0, 1);
 					cursor.pivot = new Vector2(0.5f, 0.5f);
 					cursor.sizeDelta = new Vector2(35, 35);
-					cursor.rotation = Quaternion.Euler(0, 0, -90);
+					cursor.rotation = Quaternion.Euler(0, 0, 90);
 					cursor.localScale = Vector3.one;
 					cursor.anchoredPosition = startLevelPosition;
 					AudioSource aud = cursor.gameObject.AddComponent<AudioSource>();
@@ -573,8 +605,6 @@ namespace RudeLevelScript
 			finally
 			{
 				spawned = true;
-				if (!doNotReplace)
-					Destroy(gameObject);
 			}
 		}
 		
@@ -583,5 +613,16 @@ namespace RudeLevelScript
 		{
 			Spawn();
 		}
+
+		public void Start()
+		{
+			if (OnLevelStart.Instance != null)
+				OnLevelStart.Instance.levelNameOnStart = displayLevelTitle;
+			else
+				Debug.LogWarning("Could not find OnLevelStart");
+
+			if (!doNotReplace)
+				Destroy(gameObject);
+        }
 	}
 }

@@ -38,6 +38,7 @@ using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Managers.LegacyPatches;
 using Logic;
 using System.ComponentModel;
+using AngryLevelLoader.Patches;
 
 namespace AngryLevelLoader
 {
@@ -756,7 +757,6 @@ namespace AngryLevelLoader
 		}
 		public static EnumField<CustomLevelButtonPosition> customLevelButtonPosition;
 		public static ColorField customLevelButtonFrameColor;
-		public static ColorField customLevelButtonBackgroundColor;
 		public static ColorField customLevelButtonTextColor;
 		public static BoolField refreshCatalogOnBoot;
 		public static BoolField checkForUpdates;
@@ -857,18 +857,27 @@ namespace AngryLevelLoader
 		private static RectTransform bossRushButton;
 		private static void CreateCustomLevelButtonOnMainMenu()
 		{
-			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
+			instance.StartCoroutine(CreateCustomLevelButtonOnMainMenuAsync());
+		}
+
+		private static IEnumerator CreateCustomLevelButtonOnMainMenuAsync()
+		{
+			yield return null;
+
+            GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
 			if (canvasObj == null)
 			{
 				logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
-				return;
+				yield break;
 			}
 
-			Transform chapterSelect = canvasObj.transform.Find("Chapter Select");
-			if (chapterSelect != null)
+			Transform chapters = canvasObj.transform.Find("Chapter Select/Chapters");
+			if (chapters != null)
 			{
-				GameObject customLevelButtonObj = Addressables.InstantiateAsync(CUSTOM_LEVEL_BUTTON_ASSET_PATH, chapterSelect).WaitForCompletion();
-				Transform bossRush = chapterSelect.Find("Boss Rush Button");
+				Transform chapterSelect = canvasObj.transform.Find("Chapter Select");
+
+                GameObject customLevelButtonObj = Addressables.InstantiateAsync(CUSTOM_LEVEL_BUTTON_ASSET_PATH, chapters).WaitForCompletion();
+				Transform bossRush = chapters.Find("Boss Rush Button");
 				if (bossRush != null)
 					bossRushButton = bossRush.gameObject.GetComponent<RectTransform>();
 				currentCustomLevelButton = customLevelButtonObj.GetComponent<AngryCustomLevelButtonComponent>();
@@ -876,23 +885,24 @@ namespace AngryLevelLoader
 				currentCustomLevelButton.button.onClick = new Button.ButtonClickedEvent();
 				currentCustomLevelButton.button.onClick.AddListener(() =>
 				{
-					// Disable act selection panel
-					chapterSelect.gameObject.SetActive(false);
-
-					// Open the options menu
-					Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
+                    // Find the options menu
+                    Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
 					if (optionsMenu == null)
 					{
 						logger.LogError("Angry tried to find the options menu but failed!");
-						chapterSelect.gameObject.SetActive(true);
 						return;
 					}
-					optionsMenu.gameObject.SetActive(true);
+
+                    // Disable act selection panel
+                    chapterSelect.gameObject.SetActive(false);
+
+					// Open options menu
+                    optionsMenu.gameObject.SetActive(true);
 
 					// Open plugin config panel
-					Transform pluginConfigButton = optionsMenu.transform.Find("Panel/PluginConfiguratorButton(Clone)");
+					Transform pluginConfigButton = optionsMenu.transform.Find("Navigation Rail/PluginConfiguratorButton(Clone)");
 					if (pluginConfigButton == null)
-						pluginConfigButton = optionsMenu.transform.Find("Panel/PluginConfiguratorButton");
+						pluginConfigButton = optionsMenu.transform.Find("Navigation Rail/PluginConfiguratorButton");
 
 					if (pluginConfigButton == null)
 					{
@@ -901,12 +911,13 @@ namespace AngryLevelLoader
 					}
 
 					// Two buttons may be highlighted at the same time if the menu is not opened before
-					Transform panel = optionsMenu.Find("Panel");
+					Transform panel = optionsMenu.Find("Navigation Rail");
 					if (panel != null && panel.gameObject.TryGetComponent(out ButtonHighlightParent highlightManager))
 					{
 						if (highlightManager.buttons == null || highlightManager.buttons.Length == 0)
 						{
 							highlightManager.Start();
+							highlightManager.targetOnStart = null;
 						}
 					}
 
@@ -970,7 +981,6 @@ namespace AngryLevelLoader
 
 				customLevelButtonPosition.TriggerPostValueChangeEvent();
 				customLevelButtonFrameColor.TriggerPostValueChangeEvent();
-				customLevelButtonBackgroundColor.TriggerPostValueChangeEvent();
 				customLevelButtonTextColor.TriggerPostValueChangeEvent();
 			}
 			else
@@ -984,14 +994,21 @@ namespace AngryLevelLoader
 		public static AngryUIPanelComponent currentPanel;
 		private static void CreateAngryUI()
 		{
+			instance.StartCoroutine(CreateAngryUIAsync());
+		}
+
+		private static IEnumerator CreateAngryUIAsync()
+		{
+			yield return null;
+
 			if (currentPanel != null)
-				return;
+				yield break;
 
 			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
 			if (canvasObj == null)
 			{
 				logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
-				return;
+                yield break;
 			}
 
 			GameObject panelObj = Addressables.InstantiateAsync(ANGRY_UI_PANEL_ASSET_PATH, canvasObj.transform).WaitForCompletion();
@@ -1267,15 +1284,6 @@ namespace AngryLevelLoader
 				block.disabledColor = Color.gray;
 
 				currentCustomLevelButton.button.colors = block;
-			};
-
-			customLevelButtonBackgroundColor = new ColorField(customLevelButtonPanel, "Custom level button background color", "s_customLevelButtonBgColor", Color.black);
-			customLevelButtonBackgroundColor.postValueChangeEvent += (clr) =>
-			{
-				if (currentCustomLevelButton == null)
-					return;
-
-				currentCustomLevelButton.background.color = clr;
 			};
 
 			customLevelButtonTextColor = new ColorField(customLevelButtonPanel, "Custom level button text color", "s_customLevelButtonTextColor", Color.white);
@@ -2066,7 +2074,7 @@ namespace AngryLevelLoader
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 			AssetManager.Init();
 
-			LegacyPatchManager.Init();
+            LegacyPatchManager.Init();
 			SceneManager.sceneLoaded += (scene, mode) =>
 			{
 				if (mode == LoadSceneMode.Additive)
@@ -2210,8 +2218,29 @@ namespace AngryLevelLoader
 			// bundles every addressable bundle is already in the memory like what?)
 			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
 
-			// Migrate from legacy versions, and check for a new version from web
-			PluginUpdateHandler.Check();
+            // Rant #2: Addressables being a pain again
+            //
+            // After the update from Unity 2019 to 2022, it seems like attempting to load an asset
+            // from addressables during a scene load synchronously could cause a deadlock because
+            // addressables now tries to load the asset bundle asynchronously. Most of the scene load
+            // stuff can be done in a co-routine but room spawns should be done in-time, else many
+            // scripts that reference the player on start will fail. So force these assets to be
+            // always loaded. BTW, this is """"THE SOLUTION""" unity provides, yes the SOLUTION, and they
+            // are not planning to do anything about it (flagged as Won't Fix).
+            Addressables.LoadAssetAsync<GameObject>("FirstRoom");
+            Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret");
+            Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime");
+
+			Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png");
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png");
+			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat");
+
+			// Also load some necessary assets which are needed during scene load
+			MeshCombineManagerPatches.Initialize();
+
+            // Migrate from legacy versions, and check for a new version from web
+            PluginUpdateHandler.Check();
 
             ScanForLevels();
 

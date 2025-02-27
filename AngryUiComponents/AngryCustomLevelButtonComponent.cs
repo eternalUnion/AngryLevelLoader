@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,6 @@ namespace AngryUiComponents
 		public RectTransform rect;
 		public Button button;
 		public Image background;
-		public Text text;
+		public TextMeshProUGUI text;
 	}
 }

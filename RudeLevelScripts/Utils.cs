@@ -17,7 +17,7 @@ namespace RudeLevelScript
 			get
 			{
 				if (_gameFont == null)
-					_gameFont = LoadObject<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
+					_gameFont = Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
 				return _gameFont;
 			}
 		}
@@ -28,7 +28,7 @@ namespace RudeLevelScript
 			get
 			{
 				if (_levelPanel == null)
-					_levelPanel = LoadObject<Sprite>("Assets/Textures/UI/meter.png");
+					_levelPanel = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png").WaitForCompletion();
 				return _levelPanel;
 			}
 		}
@@ -39,7 +39,7 @@ namespace RudeLevelScript
 			get
 			{
 				if (_hellmapArrow == null)
-					_hellmapArrow = LoadObject<Sprite>("Assets/Textures/UI/arrow.png");
+					_hellmapArrow = Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png").WaitForCompletion();
 				return _hellmapArrow;
 			}
 		}
@@ -50,35 +50,9 @@ namespace RudeLevelScript
 			get
 			{
 				if (_metalDec20 == null)
-					_metalDec20 = LoadObject<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat");
+					_metalDec20 = Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat").WaitForCompletion();
 				return _metalDec20;
 			}
-		}
-
-		public static ResourceLocationMap resourceMap = null;
-		public static T LoadObject<T>(string path)
-		{
-			if (resourceMap == null)
-			{
-				Addressables.InitializeAsync().WaitForCompletion();
-				resourceMap = Addressables.ResourceLocators.First() as ResourceLocationMap;
-			}
-
-			Debug.Log($"Loading {path}");
-			KeyValuePair<object, IList<IResourceLocation>> obj;
-
-			try
-			{
-				obj = resourceMap.Locations.Where(
-					(KeyValuePair<object, IList<IResourceLocation>> pair) =>
-					{
-						return (pair.Key as string) == path;
-						//return (pair.Key as string).Equals(path, StringComparison.OrdinalIgnoreCase);
-					}).First();
-			}
-			catch (Exception) { return default(T); }
-
-			return Addressables.LoadAssetAsync<T>(obj.Value.First()).WaitForCompletion();
 		}
 
 		//Jank... but it works.

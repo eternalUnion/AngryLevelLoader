@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using AngryLevelLoader;
 
 /*
 	Events which are triggered from another thread (etc. FileSystemWatcher) cannot use Unity API
@@ -16,7 +17,6 @@ public class CrossThreadInvoker : ISynchronizeInvoke
 	private static CrossThreadInvoker instance;
 	public static CrossThreadInvoker Instance => instance;
 
-	private static GameObject backgroundUpdater;
 	private class BackgroundUpdater : MonoBehaviour
 	{
 		public void Update()
@@ -33,9 +33,7 @@ public class CrossThreadInvoker : ISynchronizeInvoke
 		mainThread = Thread.CurrentThread;
 		instance = new CrossThreadInvoker();
 
-		backgroundUpdater = new GameObject();
-		GameObject.DontDestroyOnLoad(backgroundUpdater);
-		backgroundUpdater.AddComponent<BackgroundUpdater>();
+		Plugin.instance.gameObject.AddComponent<BackgroundUpdater>();
 	}
 
 	private static Thread mainThread;
