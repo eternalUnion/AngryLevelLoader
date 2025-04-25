@@ -2114,15 +2114,8 @@ namespace AngryLevelLoader
 				if (AngrySceneManager.isInCustomLevel)
 				{
 					int levelVersion = AngrySceneManager.currentBundleContainer.bundleData.bundleVersion;
-
-					if (levelVersion == 2)
-						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver2);
-					else if (levelVersion == 3)
-						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver3);
-					else if (levelVersion == 4)
-						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.Ver4);
-					else
-						LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+					// Set legacy patches here in the future
+					LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
 				}
 				else
 				{
