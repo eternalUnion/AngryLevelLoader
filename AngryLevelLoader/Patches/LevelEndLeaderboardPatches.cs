@@ -235,9 +235,32 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		public static bool IterateCustomLeaderboardTypes()
 		{
-			if (InputManager.Instance.InputSource.NextWeapon.WasPerformedThisFrame || InputManager.Instance.InputSource.LastWeapon.WasPerformedThisFrame)
+			if (InputManager.Instance.InputSource.NextWeapon.WasPerformedThisFrame
+				|| InputManager.Instance.InputSource.LastWeapon.WasPerformedThisFrame
+                || InputManager.Instance.InputSource.PreviousVariation.WasPerformedThisFrame)
 			{
-				currentCategory = currentCategory.Next();
+				switch (currentCategory)
+				{
+					case AngryLeaderboards.RecordCategory.ALL:
+						currentCategory = AngryLeaderboards.RecordCategory.PRANK;
+						break;
+
+                    case AngryLeaderboards.RecordCategory.PRANK:
+                        currentCategory = AngryLeaderboards.RecordCategory.CHALLENGE;
+                        break;
+
+                    case AngryLeaderboards.RecordCategory.CHALLENGE:
+                        currentCategory = AngryLeaderboards.RecordCategory.NOMO;
+                        break;
+
+                    case AngryLeaderboards.RecordCategory.NOMO:
+                        currentCategory = AngryLeaderboards.RecordCategory.NOMOW;
+                        break;
+
+                    case AngryLeaderboards.RecordCategory.NOMOW:
+                        currentCategory = AngryLeaderboards.RecordCategory.ALL;
+                        break;
+                }
 			}
 
 			return true;
