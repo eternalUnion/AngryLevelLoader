@@ -1636,7 +1636,7 @@ namespace AngryLevelLoader
 
 				try
 				{
-					if (!Directory.Exists(angryLevelsPath.value) || !File.Exists(Path.Combine(angryLevelsPath.value, "LevelCatalog.json")))
+					if (!Directory.Exists(angryLevelsPath.value) || !File.Exists(Path.Combine(angryLevelsPath.value, "V2", "LevelCatalog.json")))
 					{
 						processInfo.text = "<color=red>Invalid project path</color>";
 						return;
@@ -1644,7 +1644,7 @@ namespace AngryLevelLoader
 
 					debugInfo.text = "<color=grey>Updating catalog level info</color>";
 
-					LevelCatalog catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(Path.Combine(angryLevelsPath.value, "LevelCatalog.json")));
+					LevelCatalog catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(Path.Combine(angryLevelsPath.value, "V2", "LevelCatalog.json")));
 
 					foreach (var bundle in catalog.Levels)
 					{
@@ -1716,7 +1716,7 @@ namespace AngryLevelLoader
 						}
 					}
 
-					File.WriteAllText(Path.Combine(angryLevelsPath.value, "LevelCatalog.json"), JsonConvert.SerializeObject(catalog, Formatting.Indented));
+					File.WriteAllText(Path.Combine(angryLevelsPath.value, "V2", "LevelCatalog.json"), JsonConvert.SerializeObject(catalog, Formatting.Indented));
 					processInfo.text = $"<color=#00FF00>Done!</color>";
 				}
 				finally

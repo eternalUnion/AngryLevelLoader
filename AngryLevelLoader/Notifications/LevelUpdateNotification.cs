@@ -39,16 +39,20 @@ namespace AngryLevelLoader.Notifications
 
             for (int currentLevel = onlineInfo.Updates.Count - 1; currentLevel >= 0; currentLevel--)
             {
+                DateTime updateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                updateTime = updateTime.AddSeconds(onlineInfo.Updates[currentLevel].Date);
+                string updateTimeString = updateTime.ToString("d");
+
                 if (!firstTime)
                 {
                     if (onlineInfo.Updates[currentLevel].Hash != currentHash)
-                        updateTextBuilder.Append("\n\n<color=#b2b2b2>Past Version</color>");
+                        updateTextBuilder.Append($"\n\n<color=#b2b2b2>Past Version</color> <color=gray>({updateTimeString})</color>");
                     else
-                        updateTextBuilder.Append("\n\n<color=yellow>Current Version</color>");
+                        updateTextBuilder.Append($"\n\n<color=yellow>Current Version</color> <color=gray>({updateTimeString})</color>");
                 }
                 else
                 {
-                    updateTextBuilder.Append("<color=#00FF00>Latest Version</color>");
+                    updateTextBuilder.Append($"<color=#00FF00>Latest Version</color> <color=gray>({updateTimeString})</color>");
                 }
 
                 updateTextBuilder.Append("<size=18>\n");

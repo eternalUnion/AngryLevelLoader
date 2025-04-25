@@ -40,7 +40,7 @@ namespace AngryLevelLoader
 
         public static string LevelCatalogCachePath
         {
-            get => Path.Combine(OnlineCacheFolderPath, "LevelCatalog.json");
+            get => Path.Combine(OnlineCacheFolderPath, "V2", "LevelCatalog.json");
         }
 
         public static string ScriptCatalogCachePath

@@ -72,7 +72,7 @@ namespace AngryLevelLoader.Fields
             {
                 _previewImage = value;
                 if (currentUi != null)
-                    currentUi.thumbnail.texture = _previewImage;
+                    currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
             }
         }
 
@@ -129,6 +129,27 @@ namespace AngryLevelLoader.Fields
             {
                 _bundleFileSize = value;
                 UpdateInfoText();
+            }
+        }
+
+        private bool _locked;
+        public bool locked
+        {
+            get => _locked;
+            set
+            {
+                _locked = value;
+                UpdateInfoText();
+
+                if (currentUi != null)
+                {
+                    currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
+                    currentUi.install.interactable = !locked;
+                    currentUi.update.interactable = !locked;
+                    currentUi.votes.gameObject.SetActive(!locked);
+                    currentUi.upvoteButton.gameObject.SetActive(!locked);
+                    currentUi.downvoteButton.gameObject.SetActive(!locked);
+                }
             }
         }
 
@@ -246,21 +267,26 @@ namespace AngryLevelLoader.Fields
             if (currentUi == null)
                 return;
 
-            if (OnlineLevelsManager.searchKeywords.Length == 0)
+            if (locked)
+            {
+                currentUi.infoText.text = $"{_bundleName} <color=red>(OUTDATED/LOCKED)</color>\n<color=#909090>Author: {_author}</color>";
+            }
+            else
             {
                 currentUi.infoText.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
-				hidden = !(OnlineLevelsManager.catalog != null && OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).Any());
-			}
-            else
+            }
+
+            if (OnlineLevelsManager.searchKeywords.Length != 0)
             {
                 bool matches = ApplySearch(OnlineLevelsManager.searchKeywords);
                 if (!matches)
-                    hidden = true;
-                else
                 {
-                    hidden = !(OnlineLevelsManager.catalog != null && OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).Any());
+                    hidden = true;
+                    return;
                 }
-            }
+			}
+            
+            hidden = !(OnlineLevelsManager.catalog != null && OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).Any());
 		}
 
         public enum VoteStatus
@@ -351,7 +377,7 @@ namespace AngryLevelLoader.Fields
             currentUiRect.anchorMax = new Vector2(0, 1);
             currentUiRect.anchoredPosition = new Vector2(0, 0);
 
-            currentUi.thumbnail.texture = _previewImage;
+            currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
             UpdateInfoText();
 
             currentUi.install.onClick.AddListener(Download);
@@ -399,7 +425,7 @@ namespace AngryLevelLoader.Fields
             currentUi.upvoteButton.gameObject.AddComponent<DisableWhenHidden>();
             currentUi.upvoteButton.gameObject.SetActive(false);
 			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.upvoteButton,
-                (e) => currentUi.upvoteButton.gameObject.SetActive(true),
+                (e) => currentUi.upvoteButton.gameObject.SetActive(!locked),
                 (e) => currentUi.upvoteButton.gameObject.SetActive(false)
                 );
 
@@ -435,7 +461,7 @@ namespace AngryLevelLoader.Fields
 			currentUi.downvoteButton.gameObject.AddComponent<DisableWhenHidden>();
 			currentUi.downvoteButton.gameObject.SetActive(false);
 			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.downvoteButton,
-				(e) => currentUi.downvoteButton.gameObject.SetActive(true),
+				(e) => currentUi.downvoteButton.gameObject.SetActive(!locked),
 				(e) => currentUi.downvoteButton.gameObject.SetActive(false)
 				);
 
@@ -460,7 +486,7 @@ namespace AngryLevelLoader.Fields
 
 			currentUi.votes.text = voteCount.ToString();
 
-			currentUi.changelog.onClick.AddListener(() =>
+            currentUi.changelog.onClick.AddListener(() =>
             {
                 BundleInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
                 LevelUpdateNotification notification = new LevelUpdateNotification();
@@ -470,6 +496,7 @@ namespace AngryLevelLoader.Fields
                 NotificationPanel.Open(notification);
             });
             currentUi.changelog.gameObject.AddComponent<DisableWhenHidden>();
+            currentUi.changelog.gameObject.SetActive(false);
             UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.changelog,
                 (e) =>
                 {
@@ -517,6 +544,11 @@ namespace AngryLevelLoader.Fields
             if (hierarchyHidden)
 				currentContainer.gameObject.SetActive(false);
 
+            currentUi.install.interactable = !locked;
+            currentUi.update.interactable = !locked;
+            currentUi.votes.gameObject.SetActive(!locked);
+            currentUi.upvoteButton.gameObject.SetActive(!locked);
+            currentUi.downvoteButton.gameObject.SetActive(!locked);
             UpdateUI();
         }
 

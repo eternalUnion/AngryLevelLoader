@@ -28,6 +28,7 @@ namespace AngryLevelLoader.Managers
     {
         public class UpdateInfo
         {
+            public long Date { get; set; }
             public string Hash { get; set; }
             public string Message { get; set; }
         }
@@ -42,20 +43,20 @@ namespace AngryLevelLoader.Managers
 
             public int secretCount { get; set; }
 
-			public bool levelChallengeEnabled { get; set; }
-			public string levelChallengeText { get; set; }
+            public bool levelChallengeEnabled { get; set; }
+            public string levelChallengeText { get; set; }
 
-			public List<string> requiredDllNames;
-		}
+            public List<string> requiredDllNames;
+        }
 
         public string Name { get; set; }
         public string Author { get; set; }
-        public string Guid { get; set; }
         public int Size { get; set; }
+        public string Guid { get; set; }
         public string Hash { get; set; }
         public string ThumbnailHash { get; set; }
 
-        public string ExternalLink { get; set; }
+        public bool Locked { get; set; }
         public List<string> Parts;
         public long LastUpdate { get; set; }
         public List<UpdateInfo> Updates;
@@ -472,7 +473,7 @@ namespace AngryLevelLoader.Managers
             string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
             IOUtils.TryCreateDirectoryForFile(cachedCatalogPath);
 
-            UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalogHash.txt"));
+            UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "V2/LevelCatalogHash.txt"));
             catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
             await catalogVersionRequest.SendWebRequest();
 
@@ -521,7 +522,7 @@ namespace AngryLevelLoader.Managers
             string catalogPath = AngryPaths.LevelCatalogCachePath;
             IOUtils.TryCreateDirectoryForFile(catalogPath);
 
-            UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "LevelCatalog.json"));
+            UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "V2/LevelCatalog.json"));
             catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
             await catalogRequest.SendWebRequest();
 
@@ -680,6 +681,7 @@ namespace AngryLevelLoader.Managers
                 field.bundleFileSize = info.Size;
                 field.bundleBuildHash = info.Hash;
                 field.lastUpdate = info.LastUpdate;
+                field.locked = info.Locked;
 
                 // Update ui
                 field.UpdateUI();
