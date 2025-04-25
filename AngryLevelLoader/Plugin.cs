@@ -407,6 +407,9 @@ namespace AngryLevelLoader
 			int filterCount = 0, totalCount = 0;
 			foreach (AngryBundleContainer bundle in angryBundles.Values)
 			{
+				if (bundle.rootPanel.forceHidden)
+					continue;
+
 				if (bundle.bundleData == null)
 				{
 					bundle.rootPanel.hidden = true;
@@ -425,6 +428,7 @@ namespace AngryLevelLoader
 			searchInfo.text = $"Showing {filterCount} of {totalCount} bundles";
 		}
 
+		private static int numOfOldBundles = 0;
 		public static void ProcessPath(string path, string folder)
 		{
 			if (!pathToFolderMap.TryGetValue(folder, out FolderButtonField folderField))
@@ -505,12 +509,19 @@ namespace AngryLevelLoader
 					bool newFile = !IOUtils.PathEquals(bundle.pathToAngryBundle, path);
                     bundle.pathToAngryBundle = path;
                     bundle.rootPanel.interactable = true;
+                    bundle.rootPanel.forceHidden = false;
                     bundle.rootPanel.hidden = false;
 
                     if (newFile)
                         bundle.UpdateScenes(false, false);
 
 					folderBundleList.Add(bundle);
+
+					if (data.bundleVersion < 6)
+					{
+                        bundle.rootPanel.forceHidden = true;
+                        numOfOldBundles += 1;
+                    }
 
 					return;
                 }
@@ -540,7 +551,14 @@ namespace AngryLevelLoader
                         errorText.text += '\n';
                     errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
                 }
-			}
+
+                // Old bundle, cannot open level
+                if (data.bundleVersion < 6)
+                {
+					newBundle.rootPanel.forceHidden = true;
+					numOfOldBundles += 1;
+                }
+            }
 			else
 			{
                 if (AngryFileUtils.IsV1LegacyFile(path))
@@ -571,6 +589,7 @@ namespace AngryLevelLoader
 		// loads newly added angry levels
 		public static void ScanForLevels()
         {
+			numOfOldBundles = 0;
             errorText.text = "";
 
 			currentSearchKeywords = new string[0];
@@ -623,6 +642,13 @@ namespace AngryLevelLoader
 				}
 
 				folder.Value.CreateIcon(new FolderEnumerator(folder.Value));
+			}
+
+			if (numOfOldBundles != 0)
+			{
+				if (!string.IsNullOrEmpty(errorText.text))
+					errorText.text += '\n';
+				errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s).</color>";
 			}
 
 			OpenFolder(rootFolder);

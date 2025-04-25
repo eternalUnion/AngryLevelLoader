@@ -78,6 +78,28 @@ namespace AngryLevelLoader.Fields
             }
         }
 
+        private bool _forceHidden = false;
+        public bool forceHidden
+        {
+            get => _forceHidden;
+            set
+            {
+                _forceHidden = value;
+                base.hidden = forceHidden || _hidden;
+            }
+        }
+
+        private new bool _hidden = false;
+        public override bool hidden
+        {
+            get => base.hidden;
+            set
+            {
+                _hidden = value;
+                base.hidden = forceHidden || _hidden;
+            }
+        }
+
         public ConfigPanelForBundles(AngryBundleContainer creator, ConfigPanel parentPanel, string name, string guid) : base(parentPanel, name, guid, PanelFieldType.StandardWithBigIcon)
         {
             callback = creator;

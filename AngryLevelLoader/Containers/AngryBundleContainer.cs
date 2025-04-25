@@ -230,6 +230,19 @@ namespace AngryLevelLoader.Containers
 			if (fileChanged)
 				Plugin.UpdateLastUpdate(this);
 
+            if (bundleData != null)
+            {
+                rootPanel.forceHidden = bundleData.bundleVersion < 6;
+
+                // If the bundle is made for an older version and the panel is open, go back to the levels panel
+                if (bundleData.bundleVersion < 6
+                    && rootPanel.currentPanel != null
+                    && PluginConfiguratorController.activePanel == rootPanel.currentPanel.gameObject)
+                {
+                    Plugin.config.rootPanel.OpenPanel();
+                }
+            }
+
 			// We don't need to load the bunde assets if all we need is the bundle interface
 			if (lazyLoad)
                 return;
