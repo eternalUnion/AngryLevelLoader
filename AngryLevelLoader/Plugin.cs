@@ -2230,8 +2230,9 @@ namespace AngryLevelLoader
             Addressables.LoadAssetAsync<GameObject>("FirstRoom");
             Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret");
             Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime");
+            Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab");
 
-			Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
+            Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
 			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png");
 			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png");
 			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat");

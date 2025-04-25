@@ -126,11 +126,16 @@ namespace RudeLevelScript
 		public bool secretRoom = false;
 		[Tooltip("Enabling this field causes room to be spawned as the prime variant")]
 		public bool primeRoom = false;
-		[Tooltip("Enabling this field causes the whole room to be converted into the ascending variant where the player is spawned at the bottom and ascends upwards instead of falling")]
+        [Tooltip("Enabling this field causes room to be spawned as the encore variant")]
+        public bool encoreRoom = false;
+		[HideInInspector]
+        [Tooltip("Enabling this field causes the whole room to be converted into the ascending variant where the player is spawned at the bottom and ascends upwards instead of falling")]
 		public bool convertToUpwardRoom = false;
-		[Tooltip("This clip will be played when the trap door closes beneath the player for ascending rooms")]
+        [HideInInspector]
+        [Tooltip("This clip will be played when the trap door closes beneath the player for ascending rooms")]
 		public AudioClip upwardRoomDoorCloseClip;
-		[Tooltip("If bottom part of the ascending room collides with out of bounds triggers, this list can temporarely disable them while the player is ascending")]
+        [HideInInspector]
+        [Tooltip("If bottom part of the ascending room collides with out of bounds triggers, this list can temporarely disable them while the player is ascending")]
 		public List<GameObject> upwardRoomOutOfBoundsToDisable;
 
 		[Header("Player Fields")]
@@ -372,7 +377,12 @@ namespace RudeLevelScript
 				return;
 
 			GameObject firstRoomInst = gameObject;
-			GameObject firstRoomRef = Addressables.LoadAssetAsync<GameObject>(secretRoom ? "FirstRoom Secret" : primeRoom ? "FirstRoom Prime" : "FirstRoom").WaitForCompletion();
+			GameObject firstRoomRef = Addressables.LoadAssetAsync<GameObject>(
+				secretRoom ? "FirstRoom Secret" : 
+				primeRoom ? "FirstRoom Prime" : 
+				encoreRoom ? "Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab" : 
+				"FirstRoom").WaitForCompletion();
+
 			if (!doNotReplace)
 			{
 				firstRoomInst = Instantiate(firstRoomRef, transform.parent);
