@@ -147,8 +147,6 @@ namespace AngryLevelLoader.Fields
                     currentUi.install.interactable = !locked;
                     currentUi.update.interactable = !locked;
                     currentUi.votes.gameObject.SetActive(!locked);
-                    currentUi.upvoteButton.gameObject.SetActive(!locked);
-                    currentUi.downvoteButton.gameObject.SetActive(!locked);
                 }
             }
         }
@@ -547,8 +545,6 @@ namespace AngryLevelLoader.Fields
             currentUi.install.interactable = !locked;
             currentUi.update.interactable = !locked;
             currentUi.votes.gameObject.SetActive(!locked);
-            currentUi.upvoteButton.gameObject.SetActive(!locked);
-            currentUi.downvoteButton.gameObject.SetActive(!locked);
             UpdateUI();
         }
 
