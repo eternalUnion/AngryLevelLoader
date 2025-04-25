@@ -4,6 +4,7 @@ using PluginConfig;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
@@ -42,9 +43,26 @@ namespace AngryLevelLoader.Notifications
             this.container = container;
         }
 
+        private async Task DeleteBundleTask()
+        {
+            try
+            {
+                await container.DeleteBundle();
+            }
+            finally
+            {
+                if (ui != null)
+                    ui.cancelButton.interactable = true;
+
+                Close();
+            }
+        }
+
+        private AngryDeleteBundleNotificationComponent ui = null;
+
         public override void OnUI(RectTransform panel)
         {
-            AngryDeleteBundleNotificationComponent ui = Addressables.InstantiateAsync(ASSET_PATH, panel).WaitForCompletion().GetComponent<AngryDeleteBundleNotificationComponent>();
+            ui = Addressables.InstantiateAsync(ASSET_PATH, panel).WaitForCompletion().GetComponent<AngryDeleteBundleNotificationComponent>();
 
             ui.cancelButton.onClick.AddListener(() =>
             {
@@ -53,8 +71,10 @@ namespace AngryLevelLoader.Notifications
 
             ui.deleteButton.onClick.AddListener(() =>
             {
-                container.DeleteBundle();
-                Close();
+                ui.body.text = "Deleting bundle...";
+                ui.cancelButton.interactable = false;
+                ui.deleteButton.interactable = false;
+                _ = DeleteBundleTask();
             });
 
             ui.bundleIcon.sprite = container.rootPanel.icon;

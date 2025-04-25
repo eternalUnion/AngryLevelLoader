@@ -333,7 +333,7 @@ namespace AngryLevelLoader
 
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
-			return angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == guid).FirstOrDefault();
+			return angryBundles.Values.Where(bundle => bundle.bundleData != null && bundle.bundleData.bundleGuid == guid).FirstOrDefault();
 		}
 
 		internal static void OpenFolder(FolderButtonField folderField)
@@ -362,7 +362,7 @@ namespace AngryLevelLoader
 				while (foldersToCheck.Count != 0)
 				{
 					FolderButtonField currentFolder = foldersToCheck.Pop();
-					if (folderToBundleMap.TryGetValue(currentFolder, out var folderBundles) && folderBundles.Count != 0)
+					if (folderToBundleMap.TryGetValue(currentFolder, out var folderBundles) && folderBundles.Where(bundle => bundle.bundleData != null).Any())
 					{
 						folder.hidden = false;
 						break;
@@ -648,7 +648,7 @@ namespace AngryLevelLoader
 			{
 				if (!string.IsNullOrEmpty(errorText.text))
 					errorText.text += '\n';
-				errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s).</color>";
+				errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s). These files can be deleted at the bottom of the settings page.</color>";
 			}
 
 			OpenFolder(rootFolder);
@@ -1441,6 +1441,11 @@ namespace AngryLevelLoader
 				configDataPath.value = newPath;
 
 				DisableAllConfig();
+			};
+			ButtonField deleteOldBundles = new ButtonField(settingsPanel, "Delete Old Bundles", "s_deleteOldBundles");
+			deleteOldBundles.onClick += () =>
+			{
+				NotificationPanel.Open(new DeleteOldBundlesNotification());
 			};
 
 			ButtonArrayField settingsAndReload = new ButtonArrayField(config.rootPanel, "settingsAndReload", 2, new float[] { 0.5f, 0.5f }, new string[] { "Settings", "Scan For Levels" });
