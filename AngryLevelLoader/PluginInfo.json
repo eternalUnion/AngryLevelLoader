@@ -104,6 +104,14 @@
     {
       "version": "2.10.1",
       "updateText": "- Seasonal hats now appear in completed custom levels, cutscene skips are no longer available in incomplete custom levels (thanks to Bobot for implementation)\n- Fixed several bugs related to the folder system"
+    },
+    {
+      "version": "3.0.0",
+      "updateText": "- Update for ULTRAKILL Revamp update\n- Unfortunately, older levels did not survive the update. A separate catalog was created for the newer levels."
+    },
+    {
+      "version": "3.0.1",
+      "updateText": "- Fixes incompatibility with EasyPZ (potentially fixes other incompatibilities)\n- Fixes challenges not being saved if the run was not the new best"
     }
   ]
 }
