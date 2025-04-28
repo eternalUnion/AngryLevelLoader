@@ -256,6 +256,15 @@ namespace AngryLevelLoader.Patches
             bool playerBestWithoutCheats = !usedCheats && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < AngrySceneManager.currentLevelContainer.time.value));
 			bool firstTimeWithCheats = previousRankScore == -1 && usedCheats;
 
+			if (!usedCheats)
+			{
+                if (!challengeCompletedBefore && AngrySceneManager.currentLevelData.levelChallengeEnabled)
+				{
+                    AngrySceneManager.currentLevelContainer.challenge.value = challengeCompletedThisSeason;
+                    AngrySceneManager.currentLevelContainer.UpdateUI();
+                }
+            }
+
 			if ((playerBestWithoutCheats || firstTimeWithCheats) && isPlayingWithoutGamemode)
 			{
 				AngrySceneManager.currentLevelContainer.time.value = __instance.seconds;
@@ -272,8 +281,6 @@ namespace AngryLevelLoader.Patches
 				else
 				{
 					AngrySceneManager.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
-					if (!challengeCompletedBefore && AngrySceneManager.currentLevelData.levelChallengeEnabled)
-						AngrySceneManager.currentLevelContainer.challenge.value = challengeCompletedThisSeason;
 				}
 
 				AngrySceneManager.currentBundleContainer.RecalculateFinalRank();
