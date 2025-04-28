@@ -2019,7 +2019,7 @@ namespace AngryLevelLoader
 		}
 
 		// First validate all dependencies are installed and they meet the minimum requirements
-		private void Awake()
+		private void Start()
 		{
 			// Plugin startup logic
 			instance = this;
@@ -2240,7 +2240,7 @@ namespace AngryLevelLoader
 			// reaction of texture, material, shader dependency loads. Though it MIGHT be incorrect,
 			// and I am not sure of the actual origin of the issue (because when I check the loaded
 			// bundles every addressable bundle is already in the memory like what?)
-			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab");
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab").WaitForCompletion();
 
             // Rant #2: Addressables being a pain again
             //
@@ -2251,15 +2251,15 @@ namespace AngryLevelLoader
             // scripts that reference the player on start will fail. So force these assets to be
             // always loaded. BTW, this is """"THE SOLUTION""" unity provides, yes the SOLUTION, and they
             // are not planning to do anything about it (flagged as Won't Fix).
-            Addressables.LoadAssetAsync<GameObject>("FirstRoom");
-            Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret");
-            Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime");
-            Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab");
+            Addressables.LoadAssetAsync<GameObject>("FirstRoom").WaitForCompletion();
+            Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret").WaitForCompletion();
+            Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime").WaitForCompletion();
+            Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab").WaitForCompletion();
 
-            Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf");
-			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png");
-			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png");
-			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat");
+            Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png").WaitForCompletion();
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png").WaitForCompletion();
+			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat").WaitForCompletion();
 
 			// Also load some necessary assets which are needed during scene load
 			MeshCombineManagerPatches.Initialize();
