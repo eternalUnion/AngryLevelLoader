@@ -133,7 +133,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		private static async Task<string> TryPostRecordInternalTask(PostRecordInfo info)
 		{
 			// Cheats + major assists check
-			if (!GameStateManager.CanSubmitScores)
+			if (LeaderboardController.LeaderboardsBlocked)
 			{
 				Plugin.logger.LogWarning("Angry did not post the record because cheats or major assists were used");
 				return "<color=red>Failed to post record:\nCheats used</color>";
