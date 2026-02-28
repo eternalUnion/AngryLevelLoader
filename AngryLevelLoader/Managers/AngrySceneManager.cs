@@ -307,8 +307,15 @@ namespace AngryLevelLoader.Managers
 			}
 
 			int levelVersion = bundleContainer.bundleData.bundleVersion;
-            // Set legacy path here in the future
-            LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+            if (levelVersion == 6)
+            {
+                LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.V6);
+            }
+            else
+            {
+				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+			}
+
 
             //Clear the map vars before loading the level.
             AngryMapVarManager.Instance.ResetStores();

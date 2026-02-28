@@ -5,12 +5,55 @@ using System.Reflection;
 using System.Text;
 using Train;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {
+	internal class LazyAddressableAsset<T> where T : UnityEngine.Object
+	{
+		private T _asset = null;
+		private readonly string path;
+
+		public LazyAddressableAsset(string path)
+		{
+			this.path = path;
+		}
+
+		public T Get()
+		{
+			if (_asset != null)
+				return _asset;
+
+			_asset = Addressables.LoadAssetAsync<T>(path).WaitForCompletion();
+			return _asset;
+		}
+	}
+
+	internal class LazyAsset<T>
+	{
+		private T _asset = default(T);
+		private Func<T> _assetGetter = null;
+
+		public LazyAsset(Func<T> assetGetter)
+		{
+			this._assetGetter = assetGetter;
+		}
+
+		public T Get()
+		{
+			if (_asset != null)
+				return _asset;
+
+			_asset = _assetGetter.Invoke();
+			return _asset;
+		}
+	}
+
 	public enum LegacyPatchState
 	{
 		None,
+		V6,
 	}
 
 	public class LegacyPatchManager
@@ -23,6 +66,29 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 		internal static void Init()
 		{
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
+				if (AngrySceneManager.isInCustomLevel)
+				{
+					int levelVersion = AngrySceneManager.currentBundleContainer.bundleData.bundleVersion;
+
+					if (levelVersion == 6)
+					{
+						SetLegacyPatchState(LegacyPatchState.V6);
+					}
+					else
+					{
+						SetLegacyPatchState(LegacyPatchState.None);
+					}
+				}
+				else
+				{
+					SetLegacyPatchState(LegacyPatchState.None);
+				}
+			};
 		}
 
 		public static void SetLegacyPatchState(LegacyPatchState state)
@@ -32,6 +98,13 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 			patchState = state;
 			legacyHarmony.UnpatchSelf();
+
+			if (state == LegacyPatchState.V6)
+			{
+				// Apply all Revamp patches
+				V6LegacyScriptPatches.Patch(legacyHarmony);
+				V6LegacyEnemyPatches.Patch(legacyHarmony);
+			}
 		}
 	}
 }

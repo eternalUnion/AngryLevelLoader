@@ -376,6 +376,23 @@ namespace RudeLevelScript
 			if (spawned)
 				return;
 
+			GameObject onLevelStartObj = null;
+
+			bool onLevelStartExists = OnLevelStart.Instance != null;
+			if (!onLevelStartExists)
+			{
+				Transform levelStartObj = gameObject.transform.Find("OnLevelStart");
+				if (levelStartObj != null)
+				{
+					onLevelStartExists = levelStartObj.GetComponent<OnLevelStart>() != null;
+					onLevelStartObj = levelStartObj.gameObject;
+				}
+			}
+			else
+			{
+				onLevelStartObj = OnLevelStart.Instance.gameObject;
+			}
+
 			GameObject firstRoomInst = gameObject;
 			GameObject firstRoomRef = Addressables.LoadAssetAsync<GameObject>(
 				secretRoom ? "FirstRoom Secret" : 
@@ -386,11 +403,33 @@ namespace RudeLevelScript
 			if (!doNotReplace)
 			{
 				firstRoomInst = Instantiate(firstRoomRef, transform.parent);
+
+				if (onLevelStartExists)
+				{
+					Transform duplicateOnLevelStart = firstRoomInst.transform.Find("OnLevelStart") ?? SceneManager.GetActiveScene().GetRootGameObjects().Where(go => go.name == "OnLevelStart" && go.transform != onLevelStartObj).Select(go => go.transform).FirstOrDefault();
+
+					if (duplicateOnLevelStart != null)
+					{
+						Destroy(duplicateOnLevelStart.gameObject);
+					}
+
+					if (onLevelStartObj != null)
+						onLevelStartObj.transform.SetParent(firstRoomInst.transform);
+				}
 			}
 			else
 			{
 				GameObject dummyRoom = Instantiate(firstRoomRef, transform.position, transform.rotation, transform.parent);
 				Destroy(dummyRoom.transform.Find("Room").gameObject);
+			
+				if (onLevelStartExists)
+				{
+					Transform duplicateOnLevelStart = dummyRoom.transform.Find("OnLevelStart");
+					if (duplicateOnLevelStart != null)
+					{
+						Destroy(duplicateOnLevelStart.gameObject);
+					}
+				}
 			}
 
 			// Reverse combined mesh

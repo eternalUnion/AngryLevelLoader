@@ -2106,22 +2106,6 @@ namespace AngryLevelLoader
 			AssetManager.Init();
 
             LegacyPatchManager.Init();
-			SceneManager.sceneLoaded += (scene, mode) =>
-			{
-				if (mode == LoadSceneMode.Additive)
-					return;
-
-				if (AngrySceneManager.isInCustomLevel)
-				{
-					int levelVersion = AngrySceneManager.currentBundleContainer.bundleData.bundleVersion;
-					// Set legacy patches here in the future
-					LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
-				}
-				else
-				{
-					LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
-				}
-			};
 
 			// These scripts are common among all the levels
 			if (!LoadEssentialScripts())
