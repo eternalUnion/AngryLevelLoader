@@ -5,6 +5,7 @@ using AngryLevelLoader.Patches;
 using Logic;
 using PluginConfig;
 using RudeLevelScript;
+using RudeLevelScripts.Essentials;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -331,7 +332,7 @@ namespace AngryLevelLoader.Managers
 			currentLevelContainer.AssureSecretsSize();
 
             string secretString = currentLevelContainer.secrets.value;
-            foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == currentLevelData.scenePath))
+            foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == currentLevelData.scenePath && bonus.GetComponent<IgnoreSecret>() == null))
             {
                 if (bonus.gameObject.scene.path != currentLevelData.scenePath)
                     continue;
