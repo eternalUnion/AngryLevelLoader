@@ -1,6 +1,7 @@
 ﻿using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using HarmonyLib;
+using RudeLevelScripts.Essentials;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,7 @@ namespace AngryLevelLoader.Patches
 				return true;
 
 			__instance.levelNumber = -1;
+			__instance.secretObjects = new GameObject[0];
 			return true;
 		}
 
@@ -57,6 +59,12 @@ namespace AngryLevelLoader.Patches
 				return true;
 
 			if (__instance.prevSecrets.Contains(__0) || __instance.newSecrets.Contains(__0))
+				return false;
+
+			if (BonusPatches.lastCaller == null || BonusPatches.lastCaller.secretNumber != __0)
+				return false;
+
+			if (BonusPatches.lastCaller.GetComponent<IgnoreSecret>() != null)
 				return false;
 
 			string currentSecrets = AngrySceneManager.currentLevelContainer.secrets.value;
