@@ -39,6 +39,7 @@ using AngryLevelLoader.Managers.LegacyPatches;
 using Logic;
 using System.ComponentModel;
 using AngryLevelLoader.Patches;
+using System.Diagnostics;
 
 namespace AngryLevelLoader
 {
@@ -101,6 +102,9 @@ namespace AngryLevelLoader
 		public static BoolField showLeaderboardOnSecretLevelEnd;
 		public static StringField pendingRecordsField;
 		public static BoolField ignoreEpilepsyWarning;
+		public static BoolField instantLoadLevel;
+		public static StringField instantLoadLevelGuid;
+		public static StringField instantLoadLevelId;
 
 		public static bool ultrapainLoaded = false;
 		public static bool heavenOrHellLoaded = false;
@@ -774,8 +778,10 @@ namespace AngryLevelLoader
 		public static ConfigHeader pendingRecordsInfo;
 
 		// Settings panel
+		public static ButtonField changelogButton;
 		public static ButtonArrayField openButtons;
 		public static KeyCodeField reloadFileKeybind;
+		public static KeyCodeField reloadScriptKeybind;
 		public enum CustomLevelButtonPosition
 		{
 			Top,
@@ -1044,15 +1050,16 @@ namespace AngryLevelLoader
 			currentPanel.reloadBundlePrompt.MakeTransparent(true);
 		}
 
-		internal static FileSystemWatcher watcher;
+		internal static FileSystemWatcher levelsWatcher;
+		internal static FileSystemWatcher scriptsWatcher;
 		private static void InitializeFileWatcher()
 		{
-			if (watcher != null)
+			if (levelsWatcher != null)
 				return;
 
-			watcher = new FileSystemWatcher(levelsPath);
-			watcher.SynchronizingObject = CrossThreadInvoker.Instance;
-			watcher.Changed += (sender, e) =>
+			levelsWatcher = new FileSystemWatcher(levelsPath);
+			levelsWatcher.SynchronizingObject = CrossThreadInvoker.Instance;
+			levelsWatcher.Changed += (sender, e) =>
 			{
 				// Notify the bundle that the file is outdated
 
@@ -1067,7 +1074,7 @@ namespace AngryLevelLoader
 					}
 				}
 			};
-			watcher.Renamed += (sender, e) =>
+			levelsWatcher.Renamed += (sender, e) =>
 			{
 				// Try to find if a bundle owns the file, then update its file path
 
@@ -1082,7 +1089,7 @@ namespace AngryLevelLoader
 					}
 				}
 			};
-			watcher.Deleted += (sender, e) =>
+			levelsWatcher.Deleted += (sender, e) =>
 			{
 				// Try to find if a bundle owns the file, then unlink it
 
@@ -1097,7 +1104,7 @@ namespace AngryLevelLoader
 					}
 				}
 			};
-			watcher.Created += (sender, e) =>
+			levelsWatcher.Created += (sender, e) =>
 			{
 				// Try to find a bundle matching the file's guid
 
@@ -1117,10 +1124,190 @@ namespace AngryLevelLoader
 				}
 			};
 
-			watcher.Filter = "*";
+			levelsWatcher.Filter = "*";
 
-			watcher.IncludeSubdirectories = false;
-			watcher.EnableRaisingEvents = true;
+			levelsWatcher.IncludeSubdirectories = false;
+			levelsWatcher.EnableRaisingEvents = true;
+
+			scriptsWatcher = new FileSystemWatcher(ScriptManager.ScriptsPath);
+			scriptsWatcher.SynchronizingObject = CrossThreadInvoker.Instance;
+			void OnScriptChange(object sender, FileSystemEventArgs e)
+			{
+				string fullPath = e.FullPath;
+				if (!fullPath.EndsWith(".dll"))
+					return;
+
+				if (!ScriptManager.ScriptChanged(Path.GetFileName(fullPath)))
+					return;
+				logger.LogMessage($"Detected script change {Path.GetFileName(fullPath)}");
+
+				IEnumerator ShowScriptPrompt()
+				{
+					yield return new WaitUntil(() => currentPanel != null && AngrySceneManager.isInCustomLevel);
+
+					currentPanel.reloadScriptPrompt.gameObject.SetActive(true);
+					currentPanel.reloadScriptPrompt.audio.Play();
+					currentPanel.reloadScriptPrompt.text.text = $"Script update detected\nPress <color=orange>{Plugin.reloadScriptKeybind.value}</color> to reload\n(Can be binded in the settings)";
+					currentPanel.reloadScriptPrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
+					currentPanel.reloadScriptPrompt.reloadButton.onClick.AddListener(() =>
+					{
+						// Save state
+						if (AngrySceneManager.isInCustomLevel)
+						{
+							instantLoadLevel.value = true;
+							instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+							instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.data.uniqueIdentifier;
+						}
+
+						PluginConfiguratorController.FlushAllConfigs();
+
+						// Restart the game
+						ProcessStartInfo procInfo = new ProcessStartInfo()
+						{
+							FileName = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ULTRAKILL.exe"),
+							WorkingDirectory = Directory.GetParent(Application.dataPath).FullName,
+							UseShellExecute = false,
+							RedirectStandardError = true,
+							RedirectStandardOutput = true,
+						};
+
+						string[] variablesToRemove = new string[]
+						{
+							"DOORSTOP_DISABLE",
+							"DOORSTOP_DLL_SEARCH_DIRS",
+							"DOORSTOP_INITIALIZED",
+							"DOORSTOP_INVOKE_DLL_PATH",
+							"DOORSTOP_MANAGED_FOLDER_DIR",
+							"DOORSTOP_MONO_LIB_PATH",
+							"DOORSTOP_PROCESS_PATH"
+						};
+
+						foreach (string variable in variablesToRemove)
+						{
+							if (procInfo.EnvironmentVariables.ContainsKey(variable))
+								procInfo.EnvironmentVariables.Remove(variable);
+							if (procInfo.Environment.ContainsKey(variable))
+								procInfo.Environment.Remove(variable);
+						}
+
+						Process.Start(procInfo);
+						Application.Quit();
+					});
+
+					currentPanel.reloadScriptPrompt.ignoreButton.onClick = new Button.ButtonClickedEvent();
+					currentPanel.reloadScriptPrompt.ignoreButton.onClick.AddListener(() =>
+					{
+						currentPanel.reloadScriptPrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
+						currentPanel.reloadScriptPrompt.gameObject.SetActive(false);
+					});
+				}
+
+				instance.StopCoroutine(nameof(ShowScriptPrompt));
+				instance.StartCoroutine(ShowScriptPrompt());
+			}
+			scriptsWatcher.Changed += OnScriptChange;
+
+			scriptsWatcher.Filter = "*";
+
+			scriptsWatcher.IncludeSubdirectories = false;
+			scriptsWatcher.EnableRaisingEvents = true;
+
+			IEnumerator LoadLevelInstantly()
+			{
+				yield return null;
+
+				AngryBundleContainer bundle = GetAngryBundleByGuid(instantLoadLevelGuid.value);
+				if (bundle == null)
+				{
+					logger.LogInfo("Bundle not found");
+					yield break;
+				}
+
+				var handler = bundle.UpdateScenes(false, false);
+				yield return new WaitUntil(() => handler.IsCompleted);
+
+				if (!bundle.levels.TryGetValue(instantLoadLevelId.value, out LevelContainer level))
+				{
+					logger.LogInfo("Level not found");
+					yield break;
+				}
+
+				GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
+				if (canvasObj == null)
+				{
+					logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
+					yield break;
+				}
+
+				// Find the options menu
+				Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
+				if (optionsMenu == null)
+				{
+					logger.LogError("Angry tried to find the options menu but failed!");
+					yield break;
+				}
+
+				// Open options menu
+				optionsMenu.gameObject.SetActive(true);
+				yield return null;
+
+				// Open plugin config panel
+				Transform pluginConfigButton = optionsMenu.transform.Find("Navigation Rail/PluginConfiguratorButton(Clone)");
+				if (pluginConfigButton == null)
+					pluginConfigButton = optionsMenu.transform.Find("Navigation Rail/PluginConfiguratorButton");
+
+				if (pluginConfigButton == null)
+				{
+					logger.LogError("Angry tried to find the plugin configurator button but failed!");
+					yield break;
+				}
+
+				// Two buttons may be highlighted at the same time if the menu is not opened before
+				Transform panel = optionsMenu.Find("Navigation Rail");
+				if (panel != null && panel.gameObject.TryGetComponent(out ButtonHighlightParent highlightManager))
+				{
+					if (highlightManager.buttons == null || highlightManager.buttons.Length == 0)
+					{
+						highlightManager.Start();
+						highlightManager.targetOnStart = null;
+					}
+				}
+
+				// Click the plugin config button and open the main panel of angry
+				pluginConfigButton.gameObject.GetComponent<Button>().onClick.Invoke();
+				yield return null;
+
+				if (PluginConfiguratorController.activePanel != null)
+					PluginConfiguratorController.activePanel.SetActive(false);
+				yield return null;
+
+				PluginConfiguratorController.mainPanel.gameObject.SetActive(false);
+				yield return null;
+
+				config.rootPanel.OpenPanelInternally(false);
+				yield return null;
+
+				bundle.rootPanel.OpenPanelInternally(false);
+				yield return null;
+
+				AngrySceneManager.LevelButtonPressed(bundle, level, level.data, level.data.scenePath);
+			}
+
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
+				if (AngrySceneManager.isInCustomLevel || SceneHelper.CurrentScene != "Main Menu")
+					return;
+
+				if (!instantLoadLevel.value)
+					return;
+				instantLoadLevel.value = false;
+
+				logger.LogInfo("Starting custom level instantly");
+				instance.StartCoroutine(LoadLevelInstantly());
+			};
 		}
 
 		private static void InitializeConfig()
@@ -1233,16 +1420,24 @@ namespace AngryLevelLoader
 			settingsPanel.hidden = true;
 
 			// Settings panel
-			openButtons = new ButtonArrayField(settingsPanel, "settingButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Open Levels Folder", "Changelog" });
-			openButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(levelsPath);
-			openButtons.OnClickEventHandler(1).onClick += () =>
-			{
+			changelogButton = new ButtonField(settingsPanel, "Changelog", "changelogButton");
+			changelogButton.onClick += () => {
 				openButtons.SetButtonInteractable(1, false);
 				_ = PluginUpdateHandler.CheckPluginUpdate();
 			};
+			openButtons = new ButtonArrayField(settingsPanel, "settingButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Open Levels Folder", "Open Scripts Folder" });
+			openButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(levelsPath);
+			openButtons.OnClickEventHandler(1).onClick += () => Application.OpenURL(ScriptManager.ScriptsPath);
 
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			reloadFileKeybind.onValueChange += (e) =>
+			{
+				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
+					e.canceled = true;
+			};
+
+			reloadScriptKeybind = new KeyCodeField(settingsPanel, "Reload Script", "f_reloadScript", KeyCode.None);
+			reloadScriptKeybind.onValueChange += (e) =>
 			{
 				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
 					e.canceled = true;
@@ -2066,6 +2261,10 @@ namespace AngryLevelLoader
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
 			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
 			ignoreEpilepsyWarning = new BoolField(internalConfig.rootPanel, "ignoreEpilepsyWarning", "ignoreEpilepsyWarning", false);
+			instantLoadLevel = new BoolField(internalConfig.rootPanel, "instantLoadLevel", "instantLoadLevel", false);
+			instantLoadLevelGuid = new StringField(internalConfig.rootPanel, "instantLoadLevelGuid", "instantLoadLevelGuid", "", true);
+			instantLoadLevelId = new StringField(internalConfig.rootPanel, "instantLoadLevelId", "instantLoadLevelId", "", true);
+			
 			askedPermissionForLeaderboards = new BoolField(internalConfig.rootPanel, "askedPermissionForLeaderboards", "askedPermissionForLeaderboards", false);
 			leaderboardToggle = new BoolField(internalConfig.rootPanel, "Post records to leaderboards", "leaderboardToggle", false);
 			leaderboardToggle.onValueChange += (e =>
@@ -2261,7 +2460,7 @@ namespace AngryLevelLoader
 		float lastPress = 0;
 		private void OnGUI()
 		{
-			if (reloadFileKeybind.value == KeyCode.None)
+			if (reloadFileKeybind.value == KeyCode.None && reloadScriptKeybind.value == KeyCode.None)
 				return;
 
 			if (!AngrySceneManager.isInCustomLevel)
@@ -2316,6 +2515,9 @@ namespace AngryLevelLoader
 					keyCode = KeyCode.RightShift;
 				}
 			}
+
+			if (keyCode == KeyCode.None)
+				return;
 			
 			if (keyCode == reloadFileKeybind.value)
 			{
@@ -2326,6 +2528,12 @@ namespace AngryLevelLoader
 
 				if (NotificationPanel.CurrentNotificationCount() == 0)
 					ReloadFileKeyPressed();
+			}
+
+			if (keyCode == reloadScriptKeybind.value)
+			{
+				if (currentPanel != null && currentPanel.reloadScriptPrompt != null && currentPanel.reloadScriptPrompt.reloadButton != null)
+					currentPanel.reloadScriptPrompt.reloadButton.onClick?.Invoke();
 			}
 		}
 	

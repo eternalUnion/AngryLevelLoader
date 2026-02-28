@@ -1,7 +1,9 @@
 ﻿using AngryLevelLoader.Containers;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -9,7 +11,10 @@ namespace AngryLevelLoader.Managers
 {
     public static class ScriptManager
     {
-        private static List<string> loadedScripts = new List<string>();
+        public static string ScriptsPath => Path.Combine(Plugin.workingDir, "Scripts");
+
+        private static Dictionary<string, string> loadedScriptsDict = new Dictionary<string, string>();
+        private static IEnumerable<string> loadedScripts => loadedScriptsDict.Keys;
         public enum LoadScriptResult
         {
             Loaded,
@@ -23,7 +28,7 @@ namespace AngryLevelLoader.Managers
             if (loadedScripts.Contains(scriptName))
                 return LoadScriptResult.Loaded;
 
-            string scriptPath = Path.Combine(Plugin.workingDir, "Scripts", scriptName);
+            string scriptPath = Path.Combine(ScriptsPath, scriptName);
             if (!File.Exists(scriptPath))
                 return LoadScriptResult.NotFound;
             if (!File.Exists(scriptPath + ".cert"))
@@ -32,17 +37,19 @@ namespace AngryLevelLoader.Managers
             if (!CryptographyUtils.VerifyFileCertificate(scriptPath, scriptPath + ".cert"))
                 return LoadScriptResult.InvalidCertificate;
 
-            Assembly a = Assembly.Load(File.ReadAllBytes(scriptPath));
-            loadedScripts.Add(scriptName);
+            byte[] script = File.ReadAllBytes(scriptPath);
+			Assembly a = Assembly.Load(script);
+            loadedScriptsDict[scriptName] = CryptographyUtils.GetMD5String(script);
             return LoadScriptResult.Loaded;
         }
 
         public static void ForceLoadScript(string scriptName)
         {
-            string scriptPath = Path.Combine(Plugin.workingDir, "Scripts", scriptName);
-            Assembly.Load(File.ReadAllBytes(scriptPath));
-            loadedScripts.Add(scriptName);
-        }
+            string scriptPath = Path.Combine(ScriptsPath, scriptName);
+			byte[] script = File.ReadAllBytes(scriptPath);
+			Assembly a = Assembly.Load(script);
+			loadedScriptsDict[scriptName] = CryptographyUtils.GetMD5String(script);
+		}
 
         public static bool ScriptLoaded(string scriptName)
         {
@@ -52,6 +59,14 @@ namespace AngryLevelLoader.Managers
         public static bool ScriptExists(string scriptName)
         {
             return File.Exists(Path.Combine(Plugin.workingDir, "Scripts", scriptName));
+        }
+
+        public static bool ScriptChanged(string scriptName)
+        {
+            if (!loadedScriptsDict.TryGetValue(scriptName, out string hash) || !File.Exists(Path.Combine(ScriptsPath, scriptName)))
+                return false;
+
+            return hash != CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(ScriptsPath, scriptName)));
         }
 
         public static List<string> GetRequiredScriptsFromBundle(AngryBundleContainer bundleContainer)
