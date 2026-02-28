@@ -1869,7 +1869,7 @@ namespace AngryLevelLoader
 							await localBundle.UpdateScenes(false, false);
 						}
 
-						bundle.Levels = new List<BundleInfo.LevelInfo>();
+						bundle.Levels = new List<LevelInfo>();
 						
 						string levelThumbnailsPath = Path.Combine(angryLevelsPath.value, "Levels", guid, "LevelThumbnails");
 						if (!Directory.Exists(levelThumbnailsPath))
@@ -1877,7 +1877,7 @@ namespace AngryLevelLoader
 
 						foreach (var levelData in localBundle.GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
 						{
-							bundle.Levels.Add(new BundleInfo.LevelInfo()
+							bundle.Levels.Add(new LevelInfo()
 							{
 								LevelName = levelData.levelName,
 								LevelId = levelData.uniqueIdentifier,

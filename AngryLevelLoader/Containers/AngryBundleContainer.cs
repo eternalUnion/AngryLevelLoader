@@ -151,43 +151,22 @@ namespace AngryLevelLoader.Containers
 
             // Open the angry zip archive
             AngryBundleData latestData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
-            bool rewriteData = false;
+            if (latestData == null)
+            {
+                statusText.text = "<color=red>Invalid angry file!</color>";
+                statusText.hidden = false;
+                return;
+            }
+
+			bool rewriteData = false;
             bool unzip = true;
             bool fileChanged = false;
 
-            pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
+			pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
             
             rootPanel.displayName = string.IsNullOrEmpty(latestData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : latestData.bundleName;
             rootPanel.headerText = $"--{rootPanel.displayName}--";
-            if (!string.IsNullOrEmpty(latestData.bundleAuthor))
-            {
-                rootPanel.displayName += $"\n<color=#909090>by {latestData.bundleAuthor}</color>";
-            }
-
-            if (string.IsNullOrEmpty(latestData.bundleName))
-            {
-                lazyLoad = false;
-                rewriteData = true;
-            }
-
-            if (latestData.bundleVersion == -1)
-            {
-                latestData.bundleVersion = 2;
-                bundleData.bundleVersion = 2;
-
-				using (ZipArchive angryFile = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update))
-				{
-					ZipArchiveEntry dataEntry = angryFile.GetEntry("data.json");
-
-					using (StreamWriter sw = new StreamWriter(dataEntry.Open()))
-					{
-						sw.BaseStream.SetLength(0);
-						sw.BaseStream.Seek(0, SeekOrigin.Begin);
-						await sw.WriteAsync(JsonConvert.SerializeObject(latestData));
-						await sw.FlushAsync();
-					}
-				}
-			}
+            rootPanel.displayName += $"\n<color=#909090>by {latestData.bundleAuthor}</color>";
 
             // If force reload is set to false, check if the build hashes match
             // between unzipped bundle and the current angry file. Avoids unnecessary unzips
@@ -243,8 +222,8 @@ namespace AngryLevelLoader.Containers
                 }
             }
 
-			// We don't need to load the bunde assets if all we need is the bundle interface
-			if (lazyLoad)
+            // We don't need to load the bunde assets if all we need is the bundle interface
+            if (lazyLoad)
                 return;
 
 			fileChangeDetected = false;

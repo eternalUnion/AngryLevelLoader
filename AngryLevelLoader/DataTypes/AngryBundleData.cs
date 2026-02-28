@@ -22,5 +22,7 @@ namespace AngryLevelLoader.DataTypes
         // V7
         [DefaultValue(false)]
         public bool epilepsyWarning { get; set; }
+        [DefaultValue(null)]
+        public List<AngryLevelData> levels;
     }
 }

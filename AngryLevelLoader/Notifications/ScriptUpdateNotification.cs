@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Managers;
 using AngryUiComponents;
 using PluginConfig;

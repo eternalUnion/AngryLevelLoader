@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
@@ -357,7 +358,7 @@ namespace AngryLevelLoader.Managers
                 }
             }
 
-            if (currentBundleContainer.bundleData.bundleVersion == 2)
+            if (currentBundleContainer.bundleData.bundleVersion < 7)
             {
                 HudMessageReceiver hudMsg = HudMessageReceiver.Instance;
                 if (hudMsg != null)
