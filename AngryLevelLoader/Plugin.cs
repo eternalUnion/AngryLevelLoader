@@ -100,6 +100,7 @@ namespace AngryLevelLoader
 		public static BoolField showLeaderboardOnLevelEnd;
 		public static BoolField showLeaderboardOnSecretLevelEnd;
 		public static StringField pendingRecordsField;
+		public static BoolField ignoreEpilepsyWarning;
 
 		public static bool ultrapainLoaded = false;
 		public static bool heavenOrHellLoaded = false;
@@ -2064,6 +2065,7 @@ namespace AngryLevelLoader
 			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
 			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
+			ignoreEpilepsyWarning = new BoolField(internalConfig.rootPanel, "ignoreEpilepsyWarning", "ignoreEpilepsyWarning", false);
 			askedPermissionForLeaderboards = new BoolField(internalConfig.rootPanel, "askedPermissionForLeaderboards", "askedPermissionForLeaderboards", false);
 			leaderboardToggle = new BoolField(internalConfig.rootPanel, "Post records to leaderboards", "leaderboardToggle", false);
 			leaderboardToggle.onValueChange += (e =>

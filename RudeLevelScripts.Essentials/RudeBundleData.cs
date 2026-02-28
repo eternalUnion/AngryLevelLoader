@@ -16,5 +16,8 @@ namespace RudeLevelScripts.Essentials
 
 		[Tooltip("Icon shown right next to the level name. Must be in png format. If not square, gets cropped")]
 		public Sprite levelIcon;
+
+		[Tooltip("Flag this field if the bundle contains levels that contains seizure inducing elements")]
+		public bool epilepsyWarning;
 	}
 }

@@ -113,44 +113,57 @@ namespace AngryLevelLoader.Managers
 
         public static void LevelButtonPressed(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
-            List<string> requiredScripts = ScriptManager.GetRequiredScriptsFromBundle(bundleContainer);
-
-            List<string> scriptsToDownload = new List<string>();
-            foreach (string script in requiredScripts)
+            void ContinueLoadLevel()
             {
-                if (ScriptManager.ScriptExists(script))
-                {
-                    // Download if out of date
-                    ScriptInfo info = ScriptCatalogLoader.scriptCatalog == null ? null : ScriptCatalogLoader.scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
-                    if (info != null)
-                    {
-                        string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
-                        if (hash != info.Hash)
-                        {
-                            if (Plugin.scriptUpdateIgnoreCustom.value)
-                            {
-                                if (info.Updates != null && !info.Updates.Contains(hash))
-                                    continue;
-                            }
+                List<string> requiredScripts = ScriptManager.GetRequiredScriptsFromBundle(bundleContainer);
 
-                            scriptsToDownload.Add(script);
+                List<string> scriptsToDownload = new List<string>();
+                foreach (string script in requiredScripts)
+                {
+                    if (ScriptManager.ScriptExists(script))
+                    {
+                        // Download if out of date
+                        ScriptInfo info = ScriptCatalogLoader.scriptCatalog == null ? null : ScriptCatalogLoader.scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
+                        if (info != null)
+                        {
+                            string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
+                            if (hash != info.Hash)
+                            {
+                                if (Plugin.scriptUpdateIgnoreCustom.value)
+                                {
+                                    if (info.Updates != null && !info.Updates.Contains(hash))
+                                        continue;
+                                }
+
+                                scriptsToDownload.Add(script);
+                            }
                         }
                     }
+                    else
+                    {
+                        // Download if not found locally
+                        scriptsToDownload.Add(script);
+                    }
+                }
+
+                if (scriptsToDownload.Count != 0)
+                {
+                    NotificationPanel.Open(new ScriptUpdateNotification(scriptsToDownload, requiredScripts, bundleContainer, levelContainer, levelData, levelName));
                 }
                 else
                 {
-                    // Download if not found locally
-                    scriptsToDownload.Add(script);
+                    LoadLevelWithScripts(requiredScripts, bundleContainer, levelContainer, levelData, levelName);
                 }
             }
 
-            if (scriptsToDownload.Count != 0)
+            if (bundleContainer.bundleData.epilepsyWarning && !Plugin.ignoreEpilepsyWarning.value)
             {
-                NotificationPanel.Open(new ScriptUpdateNotification(scriptsToDownload, requiredScripts, bundleContainer, levelContainer, levelData, levelName));
+                EpilepsyWarningNotification notification = new EpilepsyWarningNotification(ContinueLoadLevel, "Play", "Play and do not ask again");
+                NotificationPanel.Open(notification);
             }
             else
             {
-                LoadLevelWithScripts(requiredScripts, bundleContainer, levelContainer, levelData, levelName);
+                ContinueLoadLevel();
             }
         }
 
