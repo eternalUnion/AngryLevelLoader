@@ -39,6 +39,7 @@ namespace RudeLevelScript
 	[CreateAssetMenu]
 	public class RudeLevelData : ScriptableObject
 	{
+		// V2-V6
 		[SerializeField]
 		[Tooltip("Scene which belongs to the data")]
 		public Object targetScene = null;
@@ -73,5 +74,8 @@ namespace RudeLevelScript
 		public string levelChallengeText = "";
 		[Tooltip("Set exactly to the number of secret bonuses in the level")]
 		public int secretCount = 0;
+
+		// V7
+		public bool doNotHideLevelPreviewWhenNotCompleted = false;
 	}
 }

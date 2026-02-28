@@ -212,7 +212,7 @@ namespace AngryLevelLoader.Fields
             else
             {
                 currentUi.levelHeader.text = data.levelName;
-                if (!playedBefore)
+                if (!playedBefore && !data.doNotHideLevelPreviewWhenNotCompleted)
                     currentUi.levelThumbnail.sprite = AssetManager.notPlayedPreview;
                 else
                     currentUi.levelThumbnail.sprite = data.levelPreviewImage;
