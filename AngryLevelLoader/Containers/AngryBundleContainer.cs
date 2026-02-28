@@ -300,6 +300,22 @@ namespace AngryLevelLoader.Containers
                 dataDictionary[data.uniqueIdentifier] = handle;
                 Plugin.idDictionary[data.uniqueIdentifier] = data;
             }
+
+            if (bundleData.bundleVersion < 7)
+            {
+				statusText.hidden = false;
+				if (!string.IsNullOrEmpty(statusText.text))
+                    statusText.text += '\n';
+                
+                if (bundleData.bundleVersion == 6)
+                {
+					statusText.text += $"<color=yellow>Warning: </color>Bundle was made for the Revamp update of Ultrakill. Expect issues.";
+				}
+                else
+                {
+					statusText.text += $"<color=yellow>Warning: </color>Bundle was made for an older version of Ultrakill. Expect issues.";
+				}
+            }
         }
 
         public IEnumerable<RudeLevelData> GetAllLevelData()
