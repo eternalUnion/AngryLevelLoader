@@ -19,6 +19,6 @@ namespace AngryLevelLoader.DataTypes
 		public bool levelChallengeEnabled { get; set; }
 		public string levelChallengeText { get; set; }
 		public int secretCount { get; set; }
-		public bool doNotHideLevelPreviewWhenNotCompleted = false;
+		public bool doNotHideLevelPreviewWhenNotCompleted { get; set; }
 	}
 }
