@@ -429,6 +429,16 @@ namespace RudeLevelScript
 					{
 						Destroy(duplicateOnLevelStart.gameObject);
 					}
+					else
+					{
+						OnLevelStart duplicateOnLevelStartComp = SceneManager.GetActiveScene().GetRootGameObjects()
+							.Select(go => go.GetComponent<OnLevelStart>())
+							.Where(ls => ls != null && ls.gameObject != onLevelStartObj)
+							.FirstOrDefault();
+
+						if (duplicateOnLevelStartComp != null)
+							Destroy(duplicateOnLevelStartComp.gameObject);
+					}
 				}
 			}
 
