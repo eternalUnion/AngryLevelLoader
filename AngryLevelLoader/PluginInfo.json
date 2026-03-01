@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "3.1.0",
+  "latestVersion": "3.1.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -116,6 +116,10 @@
     {
       "version": "3.1.0",
       "updateText": "- Implemented reverse compatibility with Revamp bundles\n- Added ability to show epilepsy warnings for some bundles\n- Added ability to always show level preview images, even if never played before (in control of the level maker)\n- On script update, a prompt is shown for instantly restarting the game and loading the last played custom level\n- Added open scripts button"
+    },
+    {
+      "version": "3.1.1",
+      "updateText": "- Removed auto script update"
     }
   ]
 }
