@@ -378,7 +378,22 @@ namespace AngryLevelLoader.Fields
             currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
             UpdateInfoText();
 
-            currentUi.install.onClick.AddListener(Download);
+            currentUi.install.onClick.AddListener(() =>
+            {
+                BundleInfo bundleInfo = null;
+                if (OnlineLevelsManager.catalog != null
+                    && (bundleInfo = OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).FirstOrDefault()) != null
+                    && bundleInfo.EpilepsyWarning
+                    && !Plugin.ignoreEpilepsyWarning.value)
+                {
+                    EpilepsyWarningNotification notification = new EpilepsyWarningNotification(Download, "Download", "Download and do not ask again");
+                    NotificationPanel.Open(notification);
+                }
+                else
+                {
+                    Download();
+                }
+			});
             currentUi.install.gameObject.AddComponent<DisableWhenHidden>();
             UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.install,
                 (e) =>
