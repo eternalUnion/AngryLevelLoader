@@ -23,34 +23,45 @@ namespace AngryLevelLoader.Patches
 		}
 
 
-		[HarmonyPatch(nameof(SceneHelper.RestartScene))]
+		[HarmonyPatch(nameof(SceneHelper.RestartSceneAsync))]
 		[HarmonyPrefix]
 		public static bool ChangeSceneNameBeforeLoad(SceneHelper __instance)
 		{
 			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
-            foreach (MonoBehaviour monoBehaviour in Object.FindObjectsOfType<MonoBehaviour>())
+			Time.timeScale = 0f;
+
+			foreach (MonoBehaviour monoBehaviour in Object.FindObjectsOfType<MonoBehaviour>())
             {
                 if (!(monoBehaviour == null) && !(monoBehaviour.gameObject.scene.name == "DontDestroyOnLoad"))
                 {
                     monoBehaviour.enabled = false;
                 }
             }
+
             if (string.IsNullOrEmpty(SceneHelper.CurrentScene))
             {
-                AngrySceneManager.SceneHelper_CurrentScene.SetValue(null, AngrySceneManager.currentLevelData.uniqueIdentifier);
-            }
-            Addressables.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).Completed += (scene) =>
-			{
-				if (SceneHelper.Instance.loadingBlocker != null)
-					SceneHelper.Instance.loadingBlocker.SetActive(false);
-			};
-			if (SceneHelper.Instance.loadingBlocker != null)
-				SceneHelper.Instance.loadingBlocker.SetActive(true);
+                SceneHelper.CurrentScene = AngrySceneManager.currentLevelData.uniqueIdentifier;
+			}
 
 			//call will be rerouted to AngryMapVarManager.
 			MapVarManager.Instance?.ReloadMapVars();
+
+			if (SceneHelper.Instance.loadingBlocker != null)
+				SceneHelper.Instance.loadingBlocker.SetActive(true);
+
+			Addressables.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).Completed += (scene) =>
+			{
+				if (SceneHelper.Instance.preloadingBadge != null)
+					SceneHelper.Instance.preloadingBadge.SetActive(false);
+				if (SceneHelper.Instance.loadingBlocker != null)
+					SceneHelper.Instance.loadingBlocker.SetActive(false);
+				if (SceneHelper.Instance.loadingBar != null)
+					SceneHelper.Instance.loadingBar.gameObject.SetActive(false);
+
+				Time.timeScale = 1f;
+			};
 
             return false;
 		}

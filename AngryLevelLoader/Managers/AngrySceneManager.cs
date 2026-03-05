@@ -26,7 +26,6 @@ namespace AngryLevelLoader.Managers
         private static LevelContainer _currentLevelContainer = null;
         private static RudeLevelData _currentLevelData = null;
 
-        internal static PropertyInfo SceneHelper_CurrentScene = typeof(SceneHelper).GetProperty(nameof(SceneHelper.CurrentScene));
         private static void CheckCurrentDataStatus()
         {
             string currentScene = SceneManager.GetActiveScene().path;
@@ -49,7 +48,7 @@ namespace AngryLevelLoader.Managers
                         _currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == currentScene).First().uniqueIdentifier];
                         _currentLevelContainer.discovered.value = true;
                         _currentLevelContainer.UpdateUI();
-                        SceneHelper_CurrentScene.SetValue(null, _currentLevelData.uniqueIdentifier);
+                        SceneHelper.CurrentScene = _currentLevelData.uniqueIdentifier;
                         Plugin.config.presetButtonInteractable = false;
                         Plugin.difficultyField.interactable = false;
 

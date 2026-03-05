@@ -27,6 +27,7 @@ using AngryLevelLoader.Notifications;
 using System.Threading.Tasks;
 using UnityEngine.UI;
 using System.Text.RegularExpressions;
+using Logic;
 
 namespace AngryLevelLoader.Containers
 {
@@ -356,15 +357,17 @@ namespace AngryLevelLoader.Containers
             }
             
             bool inTempScene = false;
-            Scene tempScene = new Scene();
             string previousPath = SceneManager.GetActiveScene().path;
             string previousName = SceneManager.GetActiveScene().name;
+            string previousId = AngrySceneManager.isInCustomLevel ? AngrySceneManager.currentLevelData.uniqueIdentifier : "";
             if (GetAllScenePaths().Contains(previousPath))
             {
-                tempScene = SceneManager.CreateScene("temp");
+                TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+                SceneHelper.LoadSceneAsync("AngryLevelLoader/Blank").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
+                await completionSource.Task;
+                
                 inTempScene = true;
-                await SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene().name);
-            }
+			}
 
             // Disable all level interfaces
             foreach (KeyValuePair<string, LevelContainer> pair in levels)
@@ -400,21 +403,17 @@ namespace AngryLevelLoader.Containers
 
             if (inTempScene)
             {
-                if (SceneHelper.Instance != null && SceneHelper.Instance.loadingBlocker != null)
-                    SceneHelper.Instance.loadingBlocker.SetActive(true);
+                RudeLevelData lastLevelData = GetAllLevelData().Where(l => l.uniqueIdentifier == previousId).FirstOrDefault();
 
-                if (GetAllScenePaths().Contains(previousPath))
-                {
-                    await Addressables.LoadSceneAsync(previousName);
-                }
+				if (lastLevelData == null)
+				{
+					SceneHelper.LoadScene("Main Menu", true); Plugin.logger.LogMessage("Ready for disable");
+				}
                 else
                 {
-                    await Addressables.LoadSceneAsync("Main Menu");
+                    SceneHelper.LoadScene(lastLevelData.scenePath, true);
                 }
-
-                if (SceneHelper.Instance != null && SceneHelper.Instance.loadingBlocker != null)
-                    SceneHelper.Instance.loadingBlocker.SetActive(false);
-            }
+			}
             
             // Update online field if there are any
             if (OnlineLevelsManager.onlineLevels.TryGetValue(bundleData.bundleGuid, out OnlineLevelField field))
