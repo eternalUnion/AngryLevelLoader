@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>AngryLevelLoader</AssemblyName>
     <Description>Loads level made with Rude level editor</Description>
-    <Version>3.1.1</Version>
+    <Version>3.1.2</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>

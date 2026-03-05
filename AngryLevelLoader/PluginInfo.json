@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "3.1.1",
+  "latestVersion": "3.1.2",
   "updates": [
     {
       "version": "1.0.0",
@@ -120,6 +120,10 @@
     {
       "version": "3.1.1",
       "updateText": "- Removed auto script update"
+    },
+    {
+      "version": "3.1.2",
+      "updateText": "- Fixed level restart and reload breaking the game"
     }
   ]
 }
