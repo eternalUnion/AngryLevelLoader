@@ -77,5 +77,8 @@ namespace RudeLevelScript
 
 		// V7
 		public bool doNotHideLevelPreviewWhenNotCompleted = false;
+
+		// V7.1
+		public bool doNotExport = false;
 	}
 }
