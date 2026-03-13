@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "3.1.2",
+  "latestVersion": "3.2.0",
   "updates": [
     {
       "version": "1.0.0",
@@ -124,6 +124,10 @@
     {
       "version": "3.1.2",
       "updateText": "- Fixed level restart and reload breaking the game"
+    },
+    {
+      "version": "3.2.0",
+      "updateText": "- Changed steam authentication method\n- Added ability to remove leaderboard records and modify users"
     }
   ]
 }
