@@ -547,7 +547,7 @@ namespace AngryLevelLoader.Notifications
 					return;
 				}
 
-				if (!res.Result.completedSuccessfully)
+				if (!res.Result.completedSuccessfully || res.Result.status != AngryLeaderboards.GetUserInfoStatus.OK)
 				{
 					currentUi.manageUserPanel.userInfo.text = $"<color=red>Failed to obtain user info!\n{res.Result.message}</color>";
 					return;
@@ -662,7 +662,7 @@ namespace AngryLevelLoader.Notifications
 				currentUi.manageUserPanel.resultText.text += "Managing user... ";
 				var res = await AngryLeaderboards.ManageUserTask(steamId, censorIcon, censorName, banUser);
 
-				currentUi.manageUserPanel.resultText.text += !res.completedSuccessfully ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
+				currentUi.manageUserPanel.resultText.text += (!res.completedSuccessfully || res.status != AngryLeaderboards.ManageUserStatus.OK) ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
 			}
 
 			if (removeRecord)
@@ -670,7 +670,7 @@ namespace AngryLevelLoader.Notifications
 				currentUi.manageUserPanel.resultText.text += "Removing record... ";
 				var res = await AngryLeaderboards.RemoveRecordTask(steamId, bundleGuid, levelId, category, difficulty);
 
-				currentUi.manageUserPanel.resultText.text += !res.completedSuccessfully ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
+				currentUi.manageUserPanel.resultText.text += (!res.completedSuccessfully || res.status != AngryLeaderboards.RemoveRecordStatus.OK) ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
 			}
 		}
 
