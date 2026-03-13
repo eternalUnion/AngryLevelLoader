@@ -50,5 +50,7 @@ namespace AngryUiComponents
 		public Button reportCancel;
 		public Button reportSend;
 		public Button reportReturn;
+
+		public AngryManageUserComponent manageUserPanel;
 	}
 }

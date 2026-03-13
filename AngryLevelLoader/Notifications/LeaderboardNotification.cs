@@ -22,6 +22,8 @@ namespace AngryLevelLoader.Notifications
 		public readonly string bundleGuid;
 		public readonly string levelId;
 
+		private Texture2D unknownProfile;
+
 		public LeaderboardNotification(string bundleName, string levelName, string bundleGuid, string levelId)
 		{
 			this.bundleName = bundleName;
@@ -161,6 +163,8 @@ namespace AngryLevelLoader.Notifications
 				});
 
 				Reload(true);
+
+				unknownProfile = currentUi.manageUserPanel.userIcon.texture as Texture2D;
 			}
 			catch (Exception e)
 			{
@@ -302,23 +306,36 @@ namespace AngryLevelLoader.Notifications
 								entry.time.text = MillisecondsToString(page.response.records[i].time);
 
 								ulong steamId = ulong.Parse(page.response.records[i].steamId);
-								if (steamId.ToString() == Steamworks.SteamClient.SteamId.ToString())
+								string currentUserId = Steamworks.SteamClient.SteamId.ToString();
+								if (steamId.ToString() == currentUserId)
 									entry.reportButton.interactable = false;
 
 								entry.username.text = "<color=grey>Loading...</color>";
 								if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
 									entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
 
+								AngryLeaderboards.RecordDifficulty actualDifficulty = (difficulty == AngryLeaderboards.RecordDifficulty.ANY) ? AngryLeaderboards.RECORD_DIFFICULTY_REVERSE_DICT[page.response.records[i].difficulty] : difficulty;
+								bool isCurrentUser = page.response.records[i].steamId == currentUserId;
+								bool censorIcon = !isCurrentUser && page.response.records[i].censorIcon;
+								bool censorName = !isCurrentUser && page.response.records[i].censorName;
+
 								SteamCacheManager.RequestUser(steamId, (user) =>
 								{
 									if (entry == null)
 										return;
 
-									entry.username.text = user.name;
+									entry.username.text = (censorName) ? "(hidden)" : user.name;
 									if (difficulty == AngryLeaderboards.RecordDifficulty.ANY)
 										entry.username.text += $"\n<color=grey>{entryDifficulty}</color>";
-									entry.profile.texture = user.profilePicture;
-									entry.reportButton.onClick.AddListener(() => ReportButton(steamId.ToString(), user.name));
+									if (!censorIcon)
+										entry.profile.texture = user.profilePicture;
+
+									entry.reportButton.onClick.AddListener(() => {
+										if (AngryUser.hasLeaderboardPermissions)
+											ManageButton(steamId.ToString(), category, actualDifficulty);
+										else
+											ReportButton(steamId.ToString(), user.name);
+									});
 								});
 
 								entry.gameObject.SetActive(true);
@@ -483,6 +500,66 @@ namespace AngryLevelLoader.Notifications
 			currentUi.reportToggle.SetActive(true);
 		}
 
+		private void ManageButton(string steamId, AngryLeaderboards.RecordCategory category, AngryLeaderboards.RecordDifficulty difficulty)
+		{
+			if (steamId == Steamworks.SteamClient.SteamId.ToString())
+				return;
+
+			currentUi.manageUserPanel.managePanel.SetActive(true);
+			currentUi.manageUserPanel.resultPanel.SetActive(false);
+
+			currentUi.manageUserPanel.userInfo.text = "Loading...";
+			currentUi.manageUserPanel.userIcon.texture = unknownProfile;
+
+			currentUi.manageUserPanel.cencorProfilePicture.isOn = false;
+			currentUi.manageUserPanel.cencorProfileName.isOn = false;
+			currentUi.manageUserPanel.banUser.isOn = false;
+			currentUi.manageUserPanel.removeRecord.isOn = true;
+
+			currentUi.manageUserPanel.cancelManage.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+			currentUi.manageUserPanel.cancelManage.onClick.AddListener(() => {
+				currentUi.manageUserPanel.gameObject.SetActive(false);
+			});
+
+			currentUi.manageUserPanel.applyManage.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+			currentUi.manageUserPanel.applyManage.onClick.AddListener(() =>
+			{
+				ManageUser(steamId, category, difficulty).ContinueWith((res) => {
+					currentUi.manageUserPanel.returnButton.interactable = true;
+				}, TaskScheduler.FromCurrentSynchronizationContext());
+
+				currentUi.manageUserPanel.resultPanel.SetActive(true);
+			});
+
+			string name = steamId;
+
+			if (ulong.TryParse(steamId, out ulong steamIdNum) && SteamCacheManager.TryGetUser(steamIdNum, out SteamUserCache user))
+			{
+				name = user.name;
+				currentUi.manageUserPanel.userIcon.texture = user.profilePicture;
+			}
+
+			AngryLeaderboards.GetUserInfoTask(steamId).ContinueWith((res) =>
+			{
+				if (!res.IsCompletedSuccessfully)
+				{
+					currentUi.manageUserPanel.userInfo.text = $"<color=red>Failed to obtain user info!</color>";
+					return;
+				}
+
+				if (!res.Result.completedSuccessfully)
+				{
+					currentUi.manageUserPanel.userInfo.text = $"<color=red>Failed to obtain user info!\n{res.Result.message}</color>";
+					return;
+				}
+
+				string bannedText = $"Banned: {(res.Result.response.leaderboardBanned ? "<color=red>yes</color>" : "<color=green>no</color>")}";
+				currentUi.manageUserPanel.userInfo.text = $"{name}\n{bannedText}\nRecord count: {res.Result.response.recordCount}\nReceived reports: {res.Result.response.reportCount}";
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+
+			currentUi.manageUserPanel.gameObject.SetActive(true);
+		}
+
 		private void SendReport(string steamId, string username)
 		{
 			currentUi.reportFormToggle.SetActive(false);
@@ -552,7 +629,51 @@ namespace AngryLevelLoader.Notifications
 				}
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 		}
-	
+		
+		private async Task ManageUser(string steamId, AngryLeaderboards.RecordCategory category, AngryLeaderboards.RecordDifficulty difficulty)
+		{
+			currentUi.manageUserPanel.managePanel.SetActive(false);
+
+			bool censorIcon = currentUi.manageUserPanel.cencorProfilePicture.isOn;
+			bool censorName = currentUi.manageUserPanel.cencorProfileName.isOn;
+			bool banUser = currentUi.manageUserPanel.banUser.isOn;
+			bool removeRecord = currentUi.manageUserPanel.removeRecord.isOn;
+
+			currentUi.manageUserPanel.returnButton.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+			currentUi.manageUserPanel.returnButton.onClick.AddListener(() =>
+			{
+				currentUi.manageUserPanel.resultPanel.SetActive(false);
+				currentUi.manageUserPanel.gameObject.SetActive(false);
+				Reload(false);
+			});
+
+			if (!censorIcon && !censorName && !banUser && !removeRecord)
+			{
+				currentUi.manageUserPanel.resultText.text = "Nothing to do";
+				currentUi.manageUserPanel.resultPanel.SetActive(true);
+				return;
+			}
+
+			currentUi.manageUserPanel.returnButton.interactable = false;
+			currentUi.manageUserPanel.resultText.text = "";
+
+			if (censorIcon || censorName || banUser)
+			{
+				currentUi.manageUserPanel.resultText.text += "Managing user... ";
+				var res = await AngryLeaderboards.ManageUserTask(steamId, censorIcon, censorName, banUser);
+
+				currentUi.manageUserPanel.resultText.text += !res.completedSuccessfully ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
+			}
+
+			if (removeRecord)
+			{
+				currentUi.manageUserPanel.resultText.text += "Removing record... ";
+				var res = await AngryLeaderboards.RemoveRecordTask(steamId, bundleGuid, levelId, category, difficulty);
+
+				currentUi.manageUserPanel.resultText.text += !res.completedSuccessfully ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
+			}
+		}
+
 		private void ResetReportUI()
 		{
 			currentUi.reportSend.interactable = false;

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PluginConfig.API.Fields;
 using Steamworks;
 using System;
 using System.Collections;
@@ -21,6 +22,34 @@ namespace AngryLevelLoader.Managers.ServerManager
         internal static string token = "";
         // Steam id is also used in the requests
         internal static string steamId = "";
+
+        private static StringField tokenCache;
+        private static StringField lastTokenFetch;
+
+        internal static bool hasLeaderboardPermissions = false;
+
+		internal static void Init()
+        {
+            tokenCache = new StringField(Plugin.internalConfig.rootPanel, "token", "angryServerToken", "", true);
+            lastTokenFetch = new StringField(Plugin.internalConfig.rootPanel, "last token fetch", "angryServerTokenFetchTime", "0", false);
+
+            try
+            {
+                SteamClient.Init(1229490);
+
+                if (long.TryParse(lastTokenFetch.value, out long lastTokenTimeTicks) && (DateTime.Now - new DateTime(lastTokenTimeTicks)).TotalDays < 1.0)
+                {
+                    Plugin.logger.LogInfo("Using cached token");
+                    steamId = SteamClient.SteamId.Value.ToString();
+                    token = tokenCache.value;
+                }
+            }
+            catch (Exception e)
+            {
+				Plugin.logger.LogError(e.Message);
+				Plugin.logger.LogError(e.StackTrace);
+            }
+        }
 
         #region Token Gen
         public enum TokengenStatus
@@ -57,7 +86,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			try
             {
-				AuthTicket ticketTask = await SteamUser.GetAuthSessionTicketAsync(new Steamworks.Data.NetIdentity());
+                string identify = $"com_eternalUnion_ultrakill";
+				AuthTicket ticketTask = await SteamUser.GetAuthTicketForWebApiAsync(identify);
+                
                 if (ticketTask == null)
                 {
                     result.networkError = true;
@@ -98,6 +129,9 @@ namespace AngryLevelLoader.Managers.ServerManager
                 {
                     steamId = response.steamId;
                     token = response.token;
+
+                    tokenCache.value = token;
+                    lastTokenFetch.value = DateTime.Now.Ticks.ToString();
                 }
                 return result;
             }
@@ -198,6 +232,39 @@ namespace AngryLevelLoader.Managers.ServerManager
 			result.completed = true;
 			if (!result.completedSuccessfully)
 				result.status = ReportStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region User Permissions
+        public enum UserPermissionsStatus
+        {
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+			INVALID_TOKEN = 1,
+		}
+
+        public class GetPermissionsResponse : AngryResponse
+        {
+            public bool hasLeaderboardModificationPermission { get; set; }
+		}
+
+        public class GetPermissionsResult : AngryResult<GetPermissionsResponse, UserPermissionsStatus>
+        {
+
+        }
+
+		public static async Task<GetPermissionsResult> GetPermissionsTask(CancellationToken cancellationToken = default)
+		{
+			GetPermissionsResult result = new GetPermissionsResult();
+
+			string url = AngryPaths.SERVER_ROOT + $"/user/getPermissions?";
+			await AngryRequest.MakeRequestWithToken(url, result, UserPermissionsStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = UserPermissionsStatus.FAILED;
 			return result;
 		}
 		#endregion

@@ -2452,7 +2452,27 @@ namespace AngryLevelLoader
 
             ScanForLevels();
 
-            Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
+			AngryUser.Init();
+			AngryUser.GetPermissionsTask().ContinueWith((res) =>
+			{
+				if (!res.IsCompletedSuccessfully || !res.Result.completedSuccessfully)
+				{
+					logger.LogError($"Could not obtain user permissions");
+					return;
+				}
+
+				var perms = res.Result;
+				if (perms.status != AngryUser.UserPermissionsStatus.OK)
+				{
+					logger.LogError($"Could not obtain user permissions: {perms.message}");
+					return;
+				}
+
+				AngryUser.hasLeaderboardPermissions = perms.response.hasLeaderboardModificationPermission;
+
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+
+			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
 		float lastPress = 0;
