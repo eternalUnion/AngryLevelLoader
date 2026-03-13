@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "3.2.0",
+  "latestVersion": "3.2.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -128,6 +128,10 @@
     {
       "version": "3.2.0",
       "updateText": "- Changed steam authentication method\n- Added ability to remove leaderboard records and modify users"
+    },
+    {
+      "version": "3.2.1",
+      "updateText": "Fixed a UI issue regarding leaderboards"
     }
   ]
 }
