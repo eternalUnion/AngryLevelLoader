@@ -32,5 +32,7 @@ namespace AngryUiComponents
 		public GameObject loadingCircle;
 		public Text resultText;
 		public Button returnButton;
+
+		public Button historyButton;
 	}
 }

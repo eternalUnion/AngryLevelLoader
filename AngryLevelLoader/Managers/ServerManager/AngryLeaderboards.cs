@@ -724,5 +724,44 @@ namespace AngryLevelLoader.Managers.ServerManager
 			return result;
 		}
 		#endregion
+
+		#region Get User History
+		public enum GetUserHistoryStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+		}
+
+		public class GetUserHistoryResponse : AngryResponse
+		{
+			public Dictionary<string, int> bundleGuidPK;
+			public Dictionary<string, int> levelIdPK;
+			public int[][] runHistory;
+		}
+
+		public class GetUserHistoryResult : AngryResult<GetUserHistoryResponse, GetUserHistoryStatus>
+		{
+
+		}
+
+		public static async Task<GetUserHistoryResult> GetUserHistoryTask(string targetId, CancellationToken cancellationToken = default)
+		{
+			GetUserHistoryResult result = new GetUserHistoryResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserHistory?targetId={targetId}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, GetUserHistoryStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetUserHistoryStatus.FAILED;
+			return result;
+		}
+		#endregion
 	}
 }

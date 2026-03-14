@@ -52,5 +52,6 @@ namespace AngryUiComponents
 		public Button reportReturn;
 
 		public AngryManageUserComponent manageUserPanel;
+		public AngryUserHistoryPanelComponent historyPanel;
 	}
 }
