@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -515,6 +516,14 @@ namespace AngryLevelLoader.Notifications
 			currentUi.manageUserPanel.cencorProfileName.isOn = false;
 			currentUi.manageUserPanel.banUser.isOn = false;
 			currentUi.manageUserPanel.removeRecord.isOn = true;
+			currentUi.manageUserPanel.removeAll.isOn = false;
+
+			currentUi.manageUserPanel.removeRecord.onValueChanged = new UnityEngine.UI.Toggle.ToggleEvent();
+			currentUi.manageUserPanel.removeRecord.onValueChanged.AddListener((e) =>
+			{
+				currentUi.manageUserPanel.removeAll.interactable = e;
+				if (!e) currentUi.manageUserPanel.removeAll.isOn = false;
+			});
 
 			currentUi.manageUserPanel.cancelManage.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
 			currentUi.manageUserPanel.cancelManage.onClick.AddListener(() => {
@@ -524,6 +533,12 @@ namespace AngryLevelLoader.Notifications
 			currentUi.manageUserPanel.applyManage.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
 			currentUi.manageUserPanel.applyManage.onClick.AddListener(() =>
 			{
+				if (currentUi.manageUserPanel.removeAll.isOn)
+				{
+					_ = OpenWarningWindow(steamId, category, difficulty);
+					return;
+				}
+
 				ManageUser(steamId, category, difficulty).ContinueWith((res) => {
 					currentUi.manageUserPanel.returnButton.interactable = true;
 				}, TaskScheduler.FromCurrentSynchronizationContext());
@@ -536,7 +551,7 @@ namespace AngryLevelLoader.Notifications
 			if (ulong.TryParse(steamId, out ulong steamIdNum) && SteamCacheManager.TryGetUser(steamIdNum, out SteamUserCache user))
 			{
 				name = user.name;
-				currentUi.manageUserPanel.userIcon.texture = user.profilePicture;
+				currentUi.manageUserPanel.userIcon.texture = currentUi.manageUserPanel.warningUserIcon.texture = user.profilePicture;
 			}
 
 			AngryLeaderboards.GetUserInfoTask(steamId).ContinueWith((res) =>
@@ -554,7 +569,7 @@ namespace AngryLevelLoader.Notifications
 				}
 
 				string bannedText = $"Banned: {(res.Result.response.leaderboardBanned ? "<color=red>yes</color>" : "<color=green>no</color>")}";
-				currentUi.manageUserPanel.userInfo.text = $"{name}\n{bannedText}\nRecord count: {res.Result.response.recordCount}\nReceived reports: {res.Result.response.reportCount}";
+				currentUi.manageUserPanel.userInfo.text = currentUi.manageUserPanel.warningUserInfo.text = $"{name}\n{bannedText}\nRecord count: {res.Result.response.recordCount}\nReceived reports: {res.Result.response.reportCount}\nRemoved records: {res.Result.response.removedRecordCount}";
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 
 			currentUi.manageUserPanel.gameObject.SetActive(true);
@@ -630,14 +645,63 @@ namespace AngryLevelLoader.Notifications
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 		}
 		
+		private async Task OpenWarningWindow(string steamId, AngryLeaderboards.RecordCategory category, AngryLeaderboards.RecordDifficulty difficulty)
+		{
+			currentUi.manageUserPanel.managePanel.SetActive(false);
+			currentUi.manageUserPanel.resultPanel.SetActive(false);
+
+			CancellationTokenSource cancelSource = new CancellationTokenSource();
+			cancelSource.Token.ThrowIfCancellationRequested();
+
+			currentUi.manageUserPanel.warningCancelButton.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+			currentUi.manageUserPanel.warningCancelButton.onClick.AddListener(() =>
+			{
+				cancelSource.Cancel();
+				currentUi.manageUserPanel.warningPanel.SetActive(false);
+				currentUi.manageUserPanel.gameObject.SetActive(false);
+			});
+
+			currentUi.manageUserPanel.warningSubmitButton.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+			currentUi.manageUserPanel.warningSubmitButton.onClick.AddListener(() =>
+			{
+				ManageUser(steamId, category, difficulty).ContinueWith((res) => {
+					currentUi.manageUserPanel.returnButton.interactable = true;
+				}, TaskScheduler.FromCurrentSynchronizationContext());
+
+				currentUi.manageUserPanel.resultPanel.SetActive(true);
+			});
+
+			currentUi.manageUserPanel.warningSubmitButton.interactable = false;
+			currentUi.manageUserPanel.warningPanel.SetActive(true);
+
+			for (int i = 5; i > 0; i--)
+			{
+				currentUi.manageUserPanel.warningSubmitButtonText.text = $"Remove All ({i})";
+
+				try
+				{
+					await Task.Delay(1000, cancelSource.Token);
+				}
+				catch (OperationCanceledException)
+				{
+					return;
+				}
+			}
+
+			currentUi.manageUserPanel.warningSubmitButtonText.text = $"Remove All";
+			currentUi.manageUserPanel.warningSubmitButton.interactable = true;
+		}
+
 		private async Task ManageUser(string steamId, AngryLeaderboards.RecordCategory category, AngryLeaderboards.RecordDifficulty difficulty)
 		{
 			currentUi.manageUserPanel.managePanel.SetActive(false);
+			currentUi.manageUserPanel.warningPanel.SetActive(false);
 
 			bool censorIcon = currentUi.manageUserPanel.cencorProfilePicture.isOn;
 			bool censorName = currentUi.manageUserPanel.cencorProfileName.isOn;
 			bool banUser = currentUi.manageUserPanel.banUser.isOn;
 			bool removeRecord = currentUi.manageUserPanel.removeRecord.isOn;
+			bool removeAll = currentUi.manageUserPanel.removeAll.isOn;
 
 			currentUi.manageUserPanel.returnButton.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
 			currentUi.manageUserPanel.returnButton.onClick.AddListener(() =>
@@ -647,7 +711,7 @@ namespace AngryLevelLoader.Notifications
 				Reload(false);
 			});
 
-			if (!censorIcon && !censorName && !banUser && !removeRecord)
+			if (!censorIcon && !censorName && !banUser && !removeRecord && !removeAll)
 			{
 				currentUi.manageUserPanel.resultText.text = "Nothing to do";
 				currentUi.manageUserPanel.resultPanel.SetActive(true);
@@ -665,7 +729,14 @@ namespace AngryLevelLoader.Notifications
 				currentUi.manageUserPanel.resultText.text += (!res.completedSuccessfully || res.status != AngryLeaderboards.ManageUserStatus.OK) ? $"<color=red>{res.message}</color>\n" : "<color=green>Success!</color>\n";
 			}
 
-			if (removeRecord)
+			if (removeAll)
+			{
+				currentUi.manageUserPanel.resultText.text += "Removing all records... ";
+				var res = await AngryLeaderboards.ClearRecordsTask(steamId);
+
+				currentUi.manageUserPanel.resultText.text += (!res.completedSuccessfully || res.status != AngryLeaderboards.ClearRecordsStatus.OK) ? $"<color=red>{res.message}</color>\n" : $"<color=green>Removed {res.response.removedRecordCount} records!</color>\n";
+			}
+			else if (removeRecord)
 			{
 				currentUi.manageUserPanel.resultText.text += "Removing record... ";
 				var res = await AngryLeaderboards.RemoveRecordTask(steamId, bundleGuid, levelId, category, difficulty);

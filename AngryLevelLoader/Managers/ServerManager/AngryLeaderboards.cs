@@ -582,6 +582,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public bool leaderboardBanned { get; set; }
 			public int recordCount { get; set; }
 			public int reportCount { get; set; }
+			public int removedRecordCount { get; set; }
 		}
 
 		public class GetUserInfoResult : AngryResult<GetUserInfoResponse, GetUserInfoStatus>
@@ -683,6 +684,43 @@ namespace AngryLevelLoader.Managers.ServerManager
 			result.completed = true;
 			if (!result.completedSuccessfully)
 				result.status = RemoveRecordStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Clear Records
+		public enum ClearRecordsStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+		}
+
+		public class ClearRecordsResponse : AngryResponse
+		{
+			public int removedRecordCount { get; set; }
+		}
+
+		public class ClearRecordsResult : AngryResult<ClearRecordsResponse, ClearRecordsStatus>
+		{
+
+		}
+
+		public static async Task<ClearRecordsResult> ClearRecordsTask(string targetId, CancellationToken cancellationToken = default)
+		{
+			ClearRecordsResult result = new ClearRecordsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/clearRecords?targetId={targetId}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, ClearRecordsStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = ClearRecordsStatus.FAILED;
 			return result;
 		}
 		#endregion
