@@ -36,8 +36,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			UltraCoinsSoftBan.PLUGIN_GUID,
 			UltraFunGunsSoftBan.PLUGIN_GUID,
 			UltrapainSoftBan.PLUGIN_GUID,
+			BananasDifficultySoftBan.PLUGIN_GUID,
 			UltraTweakerSoftBan.PLUGIN_GUID,
-			HeavenOrHellSoftBan.PLUGIN_GUID,
 			WipFixHardBan.PLUGIN_GUID,
 			MasqueradeDivinitySoftBan.PLUGIN_GUID,
 		};
@@ -52,8 +52,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			{ UltraCoinsSoftBan.PLUGIN_GUID, "UltraCoins" },
 			{ UltraFunGunsSoftBan.PLUGIN_GUID, "UltraFunGuns" },
 			{ UltrapainSoftBan.PLUGIN_GUID, "UltraPain" },
+			{ BananasDifficultySoftBan.PLUGIN_GUID, "Bananas Difficulty" },
 			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" },
-			{ HeavenOrHellSoftBan.PLUGIN_GUID, "HeavenOrHell" },
 			{ WipFixHardBan.PLUGIN_GUID, "Whiplash Buff" },
 			{ MasqueradeDivinitySoftBan.PLUGIN_GUID, "Masquerade Divinity" },
 		};
@@ -108,10 +108,10 @@ namespace AngryLevelLoader.Managers.BannedMods
 				checkers.Add(AtlasWeaponsSoftBan.PLUGIN_GUID, AtlasWeaponsSoftBan.Check);
 			}
 
-			if (HeavenOrHellSoftBan.HeavenOrHellLoaded)
+			if (BananasDifficultySoftBan.BananasLoaded)
 			{
-				Plugin.logger.LogInfo("Detected HeavenOrHell, adding soft ban check for leaderboards");
-				checkers.Add(HeavenOrHellSoftBan.PLUGIN_GUID, HeavenOrHellSoftBan.Check);
+				Plugin.logger.LogInfo("Detected Bananas Difficulty, adding soft ban check for leaderboards");
+				checkers.Add(BananasDifficultySoftBan.PLUGIN_GUID, BananasDifficultySoftBan.Check);
 			}
 
 			if (WipFixHardBan.WipFixLoaded)

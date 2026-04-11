@@ -110,14 +110,33 @@ namespace AngryLevelLoader.Managers.ServerManager
 			get => loadBannedModsTask != null && !loadBannedModsTask.IsCompleted;
 		}
 
-		public static void LoadBannedModsList()
+		public static void LoadBannedModsList(Action<bool> callback = null)
 		{
-			if (bannedModsListLoaded || loadingBannedModsList)
+			if (bannedModsListLoaded)
+			{
+				if (callback != null)
+					callback(true);
+
 				return;
+			}
+
+			if (loadBannedModsTask != null)
+			{
+				if (callback != null)
+				{
+					loadBannedModsTask.ContinueWith((task) =>
+					{
+						callback(task.Result.status == GetBannedModsStatus.OK);
+					}, TaskScheduler.FromCurrentSynchronizationContext());
+				}
+
+				return;
+			}
 
 			loadBannedModsTask = GetBannedModsTask();
 			loadBannedModsTask.ContinueWith((task) =>
 			{
+				loadBannedModsTask = null;
 				var result = task.Result;
 
 				if (result.status == GetBannedModsStatus.OK)
@@ -127,6 +146,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 				}
 
 				Plugin.CheckForBannedMods();
+
+				if (callback != null)
+					callback(result.status == GetBannedModsStatus.OK);
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 		}
 

@@ -31,13 +31,15 @@ namespace AngryLevelLoader.Patches
 				return true;
 
 			Time.timeScale = 0f;
+			SceneHelper.PendingScene = AngrySceneManager.currentLevelData.uniqueIdentifier;
 
 			foreach (MonoBehaviour monoBehaviour in Object.FindObjectsOfType<MonoBehaviour>())
             {
                 if (!(monoBehaviour == null) && !(monoBehaviour.gameObject.scene.name == "DontDestroyOnLoad"))
                 {
                     monoBehaviour.enabled = false;
-                }
+					monoBehaviour.CancelInvoke();
+				}
             }
 
             if (string.IsNullOrEmpty(SceneHelper.CurrentScene))
@@ -61,6 +63,7 @@ namespace AngryLevelLoader.Patches
 					SceneHelper.Instance.loadingBar.gameObject.SetActive(false);
 
 				Time.timeScale = 1f;
+				SceneHelper.PendingScene = null;
 			};
 
             return false;

@@ -1,45 +1,46 @@
-﻿using BepInEx;
+﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.DataTypes;
+using AngryLevelLoader.Fields;
+using AngryLevelLoader.Managers;
+using AngryLevelLoader.Managers.BannedMods;
+using AngryLevelLoader.Managers.LegacyPatches;
+using AngryLevelLoader.Managers.ServerManager;
+using AngryLevelLoader.Notifications;
+using AngryLevelLoader.Patches;
+using AngryUiComponents;
+using BepInEx;
+using BepInEx.Bootstrap;
+using BepInEx.Logging;
 using HarmonyLib;
+using Logic;
+using Newtonsoft.Json;
+using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
 using PluginConfig.API.Functionals;
+using PluginConfiguratorComponents;
+using RudeLevelScript;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using Unity.Audio;
 using UnityEngine;
-using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.AddressableAssets;
+using UnityEngine.AddressableAssets.ResourceLocators;
+using UnityEngine.Audio;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.SceneManagement;
-using System.Collections;
-using UnityEngine.Audio;
-using RudeLevelScript;
-using PluginConfig;
-using BepInEx.Bootstrap;
-using AngryLevelLoader.Containers;
-using AngryLevelLoader.Managers;
-using AngryLevelLoader.DataTypes;
-using AngryLevelLoader.Fields;
-using PluginConfiguratorComponents;
-using System.Text;
-using AngryLevelLoader.Managers.ServerManager;
 using UnityEngine.UI;
-using AngryUiComponents;
-using Unity.Audio;
-using BepInEx.Logging;
-using AngryLevelLoader.Managers.BannedMods;
-using Newtonsoft.Json;
-using System.Threading.Tasks;
 using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
-using AngryLevelLoader.Notifications;
-using AngryLevelLoader.Managers.LegacyPatches;
-using Logic;
-using System.ComponentModel;
-using AngryLevelLoader.Patches;
-using System.Diagnostics;
 
 namespace AngryLevelLoader
 {
@@ -54,7 +55,7 @@ namespace AngryLevelLoader
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency("com.heaven.orhell", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("com.banana.BananaDifficulty", BepInDependency.DependencyFlags.SoftDependency)]
 	// Soft ban dependencies
 	[BepInDependency(UltraFunGunsSoftBan.CONFIGGY_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(DualWieldPunchesSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
@@ -107,7 +108,7 @@ namespace AngryLevelLoader
 		public static StringField instantLoadLevelId;
 
 		public static bool ultrapainLoaded = false;
-		public static bool heavenOrHellLoaded = false;
+		public static bool bananasDifficultyLoaded = false;
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
@@ -877,12 +878,6 @@ namespace AngryLevelLoader
 			return Ultrapain.Plugin.ultrapainDifficulty;
 		}
 
-		// Is Heaven or Hell difficulty enabled?
-		private static bool GetHeavenOrHellDifficultySet()
-		{
-			return MyCoolMod.Plugin.isHeavenOrHell;
-		}
-
 		// Create the shortcut in chapters menu
 		private const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
 		private static AngryCustomLevelButtonComponent currentCustomLevelButton;
@@ -975,8 +970,21 @@ namespace AngryLevelLoader
 							difficultyField.difficultyListValueIndex = difficulty;
 							break;
 
-						// Possibly ultrapain
+						// Possibly bananas
 						case 5:
+							if (bananasDifficultyLoaded)
+							{
+								difficultyField.difficultyListValueIndex = difficultyList.IndexOf("BANANAS");
+							}
+							else
+							{
+								logger.LogWarning("Difficulty was set to BANANAS, but angry does not support it. Setting to violent");
+								difficultyField.difficultyListValueIndex = 3;
+							}
+							break;
+
+						// Possibly ultrapain
+						case 6:
 							if (ultrapainLoaded)
 							{
 								if (GetUltrapainDifficultySet())
@@ -991,20 +999,10 @@ namespace AngryLevelLoader
 							}
 							break;
 
-						// Possibly Heaven or Hell, or invalid difficulty
+						// Invalid difficulty
 						default:
-							if (heavenOrHellLoaded)
-							{
-								if (GetHeavenOrHellDifficultySet())
-								{
-									difficultyField.difficultyListValueIndex = difficultyList.IndexOf("HEAVEN OR HELL");
-								}
-								else
-								{
-									logger.LogWarning("Unknown difficulty, defaulting to violent");
-									difficultyField.difficultyListValueIndex = 3;
-								}
-							}
+							logger.LogWarning("Unknown difficulty, defaulting to violent");
+							difficultyField.difficultyListValueIndex = 3;
 							break;
 					}
 
@@ -1386,7 +1384,7 @@ namespace AngryLevelLoader
 				{
 					if (difficultyName == "ULTRAPAIN")
 						selectedDifficulty = 100;
-					else if (difficultyName == "HEAVEN OR HELL")
+					else if (difficultyName == "BANANAS")
 						selectedDifficulty = 101;
 				}
 
@@ -1401,7 +1399,25 @@ namespace AngryLevelLoader
 				{
 					difficultyOverrideWarning.hidden = true;
 					difficultyField.difficultyInteractable = true;
-					difficultyField.ForceSetDifficultyUI(selectedDifficulty);
+
+					switch (selectedDifficulty)
+					{
+						case 0:
+						case 1:
+						case 2:
+						case 3:
+						case 4:
+							difficultyField.ForceSetDifficultyUI(selectedDifficulty);
+							break;
+
+						case 100:
+							difficultyField.ForceSetDifficultyUI(difficultyList.IndexOf("ULTRAPAIN"));
+							break;
+
+						case 101:
+							difficultyField.ForceSetDifficultyUI(difficultyList.IndexOf("BANANAS"));
+							break;
+					}
 				}
 			};
 			difficultyField.postGamemodeChange += (gamemodeName, gamemodeIndex) =>
@@ -1936,9 +1952,9 @@ namespace AngryLevelLoader
 		}
 
 		#region Leaderboards
-		public static void CheckForBannedMods()
+		public static void CheckForBannedMods(bool forceLocal = false)
 		{
-			if (!AngryLeaderboards.bannedModsListLoaded)
+			if (!AngryLeaderboards.bannedModsListLoaded && !forceLocal)
 				return;
 
 			bool bannedModsFound = false;
@@ -2356,10 +2372,10 @@ namespace AngryLevelLoader
 				ultrapainLoaded = true;
 				difficultyList.Add("ULTRAPAIN");
 			}
-			if (Chainloader.PluginInfos.ContainsKey("com.heaven.orhell"))
+			if (Chainloader.PluginInfos.ContainsKey("com.banana.BananaDifficulty"))
 			{
-				heavenOrHellLoaded = true;
-				difficultyList.Add("HEAVEN OR HELL");
+				bananasDifficultyLoaded = true;
+				difficultyList.Add("BANANAS");
 			}
 
 			InitializeConfig();
@@ -2368,7 +2384,11 @@ namespace AngryLevelLoader
 				if (AngryLeaderboards.bannedModsListLoaded)
 					CheckForBannedMods();
 				else
-					AngryLeaderboards.LoadBannedModsList();
+					AngryLeaderboards.LoadBannedModsList((loaded) =>
+					{
+						if (!loaded)
+							CheckForBannedMods(true);
+					});
 			};
 			config.rootPanel.onPannelOpenEvent += (externally) =>
 			{

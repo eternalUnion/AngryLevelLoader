@@ -258,7 +258,7 @@ namespace AngryLevelLoader.Managers
         #region DifficultyHandle
         public static void SetToUltrapainDifficulty()
         {
-            MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 5);
+            MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 6);
             Ultrapain.Plugin.ultrapainDifficulty = true;
             Ultrapain.Plugin.realUltrapainDifficulty = true;
         }
@@ -268,15 +268,13 @@ namespace AngryLevelLoader.Managers
             Ultrapain.Plugin.realUltrapainDifficulty = false;
         }
 
-        public static void SetToHeavenOrHellDifficulty()
+        public static void SetToBananasDifficulty()
         {
-            MyCoolMod.Plugin.isHeavenOrHell = true;
-            MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 3);
-        }
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 5);
+		}
 
-        public static void UnsetHeavenOrHellDifficulty()
+        public static void UnsetBananasDifficulty()
         {
-            MyCoolMod.Plugin.isHeavenOrHell = false;
         }
         #endregion
 
@@ -294,9 +292,9 @@ namespace AngryLevelLoader.Managers
             {
                 UnsetUltrapainDifficulty();
             }
-            if (Plugin.heavenOrHellLoaded)
+            if (Plugin.bananasDifficultyLoaded)
             {
-                UnsetHeavenOrHellDifficulty();
+                UnsetBananasDifficulty();
             }
 
             if (Plugin.difficultyField.gamemodeListValueIndex == 0)
@@ -307,7 +305,7 @@ namespace AngryLevelLoader.Managers
                 }
                 else if (Plugin.selectedDifficulty == 101)
                 {
-                    SetToHeavenOrHellDifficulty();
+                    SetToBananasDifficulty();
                 }
                 else
                 {
