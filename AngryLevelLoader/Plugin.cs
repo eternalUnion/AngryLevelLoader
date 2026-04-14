@@ -56,6 +56,7 @@ namespace AngryLevelLoader
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.banana.BananaDifficulty", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("billy.billiondifficulty", BepInDependency.DependencyFlags.SoftDependency)]
 	// Soft ban dependencies
 	[BepInDependency(UltraFunGunsSoftBan.CONFIGGY_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(DualWieldPunchesSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
@@ -109,6 +110,7 @@ namespace AngryLevelLoader
 
 		public static bool ultrapainLoaded = false;
 		public static bool bananasDifficultyLoaded = false;
+		public static bool billionDifficultyLoaded = false;
 
 		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
 		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
@@ -878,6 +880,12 @@ namespace AngryLevelLoader
 			return Ultrapain.Plugin.ultrapainDifficulty;
 		}
 
+		// Is billion difficulty enabled?
+		private static bool GetBillionDifficultySet()
+		{
+			return BillionDifficulty.Util.IsHardMode();
+		}
+
 		// Create the shortcut in chapters menu
 		private const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
 		private static AngryCustomLevelButtonComponent currentCustomLevelButton;
@@ -994,6 +1002,22 @@ namespace AngryLevelLoader
 								else
 								{
 									logger.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
+									difficultyField.difficultyListValueIndex = 3;
+								}
+							}
+							break;
+
+						// Possibly billion
+						case 19:
+							if (billionDifficultyLoaded)
+							{
+								if (GetBillionDifficultySet())
+								{
+									difficultyField.difficultyListValueIndex = difficultyList.IndexOf("BILLION");
+								}
+								else
+								{
+									logger.LogWarning("Difficulty was set to 19, but angry does not support it. Setting to violent");
 									difficultyField.difficultyListValueIndex = 3;
 								}
 							}
@@ -1386,6 +1410,8 @@ namespace AngryLevelLoader
 						selectedDifficulty = 100;
 					else if (difficultyName == "BANANAS")
 						selectedDifficulty = 101;
+					else if (difficultyName == "BILLION")
+						selectedDifficulty = 102;
 				}
 
 				if (difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2)
@@ -2376,6 +2402,11 @@ namespace AngryLevelLoader
 			{
 				bananasDifficultyLoaded = true;
 				difficultyList.Add("BANANAS");
+			}
+			if (Chainloader.PluginInfos.ContainsKey("billy.billiondifficulty"))
+			{
+				billionDifficultyLoaded = true;
+				difficultyList.Add("BILLION");
 			}
 
 			InitializeConfig();

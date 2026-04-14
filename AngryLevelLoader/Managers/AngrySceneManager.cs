@@ -275,6 +275,18 @@ namespace AngryLevelLoader.Managers
 
         public static void UnsetBananasDifficulty()
         {
+			// It is sufficient for the difficulty to not be 5
+		}
+
+		public static void SetToBillionDifficulty()
+        {
+            BillionDifficulty.Plugin.IsBrilliantBillion.SetValue(true);
+			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 19);
+		}
+
+        public static void UnsetBillionDifficulty()
+        {
+            // It is sufficient for the difficulty to not be 19
         }
         #endregion
 
@@ -296,6 +308,10 @@ namespace AngryLevelLoader.Managers
             {
                 UnsetBananasDifficulty();
             }
+            if (Plugin.billionDifficultyLoaded)
+            {
+                UnsetBillionDifficulty();
+            }
 
             if (Plugin.difficultyField.gamemodeListValueIndex == 0)
             {
@@ -306,6 +322,10 @@ namespace AngryLevelLoader.Managers
                 else if (Plugin.selectedDifficulty == 101)
                 {
                     SetToBananasDifficulty();
+                }
+                else if (Plugin.selectedDifficulty == 102)
+                {
+                    SetToBillionDifficulty();
                 }
                 else
                 {

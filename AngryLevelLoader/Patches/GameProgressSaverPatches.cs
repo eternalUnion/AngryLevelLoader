@@ -13,12 +13,13 @@ namespace AngryLevelLoader.Patches
 	public class GameProgressSaverPatches
 	{
 		[HarmonyPatch(nameof(GameProgressSaver.GetRankData), new Type[] { typeof(string), typeof(int), typeof(bool) }, new ArgumentType[] { ArgumentType.Out, ArgumentType.Normal, ArgumentType.Normal })]
+		[HarmonyPriority(Priority.HigherThanNormal)]
 		[HarmonyPrefix]
-		public static bool GetRankDataOverwrite(ref RankData __result)
+		public static bool GetRankDataOverwrite(int lvl, ref RankData __result)
 		{
 			try
 			{
-				if (AngrySceneManager.isInCustomLevel)
+				if (lvl < 0 && AngrySceneManager.isInCustomLevel)
 				{
 					__result = null;
 					return false;
@@ -33,7 +34,19 @@ namespace AngryLevelLoader.Patches
 			}
 		}
 
+		[HarmonyPatch(nameof(GameProgressSaver.currentCustomLevelProgressPath), MethodType.Getter)]
+		[HarmonyPrefix]
+		public static bool OverwriteCustomLevelProgressPath(ref string __result)
+		{
+			if (!AngrySceneManager.isInCustomLevel)
+				return true;
+
+			__result = GameProgressSaver.CustomLevelProgressPath(AngrySceneManager.currentLevelData.uniqueIdentifier);
+			return false;
+		}
+
 		[HarmonyPatch(nameof(GameProgressSaver.SaveRank), new Type[0])]
+		[HarmonyPriority(Priority.HigherThanNormal)]
 		[HarmonyPrefix]
 		public static bool SaveRankOverwrite()
 		{
@@ -52,6 +65,7 @@ namespace AngryLevelLoader.Patches
 		}
 
 		[HarmonyPatch(nameof(GameProgressSaver.ChallengeComplete), new Type[0])]
+		[HarmonyPriority(Priority.HigherThanNormal)]
 		[HarmonyPrefix]
 		public static bool ChallengeCompleteOverwrite()
 		{
@@ -70,6 +84,7 @@ namespace AngryLevelLoader.Patches
 		}
 
 		[HarmonyPatch(nameof(GameProgressSaver.SaveProgress), new Type[] { typeof(int) })]
+		[HarmonyPriority(Priority.HigherThanNormal)]
 		[HarmonyPrefix]
 		public static bool SaveProgressOverwrite()
 		{

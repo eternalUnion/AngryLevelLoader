@@ -52,6 +52,12 @@
     <Reference Include="BananaDifficulty">
       <HintPath>libs\BananaDifficulty.dll</HintPath>
     </Reference>
+    <Reference Include="BillionDifficulty">
+      <HintPath>libs\BillionDifficulty.dll</HintPath>
+    </Reference>
+    <Reference Include="Configgy">
+      <HintPath>libs\Configgy.dll</HintPath>
+    </Reference>
     <Reference Include="Facepunch.Steamworks.Win64">
       <HintPath>libs\Facepunch.Steamworks.Win64.dll</HintPath>
     </Reference>

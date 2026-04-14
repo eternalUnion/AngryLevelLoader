@@ -114,6 +114,12 @@ namespace AngryLevelLoader.Managers.BannedMods
 				checkers.Add(BananasDifficultySoftBan.PLUGIN_GUID, BananasDifficultySoftBan.Check);
 			}
 
+			if (BillionDifficultySoftBan.BillionLoaded)
+			{
+				Plugin.logger.LogInfo("Detected Billions Difficulty, adding soft ban check for leaderboards");
+				checkers.Add(BillionDifficultySoftBan.PLUGIN_GUID, BillionDifficultySoftBan.Check);
+			}
+
 			if (WipFixHardBan.WipFixLoaded)
 			{
 				Plugin.logger.LogInfo("Detected WipFix, adding soft ban check for leaderboards");
