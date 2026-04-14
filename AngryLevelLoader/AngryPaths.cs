@@ -1,4 +1,5 @@
-﻿using BepInEx;
+﻿using AngryLevelLoader.Managers;
+using BepInEx;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,7 +22,8 @@ namespace AngryLevelLoader
             IOUtils.TryCreateDirectory(ConfigFolderPath);
             IOUtils.TryCreateDirectory(OnlineCacheFolderPath);
             IOUtils.TryCreateDirectory(ThumbnailCacheFolderPath);
-        }
+			IOUtils.TryCreateDirectory(ScriptManager.ScriptsPath);
+		}
 
         public static string ConfigFolderPath
         {
