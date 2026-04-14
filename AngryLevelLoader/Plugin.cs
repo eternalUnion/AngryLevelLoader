@@ -1979,20 +1979,12 @@ namespace AngryLevelLoader
 		}
 
 		#region Leaderboards
-		public static void CheckForBannedMods(bool forceLocal = false)
+		public static void CheckForBannedMods()
 		{
-			if (!AngryLeaderboards.bannedModsListLoaded && !forceLocal)
-				return;
-
 			bool bannedModsFound = false;
 			bannedModsText.text = "";
 
-			string[] bannedModsList = AngryLeaderboards.bannedMods;
-			if (bannedModsList == null)
-			{
-				logger.LogWarning("Banned mods list cannot be fetched from angry servers, using the local list");
-				bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
-			}
+			string[] bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
 
 			foreach (string plugin in Chainloader.PluginInfos.Keys)
 			{
@@ -2411,14 +2403,7 @@ namespace AngryLevelLoader
 			InitializeConfig();
 			config.rootPanel.onPannelOpenEvent += (externally) =>
 			{
-				if (AngryLeaderboards.bannedModsListLoaded)
-					CheckForBannedMods();
-				else
-					AngryLeaderboards.LoadBannedModsList((loaded) =>
-					{
-						if (!loaded)
-							CheckForBannedMods(true);
-					});
+				CheckForBannedMods();
 			};
 			config.rootPanel.onPannelOpenEvent += (externally) =>
 			{
@@ -2463,7 +2448,6 @@ namespace AngryLevelLoader
 			};
 
 			BannedModsManager.Init();
-			AngryLeaderboards.LoadBannedModsList();
 
 			// TODO: Investigate further on this issue:
 			//

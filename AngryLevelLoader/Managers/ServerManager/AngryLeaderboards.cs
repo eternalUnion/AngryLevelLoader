@@ -101,56 +101,56 @@ namespace AngryLevelLoader.Managers.ServerManager
 		}
 		#endregion
 		
-		public static string[] bannedMods = null;
-		public static bool bannedModsListLoaded = false;
+		//public static string[] bannedMods = null;
+		//public static bool bannedModsListLoaded = false;
 
-		private static Task<GetBannedModsResult> loadBannedModsTask = null;
-		public static bool loadingBannedModsList
-		{
-			get => loadBannedModsTask != null && !loadBannedModsTask.IsCompleted;
-		}
+		//private static Task<GetBannedModsResult> loadBannedModsTask = null;
+		//public static bool loadingBannedModsList
+		//{
+		//	get => loadBannedModsTask != null && !loadBannedModsTask.IsCompleted;
+		//}
 
-		public static void LoadBannedModsList(Action<bool> callback = null)
-		{
-			if (bannedModsListLoaded)
-			{
-				if (callback != null)
-					callback(true);
+		//public static void LoadBannedModsList(Action<bool> callback = null)
+		//{
+		//	if (bannedModsListLoaded)
+		//	{
+		//		if (callback != null)
+		//			callback(true);
 
-				return;
-			}
+		//		return;
+		//	}
 
-			if (loadBannedModsTask != null)
-			{
-				if (callback != null)
-				{
-					loadBannedModsTask.ContinueWith((task) =>
-					{
-						callback(task.Result.status == GetBannedModsStatus.OK);
-					}, TaskScheduler.FromCurrentSynchronizationContext());
-				}
+		//	if (loadBannedModsTask != null)
+		//	{
+		//		if (callback != null)
+		//		{
+		//			loadBannedModsTask.ContinueWith((task) =>
+		//			{
+		//				callback(task.Result.status == GetBannedModsStatus.OK);
+		//			}, TaskScheduler.FromCurrentSynchronizationContext());
+		//		}
 
-				return;
-			}
+		//		return;
+		//	}
 
-			loadBannedModsTask = GetBannedModsTask();
-			loadBannedModsTask.ContinueWith((task) =>
-			{
-				loadBannedModsTask = null;
-				var result = task.Result;
+		//	loadBannedModsTask = GetBannedModsTask();
+		//	loadBannedModsTask.ContinueWith((task) =>
+		//	{
+		//		loadBannedModsTask = null;
+		//		var result = task.Result;
 
-				if (result.status == GetBannedModsStatus.OK)
-				{
-					bannedModsListLoaded = true;
-					bannedMods = result.response.mods;
-				}
+		//		if (result.status == GetBannedModsStatus.OK)
+		//		{
+		//			bannedModsListLoaded = true;
+		//			bannedMods = result.response.mods;
+		//		}
 
-				Plugin.CheckForBannedMods();
+		//		Plugin.CheckForBannedMods();
 
-				if (callback != null)
-					callback(result.status == GetBannedModsStatus.OK);
-			}, TaskScheduler.FromCurrentSynchronizationContext());
-		}
+		//		if (callback != null)
+		//			callback(result.status == GetBannedModsStatus.OK);
+		//	}, TaskScheduler.FromCurrentSynchronizationContext());
+		//}
 
 		public struct PostRecordInfo
 		{
@@ -181,19 +181,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			}
 
 			// Leaderboard banned mods
-			string[] bannedModsList = bannedMods;
-			if (!bannedModsListLoaded)
-			{
-				if (!loadingBannedModsList)
-					LoadBannedModsList();
-				await loadBannedModsTask;
-
-				if (!bannedModsListLoaded)
-				{
-					Plugin.logger.LogWarning("Banned mods list could not be loaded, using the local list");
-					bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
-				}
-			}
+			string[] bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
 
 			bool bannedModsFound = false;
 			foreach (string plugin in Chainloader.PluginInfos.Keys)
