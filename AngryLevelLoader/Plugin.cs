@@ -58,6 +58,7 @@ namespace AngryLevelLoader
 	[BepInDependency("com.banana.BananaDifficulty", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("billy.billiondifficulty", BepInDependency.DependencyFlags.SoftDependency)]
 	// Soft ban dependencies
+	[BepInDependency("com.sinai.unityexplorer", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(UltraFunGunsSoftBan.CONFIGGY_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(DualWieldPunchesSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency(UltraTweakerSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
@@ -2285,8 +2286,6 @@ namespace AngryLevelLoader
 
 		private void PostAwake()
 		{
-			BannedModsManager.Init();
-
 			// Initialize internal config
 			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
 			internalConfig.hidden = true;
@@ -2463,6 +2462,7 @@ namespace AngryLevelLoader
 				config.rootPanel.ClosePanel();
 			};
 
+			BannedModsManager.Init();
 			AngryLeaderboards.LoadBannedModsList();
 
 			// TODO: Investigate further on this issue:

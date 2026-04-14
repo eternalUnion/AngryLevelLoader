@@ -9,6 +9,14 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="Resources\V2PatchBundles\other_assets_allaudio.bundle" />
     <None Remove="Resources\V2PatchBundles\other_assets_dooraudio.bundle" />
@@ -102,6 +110,9 @@
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>libs\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityExplorer.BIE5.Mono">
+      <HintPath>libs\UnityExplorer.BIE5.Mono.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

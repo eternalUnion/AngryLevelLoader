@@ -40,6 +40,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			UltraTweakerSoftBan.PLUGIN_GUID,
 			WipFixHardBan.PLUGIN_GUID,
 			MasqueradeDivinitySoftBan.PLUGIN_GUID,
+			BillionDifficultySoftBan.PLUGIN_GUID,
+			UnityExplorerSoftBan.PLUGIN_GUID,
 		};
 
 		public static Dictionary<string, Func<SoftBanCheckResult>> checkers = new Dictionary<string, Func<SoftBanCheckResult>>();
@@ -56,6 +58,8 @@ namespace AngryLevelLoader.Managers.BannedMods
 			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" },
 			{ WipFixHardBan.PLUGIN_GUID, "Whiplash Buff" },
 			{ MasqueradeDivinitySoftBan.PLUGIN_GUID, "Masquerade Divinity" },
+			{ BillionDifficultySoftBan.PLUGIN_GUID, "Billion Difficulty" },
+			{ UnityExplorerSoftBan.PLUGIN_GUID, "Unity Explorer" },
 		};
 
 		public static void Init()
@@ -130,6 +134,13 @@ namespace AngryLevelLoader.Managers.BannedMods
 			{
 				Plugin.logger.LogInfo("Detected MasqueradeDivinity, adding soft ban check for leaderboards");
 				checkers.Add(MasqueradeDivinitySoftBan.PLUGIN_GUID, MasqueradeDivinitySoftBan.Check);
+			}
+
+			if (UnityExplorerSoftBan.UELoaded)
+			{
+				Plugin.logger.LogInfo("Detected Unity Explorer, adding soft ban check for leaderboards");
+				checkers.Add(UnityExplorerSoftBan.PLUGIN_GUID, UnityExplorerSoftBan.Check);
+				UnityExplorerSoftBan.Init();
 			}
 		}
 	}
