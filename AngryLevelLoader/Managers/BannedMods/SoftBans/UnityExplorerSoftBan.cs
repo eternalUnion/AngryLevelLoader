@@ -52,7 +52,7 @@ namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 					if (mode == LoadSceneMode.Additive)
 						return;
 
-					currentlyBanned = !UIManager.ShowMenu;
+					currentlyBanned = UIManager.ShowMenu;
 				};
 
 #if !DEBUG

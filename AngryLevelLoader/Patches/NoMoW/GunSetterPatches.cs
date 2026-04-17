@@ -56,5 +56,15 @@ namespace AngryLevelLoader.Patches.NoMoW
 
 			return false;
 		}
+
+		[HarmonyPatch(nameof(GunSetter.CheckWeapon))]
+		[HarmonyPrefix]
+		public static bool NoCheckWeapon()
+		{
+			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoWeapons)
+				return true;
+
+			return false;
+		}
 	}
 }
