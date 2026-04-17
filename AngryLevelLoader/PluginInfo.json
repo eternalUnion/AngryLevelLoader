@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "3.2.1",
+  "latestVersion": "3.2.2",
   "updates": [
     {
       "version": "1.0.0",
@@ -132,6 +132,10 @@
     {
       "version": "3.2.1",
       "updateText": "Fixed a UI issue regarding leaderboards"
+    },
+    {
+      "version": "3.2.2",
+      "updateText": "- Added support for Billion/Banana difficulties\n- Fixed a bug related to NoMoW where timer wouldn't start\n- Fixed encore first rooms not having challenge and secret info in level end screen and tab panel"
     }
   ]
 }
