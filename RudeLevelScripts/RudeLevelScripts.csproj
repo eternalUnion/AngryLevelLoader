@@ -27,6 +27,9 @@
     <Reference Include="Unity.ResourceManager">
       <HintPath>..\AngryLevelLoader\libs\Unity.ResourceManager.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\AngryLevelLoader\libs\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>..\AngryLevelLoader\libs\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>

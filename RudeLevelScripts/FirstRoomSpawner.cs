@@ -3,6 +3,7 @@ using AngryLevelLoader.Containers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
@@ -481,12 +482,12 @@ namespace RudeLevelScript
 				opener.startMusic = startMusic;
 				FinalDoor door = firstRoomInst.transform.Find("Room/FinalDoor").GetComponent<FinalDoor>();
 
-                GameObject hellmapObj = null;
+				Transform canvas = NewMovement.Instance.transform.Find("Canvas") ?? SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
+
+				GameObject hellmapObj = null;
 				if (enableHellMap)
 				{
 					Deserialize();
-
-					Transform canvas = NewMovement.instance.transform.Find("Canvas") ?? SceneManager.GetActiveScene().GetRootGameObjects().Where(o => o.name == "Canvas").First().transform;
 
 					RectTransform hellmap = MakeRect(canvas);
 					hellmap.name = "Hellmap";
@@ -655,6 +656,71 @@ namespace RudeLevelScript
 					toEnable.AddRange(upwardRoomOutOfBoundsToDisable);
 
 					ConvertToAscendingFirstRoom(firstRoomInst, upwardRoomDoorCloseClip, toEnable, toDisable, doNotReplace);
+				}
+			
+				if (encoreRoom)
+				{
+					FinalRank finalRank = FinalRank.Instance;
+					if (finalRank != null)
+					{
+						Transform extraInfo = finalRank.transform.Find("Extra Info");
+						if (extraInfo != null && extraInfo.gameObject.TryGetComponent(out RectTransform rect))
+						{
+							rect.anchoredPosition = new Vector3(0, 200, 0);
+							rect.sizeDelta = new Vector2(480, 180);
+						}
+
+						Transform secretsTitle = finalRank.transform.Find("Secrets -  Title");
+						Transform secretsInfo = finalRank.transform.Find("Secrets - Info");
+						Transform secretsText = secretsInfo == null ? null : secretsInfo.transform.Find("Text (1)");
+						Transform challengeTitle = finalRank.transform.Find("Challenge - Title");
+						Transform challenge = finalRank.transform.Find("Challenge");
+
+						List<GameObject> toAppear = finalRank.toAppear.ToList();
+
+						if (secretsTitle != null && !toAppear.Contains(secretsTitle.gameObject))
+							toAppear.Insert(toAppear.Count - 1, secretsTitle.gameObject);
+
+						if (secretsInfo != null && !toAppear.Contains(secretsInfo.gameObject))
+							toAppear.Insert(toAppear.Count - 1, secretsInfo.gameObject);
+
+						if (secretsText != null && !toAppear.Contains(secretsText.gameObject))
+							toAppear.Insert(toAppear.Count - 1, secretsText.gameObject);
+
+						if (challengeTitle != null && !toAppear.Contains(challengeTitle.gameObject))
+						{
+							challengeTitle.gameObject.SetActive(true);
+							toAppear.Insert(toAppear.Count - 1, challengeTitle.gameObject);
+						}
+
+						if (challenge != null && !toAppear.Contains(challenge.gameObject))
+							toAppear.Insert(toAppear.Count - 1, challenge.gameObject);
+
+						finalRank.toAppear = toAppear.ToArray();
+
+						Transform statsController = canvas.transform.Find("Level Stats Controller");
+						if (statsController != null)
+						{
+							LevelStats stats = statsController.GetComponentInChildren<LevelStats>(true);
+							stats.GetComponent<RectTransform>().sizeDelta = new Vector2(285, 315);
+
+							stats.challenge = stats.transform.Find("Challenge Title/Challenge")?.GetComponent<TMP_Text>();
+							stats.transform.Find("Challenge Title")?.gameObject.SetActive(true);
+							stats.transform.Find("Secrets Title")?.gameObject.SetActive(true);
+
+							List<Image> secrets = new List<Image>();
+							for (int i = 5; i >= 1; i--)
+							{
+								Transform secretImg = stats.transform.Find($"Secrets Title/Secret {i}");
+								if (secretImg != null)
+									secrets.Add(secretImg.GetComponent<Image>());
+							}
+							stats.secrets = secrets.ToArray();
+
+							Transform assists = stats.transform.Find("Assists Title");
+							assists.GetComponent<RectTransform>().anchoredPosition = new Vector2(10, -275);
+						}
+					}
 				}
 			}
 			catch (Exception e)
