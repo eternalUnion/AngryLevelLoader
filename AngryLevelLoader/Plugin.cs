@@ -3,6 +3,7 @@ using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Fields;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.BannedMods;
+using AngryLevelLoader.Managers.BannedMods.SoftBans;
 using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
@@ -54,21 +55,16 @@ namespace AngryLevelLoader
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(Ultrapain.Plugin.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	// Soft ban dependencies
+	[BepInDependency("com.eternalUnion.ultraPain", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.banana.BananaDifficulty", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("billy.billiondifficulty", BepInDependency.DependencyFlags.SoftDependency)]
-	// Soft ban dependencies
 	[BepInDependency("com.sinai.unityexplorer", BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(UltraFunGunsSoftBan.CONFIGGY_LIB_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(DualWieldPunchesSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(UltraTweakerSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(MovementPlusSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(UltraCoinsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(UltraFunGunsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(FasterPunchSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(AtlasWeaponsSoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(WipFixHardBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(MasqueradeDivinitySoftBan.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("ironfarm.uk.uc", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("Hydraxous.ULTRAKILL.UltraFunGuns", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("ironfarm.uk.muda", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("maranara_whipfix", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("maranara_project_prophet", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
         public const string PLUGIN_NAME = "AngryLevelLoader";
@@ -1984,50 +1980,29 @@ namespace AngryLevelLoader
 			bool bannedModsFound = false;
 			bannedModsText.text = "";
 
-			string[] bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
-
-			foreach (string plugin in Chainloader.PluginInfos.Keys)
+			foreach (SoftBan checker in BannedModsManager.checkers)
 			{
-				if (Array.IndexOf(bannedModsList, plugin) == -1)
-					continue;
-
-				if (!BannedModsManager.guidToName.TryGetValue(plugin, out string realName))
-					realName = plugin;
-
-				// First, check for a soft ban checker
-				if (BannedModsManager.checkers.TryGetValue(plugin, out Func<SoftBanCheckResult> checker))
+				try
 				{
-					try
+					var result = checker.Check();
+
+					if (result.banned)
 					{
-						var result = checker();
-
-						if (result.banned)
-						{
-							if (!string.IsNullOrEmpty(bannedModsText.text))
-								bannedModsText.text += '\n';
-
-							bannedModsText.text += $"<color=red>{realName}</color>\n<size=18>{result.message}</size>\n\n";
-							bannedModsFound = true;
-						}
-					}
-					catch (Exception e)
-					{
-						logger.LogError($"Exception thrown while checking for soft ban for {realName}\n{e}");
-
 						if (!string.IsNullOrEmpty(bannedModsText.text))
 							bannedModsText.text += '\n';
 
-						bannedModsText.text += $"<color=red>{realName}</color>\n<size=18>- Encountered an error while checking for the soft ban status, check console</size>\n\n";
+						bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>{result.message}</size>\n\n";
 						bannedModsFound = true;
 					}
 				}
-				// Failsafe: assume banned
-				else
+				catch (Exception e)
 				{
+					logger.LogError($"Exception thrown while checking for soft ban for {checker.ModName}\n{e}");
+
 					if (!string.IsNullOrEmpty(bannedModsText.text))
 						bannedModsText.text += '\n';
 
-					bannedModsText.text += $"<color=red>{realName}</color>\n<size=18>- Could not find a soft ban check for this mod. Is angry up to date?</size>\n\n";
+					bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>- Encountered an error while checking for the soft ban status, check console</size>\n\n";
 					bannedModsFound = true;
 				}
 			}

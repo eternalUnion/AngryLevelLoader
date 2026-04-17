@@ -8,17 +8,16 @@ using UnityEngine.SceneManagement;
 using UnityExplorer.ObjectExplorer;
 using UnityExplorer.UI;
 
-namespace AngryLevelLoader.Managers.BannedMods
+namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
-	public static class UnityExplorerSoftBan
+	[SoftBanClass]
+	public class UnityExplorerSoftBan : SoftBan
 	{
-		public const string PLUGIN_GUID = "com.sinai.unityexplorer";
 		private static bool currentlyBanned = false;
 
-		public static bool UELoaded
-		{
-			get => Chainloader.PluginInfos.ContainsKey(PLUGIN_GUID);
-		}
+		public override string ModGuid => "com.sinai.unityexplorer";
+
+		public override string ModName => "Unity Explorer";
 
 #if !DEBUG
 		internal static void AngryClassFilterPatch(List<object> __result)
@@ -44,7 +43,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 				currentlyBanned = true;
 		}
 
-		internal static void Init()
+		public override void Init()
 		{
 			try
 			{
@@ -53,7 +52,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 					if (mode == LoadSceneMode.Additive)
 						return;
 
-					currentlyBanned = false;
+					currentlyBanned = !UIManager.ShowMenu;
 				};
 
 #if !DEBUG
@@ -72,7 +71,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 			}
 		}
 
-		public static SoftBanCheckResult Check()
+		public override SoftBanCheckResult Check()
 		{
 			if (currentlyBanned)
 				return new SoftBanCheckResult(true, "Cannot post to leaderboards once Unity Explorer window is opened. Close the window and complete the level without opening UE again to post a record.");

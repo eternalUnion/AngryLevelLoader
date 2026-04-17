@@ -1,146 +1,53 @@
-﻿using System;
+﻿using AngryLevelLoader.Managers.BannedMods.SoftBans;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace AngryLevelLoader.Managers.BannedMods
 {
-	public struct SoftBanCheckResult
-	{
-		public bool banned;
-		public string message;
-
-		public SoftBanCheckResult()
-		{
-			banned = false;
-			message = "";
-		}
-
-		public SoftBanCheckResult(bool banned, string message)
-		{
-			this.banned = banned;
-			this.message = message;
-		}
-	}
-
 	public static class BannedModsManager
 	{
-
 		// This is the local banned mods list. It should normally be fetched from angry server
 		// In case the server is offline, this list will be used as a fallback
-		public static readonly string[] LOCAL_BANNED_MODS_LIST = new string[]
-		{
-			AtlasWeaponsSoftBan.PLUGIN_GUID,
-			DualWieldPunchesSoftBan.PLUGIN_GUID,
-			FasterPunchSoftBan.PLUGIN_GUID,
-			MovementPlusSoftBan.PLUGIN_GUID,
-			UltraCoinsSoftBan.PLUGIN_GUID,
-			UltraFunGunsSoftBan.PLUGIN_GUID,
-			UltrapainSoftBan.PLUGIN_GUID,
-			BananasDifficultySoftBan.PLUGIN_GUID,
-			UltraTweakerSoftBan.PLUGIN_GUID,
-			WipFixHardBan.PLUGIN_GUID,
-			MasqueradeDivinitySoftBan.PLUGIN_GUID,
-			BillionDifficultySoftBan.PLUGIN_GUID,
-			UnityExplorerSoftBan.PLUGIN_GUID,
-		};
+		public static readonly List<string> LOCAL_BANNED_MODS_LIST = new List<string>();
 
-		public static Dictionary<string, Func<SoftBanCheckResult>> checkers = new Dictionary<string, Func<SoftBanCheckResult>>();
-		public static Dictionary<string, string> guidToName = new Dictionary<string, string>()
+		public static List<SoftBan> checkers = new List<SoftBan>();
+
+		public static SoftBan GetChecker(string guid)
 		{
-			{ AtlasWeaponsSoftBan.PLUGIN_GUID, "Atlas" },
-			{ DualWieldPunchesSoftBan.PLUGIN_GUID, "DualWieldPunches" },
-			{ FasterPunchSoftBan.PLUGIN_GUID, "FasterPunches" },
-			{ MovementPlusSoftBan.PLUGIN_GUID, "Movement+" },
-			{ UltraCoinsSoftBan.PLUGIN_GUID, "UltraCoins" },
-			{ UltraFunGunsSoftBan.PLUGIN_GUID, "UltraFunGuns" },
-			{ UltrapainSoftBan.PLUGIN_GUID, "UltraPain" },
-			{ BananasDifficultySoftBan.PLUGIN_GUID, "Bananas Difficulty" },
-			{ UltraTweakerSoftBan.PLUGIN_GUID, "UltraTweaker" },
-			{ WipFixHardBan.PLUGIN_GUID, "Whiplash Buff" },
-			{ MasqueradeDivinitySoftBan.PLUGIN_GUID, "Masquerade Divinity" },
-			{ BillionDifficultySoftBan.PLUGIN_GUID, "Billion Difficulty" },
-			{ UnityExplorerSoftBan.PLUGIN_GUID, "Unity Explorer" },
-		};
+			return checkers.Where(chk => chk.ModGuid == guid).FirstOrDefault();
+		}
 
 		public static void Init()
 		{
-			if (UltrapainSoftBan.UltrapainLoaded)
+			foreach (Type softBanClassType in Assembly.GetCallingAssembly().GetTypes().Where(t => t.GetCustomAttribute(typeof(SoftBanClassAttribute)) != null))
 			{
-				Plugin.logger.LogInfo("Detected UltraPain, adding soft ban check for leaderboards");
-				checkers.Add(UltrapainSoftBan.PLUGIN_GUID, UltrapainSoftBan.Check);
-			}
+				SoftBan instance = softBanClassType.GetConstructor(new Type[0]).Invoke(new object[0]) as SoftBan;
+				if (instance == null)
+				{
+					Plugin.logger.LogWarning($"Softban class {softBanClassType.Name} does not inherit {nameof(SoftBan)}!");
+					continue;
+				}
 
-			if (DualWieldPunchesSoftBan.DualWieldPunchesLoaded)
-			{
-				Plugin.logger.LogInfo("Detected DualPunches, adding soft ban check for leaderboards");
-				checkers.Add(DualWieldPunchesSoftBan.PLUGIN_GUID, DualWieldPunchesSoftBan.Check);
-			}
+				if (!instance.ModLoaded)
+					continue;
 
-			if (UltraTweakerSoftBan.UltraTweakerLoaded)
-			{
-				Plugin.logger.LogInfo("Detected UltraTweaker, adding soft ban check for leaderboards");
-				checkers.Add(UltraTweakerSoftBan.PLUGIN_GUID, UltraTweakerSoftBan.Check);
-			}
+				Plugin.logger.LogInfo($"Detected {instance.ModName}, adding soft ban check for leaderboards");
+				
+				try
+				{
+					instance.Init();
+				}
+				catch (Exception e)
+				{
+					Plugin.logger.LogError(e);
+					continue;
+				}
 
-			if (MovementPlusSoftBan.MovementPlusLoaded)
-			{
-				Plugin.logger.LogInfo("Detected Movement+, adding soft ban check for leaderboards");
-				checkers.Add(MovementPlusSoftBan.PLUGIN_GUID, MovementPlusSoftBan.Check);
-			}
-
-			if (UltraCoinsSoftBan.UltraCoinsLoaded)
-			{
-				Plugin.logger.LogInfo("Detected UltraCoins, adding soft ban check for leaderboards");
-				checkers.Add(UltraCoinsSoftBan.PLUGIN_GUID, UltraCoinsSoftBan.Check);
-			}
-
-			if (UltraFunGunsSoftBan.UltraFunGunsLoaded)
-			{
-				Plugin.logger.LogInfo("Detected UltraFunGuns, adding soft ban check for leaderboards");
-				checkers.Add(UltraFunGunsSoftBan.PLUGIN_GUID, UltraFunGunsSoftBan.Check);
-			}
-
-			if (FasterPunchSoftBan.FasterPunchLoaded)
-			{
-				Plugin.logger.LogInfo("Detected FasterPunch, adding soft ban check for leaderboards");
-					checkers.Add(FasterPunchSoftBan.PLUGIN_GUID, FasterPunchSoftBan.Check);
-			}
-
-			if (AtlasWeaponsSoftBan.AtlasLoaded)
-			{
-				Plugin.logger.LogInfo("Detected AtlasLib, adding soft ban check for leaderboards");
-				checkers.Add(AtlasWeaponsSoftBan.PLUGIN_GUID, AtlasWeaponsSoftBan.Check);
-			}
-
-			if (BananasDifficultySoftBan.BananasLoaded)
-			{
-				Plugin.logger.LogInfo("Detected Bananas Difficulty, adding soft ban check for leaderboards");
-				checkers.Add(BananasDifficultySoftBan.PLUGIN_GUID, BananasDifficultySoftBan.Check);
-			}
-
-			if (BillionDifficultySoftBan.BillionLoaded)
-			{
-				Plugin.logger.LogInfo("Detected Billions Difficulty, adding soft ban check for leaderboards");
-				checkers.Add(BillionDifficultySoftBan.PLUGIN_GUID, BillionDifficultySoftBan.Check);
-			}
-
-			if (WipFixHardBan.WipFixLoaded)
-			{
-				Plugin.logger.LogInfo("Detected WipFix, adding soft ban check for leaderboards");
-				checkers.Add(WipFixHardBan.PLUGIN_GUID, WipFixHardBan.Check);
-			}
-
-			if (MasqueradeDivinitySoftBan.MasqueradeDivinityLoaded)
-			{
-				Plugin.logger.LogInfo("Detected MasqueradeDivinity, adding soft ban check for leaderboards");
-				checkers.Add(MasqueradeDivinitySoftBan.PLUGIN_GUID, MasqueradeDivinitySoftBan.Check);
-			}
-
-			if (UnityExplorerSoftBan.UELoaded)
-			{
-				Plugin.logger.LogInfo("Detected Unity Explorer, adding soft ban check for leaderboards");
-				checkers.Add(UnityExplorerSoftBan.PLUGIN_GUID, UnityExplorerSoftBan.Check);
-				UnityExplorerSoftBan.Init();
+				LOCAL_BANNED_MODS_LIST.Add(instance.ModGuid);
+				checkers.Add(instance);
 			}
 		}
 	}

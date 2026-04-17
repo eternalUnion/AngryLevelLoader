@@ -180,42 +180,26 @@ namespace AngryLevelLoader.Managers.ServerManager
 				return "<color=red>Failed to post record:\nInvalid difficulty</color>";
 			}
 
-			// Leaderboard banned mods
-			string[] bannedModsList = BannedModsManager.LOCAL_BANNED_MODS_LIST;
-
 			bool bannedModsFound = false;
 			foreach (string plugin in Chainloader.PluginInfos.Keys)
 			{
-				if (Array.IndexOf(bannedModsList, plugin) == -1)
-					continue;
-
-				if (!BannedModsManager.guidToName.TryGetValue(plugin, out string realName))
-					realName = plugin;
-
-				// First, check for a soft ban checker
-				if (BannedModsManager.checkers.TryGetValue(plugin, out Func<SoftBanCheckResult> checker))
+				foreach (SoftBan checker in BannedModsManager.checkers)
 				{
 					try
 					{
-						var result = checker();
+						var result = checker.Check();
 
 						if (result.banned)
 						{
-							Plugin.logger.LogWarning($"Banned mod found: {realName}\n{result.message}");
+							Plugin.logger.LogWarning($"Banned mod found: {checker.ModName}\n{result.message}");
 							bannedModsFound = true;
 						}
 					}
 					catch (Exception e)
 					{
-						Plugin.logger.LogError($"Exception thrown while checking for soft ban for {realName}\n{e}");
+						Plugin.logger.LogError($"Exception thrown while checking for soft ban for {checker.ModName}\n{e}"); 
 						bannedModsFound = true;
 					}
-				}
-				// Failsafe: assume banned
-				else
-				{
-					Plugin.logger.LogWarning($"Mod {realName} has no checker. Assumed to be banned. Is your angry up to date?");
-					bannedModsFound = true;
 				}
 			}
 

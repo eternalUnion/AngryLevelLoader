@@ -6,18 +6,16 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace AngryLevelLoader.Managers.BannedMods
+namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
-	public static class BananasDifficultySoftBan
+	[SoftBanClass]
+	public class BananasDifficultySoftBan : SoftBan
 	{
-		public const string PLUGIN_GUID = "com.banana.BananaDifficulty";
+		public override string ModGuid => "com.banana.BananaDifficulty";
 
-		public static bool BananasLoaded
-		{
-			get => Chainloader.PluginInfos.ContainsKey(PLUGIN_GUID);
-		}
+		public override string ModName => "Banana Difficulty";
 
-		public static SoftBanCheckResult Check()
+		public override SoftBanCheckResult Check()
 		{
 			if (BananaDifficulty.BananaDifficultyPlugin.CanUseIt(-1))
 				return new SoftBanCheckResult(true, "Bananas difficulty is not allowed in the leaderboards, turn off global difficulty and switch to other difficulties to be able to post records");
