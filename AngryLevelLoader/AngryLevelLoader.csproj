@@ -84,6 +84,12 @@
     <Reference Include="ProjectProphet">
       <HintPath>libs\ProjectProphet.dll</HintPath>
     </Reference>
+    <Reference Include="The Timestopper">
+      <HintPath>libs\The Timestopper.dll</HintPath>
+    </Reference>
+    <Reference Include="TimeStop">
+      <HintPath>libs\TimeStop.dll</HintPath>
+    </Reference>
     <Reference Include="Ultracoins">
       <HintPath>libs\Ultracoins.dll</HintPath>
     </Reference>

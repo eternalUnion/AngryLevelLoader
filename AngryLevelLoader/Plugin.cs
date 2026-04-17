@@ -51,7 +51,7 @@ namespace AngryLevelLoader
         {
 
         }
-    }
+	}
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
@@ -65,6 +65,8 @@ namespace AngryLevelLoader
 	[BepInDependency("ironfarm.uk.muda", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("maranara_whipfix", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("maranara_project_prophet", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("dev.galvin.timestopper", BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency("com.banana.timestop", BepInDependency.DependencyFlags.SoftDependency)]
 	public class Plugin : BaseUnityPlugin
 	{
         public const string PLUGIN_NAME = "AngryLevelLoader";
