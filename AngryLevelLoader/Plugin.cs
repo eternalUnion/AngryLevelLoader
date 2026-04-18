@@ -883,6 +883,11 @@ namespace AngryLevelLoader
 		// Is billion difficulty enabled?
 		private static bool GetBillionDifficultySet()
 		{
+			return BillionDifficulty.Util.IsDifficulty(19);
+		}
+
+		private static bool IsBrilliantBillion()
+		{
 			return BillionDifficulty.Util.IsHardMode();
 		}
 
@@ -1013,7 +1018,7 @@ namespace AngryLevelLoader
 							{
 								if (GetBillionDifficultySet())
 								{
-									difficultyField.difficultyListValueIndex = difficultyList.IndexOf("BILLION");
+									difficultyField.difficultyListValueIndex = difficultyList.IndexOf(IsBrilliantBillion() ? "BILLION (HARD)" : "BILLION");
 								}
 								else
 								{
@@ -1442,6 +1447,8 @@ namespace AngryLevelLoader
 						selectedDifficulty = 101;
 					else if (difficultyName == "BILLION")
 						selectedDifficulty = 102;
+					else if (difficultyName == "BILLION (HARD)")
+						selectedDifficulty = 103;
 				}
 
 				if (difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2)
@@ -2451,6 +2458,7 @@ namespace AngryLevelLoader
 			{
 				billionDifficultyLoaded = true;
 				difficultyList.Add("BILLION");
+				difficultyList.Add("BILLION (HARD)");
 			}
 
 			InitializeConfig();

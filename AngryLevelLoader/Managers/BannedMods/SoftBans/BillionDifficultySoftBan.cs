@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 
 		public override SoftBanCheckResult Check()
 		{
-			if (BillionDifficulty.Util.IsHardMode())
+			if (BillionDifficulty.Util.IsDifficulty(19))
 				return new SoftBanCheckResult(true, "Billion difficulty is not allowed in the leaderboards, turn off global difficulty and switch to other difficulties to be able to post records");
 
 			return new SoftBanCheckResult();

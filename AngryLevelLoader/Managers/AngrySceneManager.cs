@@ -278,9 +278,9 @@ namespace AngryLevelLoader.Managers
 			// It is sufficient for the difficulty to not be 5
 		}
 
-		public static void SetToBillionDifficulty()
+		public static void SetToBillionDifficulty(bool hardMode)
         {
-            BillionDifficulty.Plugin.IsBrilliantBillion.SetValue(true);
+            BillionDifficulty.Plugin.IsBrilliantBillion.SetValue(hardMode);
 			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 19);
 		}
 
@@ -325,7 +325,11 @@ namespace AngryLevelLoader.Managers
                 }
                 else if (Plugin.selectedDifficulty == 102)
                 {
-                    SetToBillionDifficulty();
+                    SetToBillionDifficulty(false);
+                }
+                else if (Plugin.selectedDifficulty == 103)
+                {
+                    SetToBillionDifficulty(true);
                 }
                 else
                 {
