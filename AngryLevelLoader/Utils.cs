@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -149,9 +150,33 @@ namespace AngryLevelLoader
 			return result;
 		}
 
+		private static string _AppData = null;
         public static string AppData
 		{
-			get => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			get
+			{
+				if (_AppData != null)
+					return _AppData;
+
+				_AppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+				Regex badAppData = new Regex(@"^[^:]+:\\Users\\User\\AppData\\Roaming");
+				if (badAppData.IsMatch(_AppData))
+				{
+					Plugin.logger.LogWarning($"Bad username for AppData (got '{_AppData}', expected user '{Environment.UserName}'), falling back to local AppData");
+
+					_AppData = Path.Combine(Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)).FullName, "Roaming");
+					if (badAppData.IsMatch(_AppData))
+					{
+						Plugin.logger.LogWarning($"Bad username for local AppData (got '{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}', expected user '{Environment.UserName}'), falling back to absolute path");
+
+						char driveLetter = (_AppData.Length > 0) ? _AppData[0] : 'C';
+						_AppData = @$"{driveLetter}:\Users\{Environment.UserName}\AppData\Roaming";
+					}
+				}
+
+				return _AppData;
+			}
         }
 
 		public static bool TryCreateDirectory(string path)

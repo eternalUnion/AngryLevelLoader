@@ -31,6 +31,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Unity.Audio;
 using UnityEngine;
@@ -1330,6 +1331,36 @@ namespace AngryLevelLoader
 			};
 		}
 
+		private static void InitializeErrorConfig(string text, Exception ex)
+		{
+			if (config == null)
+			{
+				config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
+				config.SetIconWithURL("file://" + Path.Combine(workingDir, "plugin-icon.png"));
+			}
+			else
+			{
+				foreach (var field in config.rootPanel.GetAllFields())
+				{
+					field.hidden = true;
+				}
+			}
+
+			ButtonField bugReport = new ButtonField(config.rootPanel, "GitHub bug report", "error_bugReport");
+			bugReport.onClick += () =>
+			{
+				Application.OpenURL("https://github.com/eternalUnion/AngryLevelLoader/issues");
+			};
+
+			ConfigHeader errorHeader = new ConfigHeader(config.rootPanel, $"Error! Failed to create plugin's data folder at '{dataPath}'", 16, TMPro.TextAlignmentOptions.Left);
+			errorHeader.textColor = Color.red;
+
+			if (ex != null)
+			{
+				ConfigHeader exceptionHeader = new ConfigHeader(config.rootPanel, $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}", 16, TMPro.TextAlignmentOptions.Left);
+			}
+		}
+
 		private static void InitializeConfig()
 		{
 			if (config != null)
@@ -2250,7 +2281,17 @@ namespace AngryLevelLoader
 				return;
 			}
 
-			PostAwake();
+			try
+			{
+				PostAwake();
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex);
+
+				InitializeErrorConfig("Encountered an unknown error, cannot recover!", ex);
+				enabled = false;
+			}
 		}
 
 		private void PostAwake()
@@ -2267,6 +2308,15 @@ namespace AngryLevelLoader
 			updateLastVersion = new StringField(internalConfig.rootPanel, "updateLastVersion", "updateLastVersion", "", true, true, false);
 			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
+
+			// Might be corrupted
+			Regex badDataPath = new Regex(@"^[^:]+:\\Users\\User\\AppData\\Roaming");
+			if (badDataPath.IsMatch(configDataPath.value) && !Directory.Exists(configDataPath.value))
+			{
+				logger.LogWarning("Bad data path detected, resetting the value!");
+				configDataPath.value = configDataPath.defaultValue;
+			}
+
 			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
 			ignoreEpilepsyWarning = new BoolField(internalConfig.rootPanel, "ignoreEpilepsyWarning", "ignoreEpilepsyWarning", false);
 			instantLoadLevel = new BoolField(internalConfig.rootPanel, "instantLoadLevel", "instantLoadLevel", false);
@@ -2294,7 +2344,33 @@ namespace AngryLevelLoader
 
 			// Setup variable dependent paths
 			dataPath = configDataPath.value;
-			IOUtils.TryCreateDirectory(dataPath);
+
+			try
+			{
+				IOUtils.TryCreateDirectory(dataPath);
+			}
+			catch (IOException ex)
+			{
+				logger.LogError($"Failed to create data path at '{dataPath}'! Overwriting with the default value '{configDataPath.defaultValue}'");
+				logger.LogError(ex);
+
+				configDataPath.value = configDataPath.defaultValue;
+				dataPath = configDataPath.defaultValue;
+
+				try
+				{
+					IOUtils.TryCreateDirectory(dataPath);
+				}
+				catch (IOException innerEx)
+				{
+					logger.LogError($"Failed to create data path at '{dataPath}'! Cannot recover, disabling plugin.");
+					InitializeErrorConfig($"Error! Failed to create plugin's data folder at '{dataPath}'", innerEx);
+
+					enabled = false;
+					return;
+				}
+			}
+
 			levelsPath = Path.Combine(dataPath, "Levels");
             IOUtils.TryCreateDirectory(levelsPath);
             tempFolderPath = Path.Combine(dataPath, "LevelsUnpacked");
