@@ -347,10 +347,14 @@ namespace AngryLevelLoader.Managers
             {
                 LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.V6);
             }
+            else if (levelVersion == 7)
+            {
+				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.V7);
+			}
             else
             {
-				LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
-			}
+                LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
+            }
 
 
             //Clear the map vars before loading the level.

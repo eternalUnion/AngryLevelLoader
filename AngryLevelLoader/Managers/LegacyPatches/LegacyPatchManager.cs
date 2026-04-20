@@ -54,6 +54,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 	{
 		None,
 		V6,
+		V7,
 	}
 
 	public class LegacyPatchManager
@@ -78,6 +79,10 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 					if (levelVersion == 6)
 					{
 						SetLegacyPatchState(LegacyPatchState.V6);
+					}
+					else if (levelVersion == 7)
+					{
+						SetLegacyPatchState(LegacyPatchState.V7);
 					}
 					else
 					{
@@ -104,6 +109,11 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 				// Apply all Revamp patches
 				V6LegacyScriptPatches.Patch(legacyHarmony);
 				V6LegacyEnemyPatches.Patch(legacyHarmony);
+			}
+			else if (state == LegacyPatchState.V7)
+			{
+				// Apply some patches that fixes compability issues from 17b2 to 17d2
+				V7LegacyPlayerPatches.Patch(legacyHarmony);
 			}
 		}
 	}
