@@ -787,7 +787,7 @@ namespace AngryLevelLoader.Fields
             }
             else
             {
-                Plugin.UpdateLastUpdate(bundle);
+				LastPlayedMapManager.UpdateLastUpdate(bundle);
 
                 if (!(AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == bundle))
                 {

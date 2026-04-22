@@ -208,7 +208,7 @@ namespace AngryLevelLoader.Containers
             }
 
 			if (fileChanged)
-				Plugin.UpdateLastUpdate(this);
+				LastPlayedMapManager.UpdateLastUpdate(this);
 
             if (bundleData != null)
             {
@@ -506,7 +506,7 @@ namespace AngryLevelLoader.Containers
             }
             else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
             {
-                if (!Plugin.lastPlayed.TryGetValue(bundleData.bundleGuid, out long lastTime))
+                if (!LastPlayedMapManager.lastPlayed.TryGetValue(bundleData.bundleGuid, out long lastTime))
                     lastTime = 0;
 
                 while (order < allBundles.Length)
@@ -517,7 +517,7 @@ namespace AngryLevelLoader.Containers
                         continue;
                     }
 
-                    if (!Plugin.lastPlayed.TryGetValue(allBundles[order].bundleData.bundleGuid, out long otherPlayime))
+                    if (!LastPlayedMapManager.lastPlayed.TryGetValue(allBundles[order].bundleData.bundleGuid, out long otherPlayime))
                         otherPlayime = 0;
 
                     if (lastTime > otherPlayime)
@@ -528,7 +528,7 @@ namespace AngryLevelLoader.Containers
             }
 			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
 			{
-				if (!Plugin.lastUpdate.TryGetValue(bundleData.bundleGuid, out long lastUpdate))
+				if (!LastPlayedMapManager.lastUpdate.TryGetValue(bundleData.bundleGuid, out long lastUpdate))
 					lastUpdate = 0;
 
 				while (order < allBundles.Length)
@@ -539,7 +539,7 @@ namespace AngryLevelLoader.Containers
 						continue;
 					}
 
-					if (!Plugin.lastUpdate.TryGetValue(allBundles[order].bundleData.bundleGuid, out long otherLastUpdate))
+					if (!LastPlayedMapManager.lastUpdate.TryGetValue(allBundles[order].bundleData.bundleGuid, out long otherLastUpdate))
 						otherLastUpdate = 0;
 
 					if (lastUpdate > otherLastUpdate)
@@ -646,7 +646,7 @@ namespace AngryLevelLoader.Containers
 
                 fileChangeDetected = updatedData.buildHash != bundleData.buildHash;
                 if (fileChangeDetected)
-                    Plugin.UpdateLastUpdate(this);
+					LastPlayedMapManager.UpdateLastUpdate(this);
 
                 CheckReloadPrompt();
 			}

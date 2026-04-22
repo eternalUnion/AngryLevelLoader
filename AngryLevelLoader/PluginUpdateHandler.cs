@@ -127,8 +127,7 @@ namespace AngryLevelLoader
                 {
                     File.Delete(oldLastPlayedMapPath);
                 }
-
-                Plugin.LoadLastPlayedMap();
+				LastPlayedMapManager.LoadLastPlayedMap();
             }
 
 			// 2.8.0: Added any difficulty leaderboard

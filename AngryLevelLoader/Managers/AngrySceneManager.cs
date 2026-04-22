@@ -358,7 +358,7 @@ namespace AngryLevelLoader.Managers
 
             //Clear the map vars before loading the level.
             AngryMapVarManager.Instance.ResetStores();
-            Plugin.UpdateLastPlayed(bundleContainer);
+			LastPlayedMapManager.UpdateLastPlayed(bundleContainer);
 			SceneHelper.LoadScene(levelPath, noBlocker: !showBlocker);
         }
 

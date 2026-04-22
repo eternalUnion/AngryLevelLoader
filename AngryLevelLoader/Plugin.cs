@@ -193,125 +193,6 @@ namespace AngryLevelLoader
 
 		internal static string[] currentSearchKeywords = new string[0];
 
-		#region Last played and update tracker
-		// System which tracks when a bundle was played last in unix time
-		public static Dictionary<string, long> lastPlayed = new Dictionary<string, long>();
-		public static void LoadLastPlayedMap()
-		{
-			lastPlayed.Clear();
-
-			string path = AngryPaths.LastPlayedMapPath;
-			if (!File.Exists(path))
-				return;
-
-			using (StreamReader reader = new StreamReader(File.Open(path, FileMode.Open, FileAccess.Read)))
-			{
-				while (!reader.EndOfStream)
-				{
-					string key = reader.ReadLine();
-					if (reader.EndOfStream)
-					{
-						logger.LogWarning("Invalid end of last played map file");
-						break;
-					}
-
-					string value = reader.ReadLine();
-					if (long.TryParse(value, out long seconds))
-					{
-						lastPlayed[key] = seconds;
-					}
-					else
-					{
-						logger.LogInfo($"Invalid last played time '{value}'");
-					}
-				}
-			}
-		}
-
-		public static void UpdateLastPlayed(AngryBundleContainer bundle)
-		{
-			string guid = bundle.bundleData.bundleGuid;
-			if (guid.Length != 32)
-				return;
-
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
-				bundle.rootPanel.siblingIndex = 0;
-			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
-			lastPlayed[guid] = secondsNow;
-
-			string path = AngryPaths.LastPlayedMapPath;
-            IOUtils.TryCreateDirectoryForFile(path);
-            using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
-			{
-				writer.BaseStream.Seek(0, SeekOrigin.Begin);
-				writer.BaseStream.SetLength(0);
-				foreach (var pair in lastPlayed)
-				{
-					writer.WriteLine(pair.Key);
-					writer.WriteLine(pair.Value.ToString());
-				}
-			}
-		}
-
-		public static Dictionary<string, long> lastUpdate = new Dictionary<string, long>();
-		public static void LoadLastUpdateMap()
-		{
-			lastUpdate.Clear();
-
-			string path = AngryPaths.LastUpdateMapPath;
-			if (!File.Exists(path))
-				return;
-
-			using (StreamReader reader = new StreamReader(File.Open(path, FileMode.Open, FileAccess.Read)))
-			{
-				while (!reader.EndOfStream)
-				{
-					string key = reader.ReadLine();
-					if (reader.EndOfStream)
-					{
-						logger.LogWarning("Invalid end of last played map file");
-						break;
-					}
-
-					string value = reader.ReadLine();
-					if (long.TryParse(value, out long seconds))
-					{
-						lastUpdate[key] = seconds;
-					}
-					else
-					{
-						logger.LogInfo($"Invalid last played time '{value}'");
-					}
-				}
-			}
-		}
-
-		public static void UpdateLastUpdate(AngryBundleContainer bundle)
-		{
-			string guid = bundle.bundleData.bundleGuid;
-			if (guid.Length != 32)
-				return;
-
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
-				bundle.rootPanel.siblingIndex = 0;
-			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
-			lastUpdate[guid] = secondsNow;
-
-			string path = AngryPaths.LastUpdateMapPath;
-			IOUtils.TryCreateDirectoryForFile(path);
-			using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
-			{
-				writer.BaseStream.Seek(0, SeekOrigin.Begin);
-				writer.BaseStream.SetLength(0);
-				foreach (var pair in lastUpdate)
-				{
-					writer.WriteLine(pair.Key);
-					writer.WriteLine(pair.Value.ToString());
-				}
-			}
-		}
-		#endregion
-
 		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
 		{
 			return angryBundles.Values.Where(bundle => bundle.bundleData != null && bundle.bundleData.bundleGuid == guid).FirstOrDefault();
@@ -657,7 +538,7 @@ namespace AngryLevelLoader
 			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (lastPlayed.TryGetValue(b.bundleData.bundleGuid, out long time))
+					if (LastPlayedMapManager.lastPlayed.TryGetValue(b.bundleData.bundleGuid, out long time))
 						return time;
 					return 0;
 				}))
@@ -668,7 +549,7 @@ namespace AngryLevelLoader
 			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (lastUpdate.TryGetValue(b.bundleData.bundleGuid, out long time))
+					if (LastPlayedMapManager.lastUpdate.TryGetValue(b.bundleData.bundleGuid, out long time))
 						return time;
 					return 0;
 				}))
@@ -1558,10 +1439,8 @@ namespace AngryLevelLoader
 				return;
 			}
 
-			// Tracks when each bundle was last played in unix time
-			LoadLastPlayedMap();
-			// Tracks when the bundle file was last written to
-			LoadLastUpdateMap();
+			LastPlayedMapManager.LoadLastPlayedMap();
+			LastPlayedMapManager.LoadLastUpdateMap();
 
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
