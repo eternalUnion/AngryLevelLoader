@@ -14,7 +14,7 @@ namespace AngryLevelLoader
 
         public static string SERVER_ROOT
         {
-            get => Plugin.useLocalServer.value ? SERVER_ROOT_LOCAL : SERVER_ROOT_GLOBAL;
+            get => ConfigManager.useLocalServer.value ? SERVER_ROOT_LOCAL : SERVER_ROOT_GLOBAL;
         }
 
         public static void TryCreateAllPaths()

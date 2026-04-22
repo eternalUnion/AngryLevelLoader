@@ -3,7 +3,6 @@ using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Fields;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.BannedMods;
-using AngryLevelLoader.Managers.BannedMods.SoftBans;
 using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
@@ -19,27 +18,18 @@ using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
-using PluginConfig.API.Functionals;
-using PluginConfiguratorComponents;
 using RudeLevelScript;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Unity.Audio;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.AddressableAssets.ResourceLocators;
-using UnityEngine.Audio;
 using UnityEngine.InputSystem.Utilities;
-using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
@@ -91,23 +81,6 @@ namespace AngryLevelLoader
 
         public static Plugin instance;
 		public static ManualLogSource logger;
-		
-		public static PluginConfigurator internalConfig;
-		public static BoolField devMode;
-		public static StringField lastVersion;
-		public static StringField updateLastVersion;
-		public static BoolField ignoreUpdates;
-		public static StringField configDataPath;
-		public static BoolField leaderboardToggle;
-		public static BoolField askedPermissionForLeaderboards;
-		public static BoolField showLeaderboardOnLevelEnd;
-		public static BoolField showLeaderboardOnSecretLevelEnd;
-		public static StringField pendingRecordsField;
-		public static BoolField ignoreEpilepsyWarning;
-		public static BoolField instantLoadLevel;
-		public static StringField instantLoadLevelGuid;
-		public static StringField instantLoadLevelId;
-
 		public static bool ultrapainLoaded = false;
 		public static bool bananasDifficultyLoaded = false;
 		public static bool billionDifficultyLoaded = false;
@@ -261,7 +234,7 @@ namespace AngryLevelLoader
 			if (guid.Length != 32)
 				return;
 
-			if (bundleSortingMode.value == BundleSorting.LastPlayed)
+			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
 				bundle.rootPanel.siblingIndex = 0;
 			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
 			lastPlayed[guid] = secondsNow;
@@ -319,7 +292,7 @@ namespace AngryLevelLoader
 			if (guid.Length != 32)
 				return;
 
-			if (bundleSortingMode.value == BundleSorting.LastUpdate)
+			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
 				bundle.rootPanel.siblingIndex = 0;
 			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
 			lastUpdate[guid] = secondsNow;
@@ -383,9 +356,9 @@ namespace AngryLevelLoader
 			}
 
 			if (folderField == pathToFolderMap["/"])
-				levelBundlesHeader.text = "Level Bundles";
+				ConfigManager.levelBundlesHeader.text = "Level Bundles";
 			else
-				levelBundlesHeader.text = $"Level Bundles <color=grey>{pathToFolderMap.Where(e => e.Value == folderField).FirstOrDefault().Key}</color>";
+				ConfigManager.levelBundlesHeader.text = $"Level Bundles <color=grey>{pathToFolderMap.Where(e => e.Value == folderField).FirstOrDefault().Key}</color>";
 		}
 
 		private static char[] whitespaceSeparator = new char[] { ' ' };
@@ -400,8 +373,8 @@ namespace AngryLevelLoader
 			// If not searching anything, open the current folder
 			if (currentSearchKeywords.Length == 0)
 			{
-				folderDivision.hidden = false;
-				searchInfo.hidden = true;
+				ConfigManager.folderDivision.hidden = false;
+				ConfigManager.searchInfo.hidden = true;
 
 				foreach (AngryBundleContainer bundle in angryBundles.Values)
 					bundle.ResetSearch();
@@ -410,8 +383,9 @@ namespace AngryLevelLoader
 				return;
 			}
 
-			folderDivision.hidden = true;
-			searchInfo.hidden = false;
+			ConfigManager.
+						folderDivision.hidden = true;
+			ConfigManager.searchInfo.hidden = false;
 			int filterCount = 0, totalCount = 0;
 			foreach (AngryBundleContainer bundle in angryBundles.Values)
 			{
@@ -432,8 +406,9 @@ namespace AngryLevelLoader
 					filterCount += 1;
 			}
 
-			levelBundlesHeader.text = "Level Bundles";
-			searchInfo.text = $"Showing {filterCount} of {totalCount} bundles";
+			ConfigManager.
+						levelBundlesHeader.text = "Level Bundles";
+			ConfigManager.searchInfo.text = $"Showing {filterCount} of {totalCount} bundles";
 		}
 
 		private static int numOfOldBundles = 0;
@@ -441,7 +416,7 @@ namespace AngryLevelLoader
 		{
 			if (!pathToFolderMap.TryGetValue(folder, out FolderButtonField folderField))
 			{
-				folderField = new FolderButtonField(folderDivision);
+				folderField = new FolderButtonField(ConfigManager.folderDivision);
 				folderField.folderName = Path.GetFileName(folder);
 				folderField.onPressed.AddListener(() =>
 				{
@@ -464,7 +439,7 @@ namespace AngryLevelLoader
 					{
 						parentFolderExisted = false;
 
-                        parentFolder = new FolderButtonField(folderDivision);
+                        parentFolder = new FolderButtonField(ConfigManager.folderDivision);
                         parentFolder.folderName = Path.GetFileName(parentPath);
                         parentFolder.onPressed.AddListener(() =>
                         {
@@ -507,9 +482,9 @@ namespace AngryLevelLoader
 					{
 						logger.LogError($"Duplicate angry files. Original: {Path.GetFileName(bundle.pathToAngryBundle)}. Duplicate: {Path.GetFileName(path)}");
 
-						if (!string.IsNullOrEmpty(errorText.text))
-							errorText.text += '\n';
-						errorText.text += $"<color=red>Error loading {Path.GetFileName(path)}</color> Duplicate file, original is {Path.GetFileName(bundle.pathToAngryBundle)}";
+						if (!string.IsNullOrEmpty(ConfigManager.errorText.text))
+							ConfigManager.errorText.text += '\n';
+						ConfigManager.errorText.text += $"<color=red>Error loading {Path.GetFileName(path)}</color> Duplicate file, original is {Path.GetFileName(bundle.pathToAngryBundle)}";
 
 						return;
 					}
@@ -555,9 +530,9 @@ namespace AngryLevelLoader
                 catch (Exception e)
                 {
 					logger.LogWarning($"Exception thrown while loading level bundle: {e}");
-                    if (!string.IsNullOrEmpty(errorText.text))
-                        errorText.text += '\n';
-                    errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
+                    if (!string.IsNullOrEmpty(ConfigManager.errorText.text))
+						ConfigManager.errorText.text += '\n';
+					ConfigManager.errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
                 }
 
                 // Old bundle, cannot open level
@@ -571,17 +546,17 @@ namespace AngryLevelLoader
 			{
                 if (AngryFileUtils.IsV1LegacyFile(path))
                 {
-                    if (!string.IsNullOrEmpty(errorText.text))
-                        errorText.text += '\n';
-                    errorText.text += $"<color=yellow>{Path.GetFileName(path)} is a V1 legacy file. Support for legacy files were dropped after 2.5.0</color>";
+                    if (!string.IsNullOrEmpty(ConfigManager.errorText.text))
+						ConfigManager.errorText.text += '\n';
+					ConfigManager.errorText.text += $"<color=yellow>{Path.GetFileName(path)} is a V1 legacy file. Support for legacy files were dropped after 2.5.0</color>";
                 }
                 else
                 {
 					logger.LogError($"Could not load the bundle at {path}\n{error}");
 
-                    if (!string.IsNullOrEmpty(errorText.text))
-                        errorText.text += '\n';
-                    errorText.text += $"<color=yellow>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
+                    if (!string.IsNullOrEmpty(ConfigManager.errorText.text))
+						ConfigManager.errorText.text += '\n';
+					ConfigManager.errorText.text += $"<color=yellow>Failed to load {Path.GetFileNameWithoutExtension(path)}</color>";
                 }
 
                 return;
@@ -598,24 +573,24 @@ namespace AngryLevelLoader
 		public static void ScanForLevels()
         {
 			numOfOldBundles = 0;
-            errorText.text = "";
+			ConfigManager.errorText.text = "";
 
 			currentSearchKeywords = new string[0];
-			folderDivision.hidden = false;
+			ConfigManager.folderDivision.hidden = false;
 			foreach (var bundle in angryBundles.Values)
 				bundle.ResetSearch();
-			searchBar.SetValueWithoutNotify("");
+			ConfigManager.searchBar.SetValueWithoutNotify("");
 
 			if (!Directory.Exists(levelsPath))
             {
 				logger.LogWarning("Could not find the Levels folder at " + levelsPath);
-				errorText.text = "<color=red>Error: </color>Levels folder not found";
+				ConfigManager.errorText.text = "<color=red>Error: </color>Levels folder not found";
 				return;
             }
 
 			if (!pathToFolderMap.TryGetValue("/", out FolderButtonField rootFolder))
 			{
-				rootFolder = new FolderButtonField(config.rootPanel);
+				rootFolder = new FolderButtonField(ConfigManager.config.rootPanel);
 				rootFolder.hidden = true;
 				pathToFolderMap["/"] = rootFolder;
 
@@ -654,9 +629,9 @@ namespace AngryLevelLoader
 
 			if (numOfOldBundles != 0)
 			{
-				if (!string.IsNullOrEmpty(errorText.text))
-					errorText.text += '\n';
-				errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s). These files can be deleted at the bottom of the settings page.</color>";
+				if (!string.IsNullOrEmpty(ConfigManager.errorText.text))
+					ConfigManager.errorText.text += '\n';
+				ConfigManager.errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s). These files can be deleted at the bottom of the settings page.</color>";
 			}
 
 			OpenFolder(rootFolder);
@@ -669,17 +644,17 @@ namespace AngryLevelLoader
 		public static void SortBundles()
 		{
 			int i = 0;
-			if (bundleSortingMode.value == BundleSorting.Alphabetically)
+			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
 			{
 				foreach (var bundle in angryBundles.Values.OrderBy(b => b.bundleData.bundleName))
 					bundle.rootPanel.siblingIndex = i++;
 			}
-			else if (bundleSortingMode.value == BundleSorting.Author)
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
 			{
 				foreach (var bundle in angryBundles.Values.OrderBy(b => b.bundleData.bundleAuthor))
 					bundle.rootPanel.siblingIndex = i++;
 			}
-			else if (bundleSortingMode.value == BundleSorting.LastPlayed)
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
 					if (lastPlayed.TryGetValue(b.bundleData.bundleGuid, out long time))
@@ -690,7 +665,7 @@ namespace AngryLevelLoader
 					bundle.rootPanel.siblingIndex = i++;
 				}
 			}
-			else if (bundleSortingMode.value == BundleSorting.LastUpdate)
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
 					if (lastUpdate.TryGetValue(b.bundleData.bundleGuid, out long time))
@@ -750,117 +725,11 @@ namespace AngryLevelLoader
 
 		// Defaults to violent
         public static int selectedDifficulty = 3;
-		public static DifficultyField difficultyField;
-		internal static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT", "BRUTAL" };
-		internal static List<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
-
-		public static bool NoMonsters => difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2;
-		public static bool NoWeapons => difficultyField.gamemodeListValueIndex == 2;
+		
+		public static bool NoMonsters => ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2;
+		public static bool NoWeapons => ConfigManager.difficultyField.gamemodeListValueIndex == 2;
 
 		public static Harmony harmony;
-
-		#region Config Fields
-		// Main panel
-		public static PluginConfigurator config;
-		public static ConfigHeader levelUpdateNotifier;
-		public static ConfigHeader newLevelNotifier;
-		public static StringField newLevelNotifierLevels;
-		public static BoolField newLevelToggle;
-        public static ConfigHeader errorText;
-		public static ConfigHeader levelBundlesHeader;
-		public static SearchBarField searchBar;
-		public static ConfigDivision folderDivision;
-		public static ConfigDivision bundleDivision;
-		public static ConfigHeader searchInfo;
-		public static ConfigDivision leaderboardsDivision;
-		public static ConfigPanel bannedModsPanel;
-		public static ConfigHeader bannedModsText;
-		public static ConfigPanel pendingRecords;
-		public static ButtonField sendPendingRecords;
-		public static ConfigHeader pendingRecordsStatus;
-		public static ConfigHeader pendingRecordsInfo;
-
-		// Settings panel
-		public static ButtonField changelogButton;
-		public static ButtonArrayField openButtons;
-		public static KeyCodeField reloadFileKeybind;
-		public static KeyCodeField reloadScriptKeybind;
-		public enum CustomLevelButtonPosition
-		{
-			Top,
-			Bottom,
-			Disabled
-		}
-		public static EnumField<CustomLevelButtonPosition> customLevelButtonPosition;
-		public static ColorField customLevelButtonFrameColor;
-		public static ColorField customLevelButtonTextColor;
-		public static BoolField refreshCatalogOnBoot;
-		public static BoolField checkForUpdates;
-		public static BoolField levelUpdateNotifierToggle;
-		public static BoolField levelUpdateIgnoreCustomBuilds;
-		public static BoolField newLevelNotifierToggle;
-		public static List<string> scriptCertificateIgnore = new List<string>();
-		public static StringMultilineField scriptCertificateIgnoreField;
-		public static BoolField useDevelopmentBranch;
-		public static BoolField useLocalServer;
-		public static BoolField scriptUpdateIgnoreCustom;
-		public enum BundleSorting
-		{
-			Alphabetically,
-			Author,
-			LastPlayed,
-			LastUpdate
-		}
-		public static EnumField<BundleSorting> bundleSortingMode;
-		public enum DefaultLeaderboardCategory
-		{
-			All,
-			PRank,
-			Challenge,
-			Nomo,
-			Nomow
-		}
-		public static EnumField<DefaultLeaderboardCategory> defaultLeaderboardCategory;
-		public enum DefaultLeaderboardDifficulty
-		{
-			Any,
-			Harmless,
-			Lenient,
-			Standard,
-			Violent,
-			Brutal,
-		}
-		public static EnumField<DefaultLeaderboardDifficulty> defaultLeaderboardDifficulty;
-		public enum DefaultLeaderboardFilter
-		{
-			Global,
-			Friends,
-		}
-		public static EnumField<DefaultLeaderboardFilter> defaultLeaderboardFilter;
-
-		// Developer panel
-
-		#endregion
-
-		// Set every fields' interactable field to false
-		// Used by move data process to force a restart
-		private static void DisableAllConfig()
-		{
-			Stack<ConfigField> toProcess = new Stack<ConfigField>(config.rootPanel.GetAllFields());
-
-			while (toProcess.Count != 0)
-			{
-				ConfigField field = toProcess.Pop();
-
-                if (field is ConfigPanel concretePanel)
-				{
-					foreach (var subField in concretePanel.GetAllFields())
-						toProcess.Push(subField);
-				}
-
-				field.interactable = false;
-			}
-		}
 
 		// Delayed refresh online catalog on boot
 		private static void RefreshCatalogOnMainMenu(Scene newScene, LoadSceneMode mode)
@@ -868,7 +737,7 @@ namespace AngryLevelLoader
 			if (SceneHelper.CurrentScene != "Main Menu")
 				return;
 
-			if (refreshCatalogOnBoot.value)
+			if (ConfigManager.refreshCatalogOnBoot.value)
 				OnlineLevelsManager.RefreshAsync();
 
 			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
@@ -892,10 +761,10 @@ namespace AngryLevelLoader
 		}
 
 		// Create the shortcut in chapters menu
-		private const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
-		private static AngryCustomLevelButtonComponent currentCustomLevelButton;
-		private static RectTransform bossRushButton;
-		private static void CreateCustomLevelButtonOnMainMenu()
+		internal const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
+		internal static AngryCustomLevelButtonComponent currentCustomLevelButton;
+		internal static RectTransform bossRushButton;
+		internal static void CreateCustomLevelButtonOnMainMenu()
 		{
 			instance.StartCoroutine(CreateCustomLevelButtonOnMainMenuAsync());
 		}
@@ -966,8 +835,8 @@ namespace AngryLevelLoader
 					if (PluginConfiguratorController.activePanel != null)
 						PluginConfiguratorController.activePanel.SetActive(false);
 					PluginConfiguratorController.mainPanel.gameObject.SetActive(false);
-					config.rootPanel.OpenPanelInternally(false);
-					config.rootPanel.currentPanel.rect.normalizedPosition = new Vector2(0, 1);
+					ConfigManager.config.rootPanel.OpenPanelInternally(false);
+					ConfigManager.config.rootPanel.currentPanel.rect.normalizedPosition = new Vector2(0, 1);
 
 					// Set the difficulty based on the previously selected act
 					int difficulty = PrefsManager.Instance.GetInt("difficulty", 3);
@@ -979,20 +848,20 @@ namespace AngryLevelLoader
 						case 2:
 						case 3:
 						case 4:
-							logger.LogInfo($"Angry setting difficulty to {difficultyList[difficulty]}");
-							difficultyField.difficultyListValueIndex = difficulty;
+							logger.LogInfo($"Angry setting difficulty to {ConfigManager.difficultyList[difficulty]}");
+							ConfigManager.difficultyField.difficultyListValueIndex = difficulty;
 							break;
 
 						// Possibly bananas
 						case 5:
 							if (bananasDifficultyLoaded)
 							{
-								difficultyField.difficultyListValueIndex = difficultyList.IndexOf("BANANAS");
+								ConfigManager.difficultyField.difficultyListValueIndex = ConfigManager.difficultyList.IndexOf("BANANAS");
 							}
 							else
 							{
 								logger.LogWarning("Difficulty was set to BANANAS, but angry does not support it. Setting to violent");
-								difficultyField.difficultyListValueIndex = 3;
+								ConfigManager.difficultyField.difficultyListValueIndex = 3;
 							}
 							break;
 
@@ -1002,12 +871,12 @@ namespace AngryLevelLoader
 							{
 								if (GetUltrapainDifficultySet())
 								{
-									difficultyField.difficultyListValueIndex = difficultyList.IndexOf("ULTRAPAIN");
+									ConfigManager.difficultyField.difficultyListValueIndex = ConfigManager.difficultyList.IndexOf("ULTRAPAIN");
 								}
 								else
 								{
 									logger.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
-									difficultyField.difficultyListValueIndex = 3;
+									ConfigManager.difficultyField.difficultyListValueIndex = 3;
 								}
 							}
 							break;
@@ -1018,12 +887,12 @@ namespace AngryLevelLoader
 							{
 								if (GetBillionDifficultySet())
 								{
-									difficultyField.difficultyListValueIndex = difficultyList.IndexOf(IsBrilliantBillion() ? "BILLION (HARD)" : "BILLION");
+									ConfigManager.difficultyField.difficultyListValueIndex = ConfigManager.difficultyList.IndexOf(IsBrilliantBillion() ? "BILLION (HARD)" : "BILLION");
 								}
 								else
 								{
 									logger.LogWarning("Difficulty was set to 19, but angry does not support it. Setting to violent");
-									difficultyField.difficultyListValueIndex = 3;
+									ConfigManager.difficultyField.difficultyListValueIndex = 3;
 								}
 							}
 							break;
@@ -1031,16 +900,16 @@ namespace AngryLevelLoader
 						// Invalid difficulty
 						default:
 							logger.LogWarning("Unknown difficulty, defaulting to violent");
-							difficultyField.difficultyListValueIndex = 3;
+							ConfigManager.difficultyField.difficultyListValueIndex = 3;
 							break;
 					}
 
-					difficultyField.TriggerPostDifficultyChangeEvent();
+					ConfigManager.difficultyField.TriggerPostDifficultyChangeEvent();
 				});
-
-				customLevelButtonPosition.TriggerPostValueChangeEvent();
-				customLevelButtonFrameColor.TriggerPostValueChangeEvent();
-				customLevelButtonTextColor.TriggerPostValueChangeEvent();
+				ConfigManager.
+								customLevelButtonPosition.TriggerPostValueChangeEvent();
+				ConfigManager.customLevelButtonFrameColor.TriggerPostValueChangeEvent();
+				ConfigManager.customLevelButtonTextColor.TriggerPostValueChangeEvent();
 			}
 			else
 			{
@@ -1173,16 +1042,16 @@ namespace AngryLevelLoader
 
 					currentPanel.reloadScriptPrompt.gameObject.SetActive(true);
 					currentPanel.reloadScriptPrompt.audio.Play();
-					currentPanel.reloadScriptPrompt.text.text = $"Script update detected\nPress <color=orange>{Plugin.reloadScriptKeybind.value}</color> to reload\n(Can be binded in the settings)";
+					currentPanel.reloadScriptPrompt.text.text = $"Script update detected\nPress <color=orange>{ConfigManager.reloadScriptKeybind.value}</color> to reload\n(Can be binded in the settings)";
 					currentPanel.reloadScriptPrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
 					currentPanel.reloadScriptPrompt.reloadButton.onClick.AddListener(() =>
 					{
 						// Save state
 						if (AngrySceneManager.isInCustomLevel)
 						{
-							instantLoadLevel.value = true;
-							instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
-							instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.data.uniqueIdentifier;
+							InternalConfigManager.instantLoadLevel.value = true;
+							InternalConfigManager.instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+							InternalConfigManager.instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.data.uniqueIdentifier;
 						}
 
 						PluginConfiguratorController.FlushAllConfigs();
@@ -1242,7 +1111,7 @@ namespace AngryLevelLoader
 			{
 				yield return null;
 
-				AngryBundleContainer bundle = GetAngryBundleByGuid(instantLoadLevelGuid.value);
+				AngryBundleContainer bundle = GetAngryBundleByGuid(InternalConfigManager.instantLoadLevelGuid.value);
 				if (bundle == null)
 				{
 					logger.LogInfo("Bundle not found");
@@ -1252,7 +1121,7 @@ namespace AngryLevelLoader
 				var handler = bundle.UpdateScenes(false, false);
 				yield return new WaitUntil(() => handler.IsCompleted);
 
-				if (!bundle.levels.TryGetValue(instantLoadLevelId.value, out LevelContainer level))
+				if (!bundle.levels.TryGetValue(InternalConfigManager.instantLoadLevelId.value, out LevelContainer level))
 				{
 					logger.LogInfo("Level not found");
 					yield break;
@@ -1309,8 +1178,8 @@ namespace AngryLevelLoader
 
 				PluginConfiguratorController.mainPanel.gameObject.SetActive(false);
 				yield return null;
-
-				config.rootPanel.OpenPanelInternally(false);
+				ConfigManager.
+								config.rootPanel.OpenPanelInternally(false);
 				yield return null;
 
 				bundle.rootPanel.OpenPanelInternally(false);
@@ -1327,698 +1196,20 @@ namespace AngryLevelLoader
 				if (AngrySceneManager.isInCustomLevel || SceneHelper.CurrentScene != "Main Menu")
 					return;
 
-				if (!instantLoadLevel.value)
+				if (!InternalConfigManager.instantLoadLevel.value)
 					return;
-				instantLoadLevel.value = false;
+				InternalConfigManager.instantLoadLevel.value = false;
 
 				logger.LogInfo("Starting custom level instantly");
 				instance.StartCoroutine(LoadLevelInstantly());
 			};
 		}
 
-		private static void InitializeErrorConfig(string text, Exception ex)
-		{
-			if (config == null)
-			{
-				config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
-				config.SetIconWithURL("file://" + Path.Combine(workingDir, "plugin-icon.png"));
-			}
-			else
-			{
-				foreach (var field in config.rootPanel.GetAllFields())
-				{
-					field.hidden = true;
-				}
-			}
-
-			ButtonField bugReport = new ButtonField(config.rootPanel, "GitHub bug report", "error_bugReport");
-			bugReport.onClick += () =>
-			{
-				Application.OpenURL("https://github.com/eternalUnion/AngryLevelLoader/issues");
-			};
-
-			ConfigHeader errorHeader = new ConfigHeader(config.rootPanel, $"Error! Failed to create plugin's data folder at '{dataPath}'", 16, TMPro.TextAlignmentOptions.Left);
-			errorHeader.textColor = Color.red;
-
-			if (ex != null)
-			{
-				ConfigHeader exceptionHeader = new ConfigHeader(config.rootPanel, $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}", 16, TMPro.TextAlignmentOptions.Left);
-			}
-		}
-
-		private static void InitializeConfig()
-		{
-			if (config != null)
-				return;
-
-			config = PluginConfigurator.Create("Angry Level Loader", PLUGIN_GUID);
-			config.postPresetChangeEvent += (b, a) => UpdateAllUI();
-			config.SetIconWithURL("file://" + Path.Combine(workingDir, "plugin-icon.png"));
-			newLevelToggle = new BoolField(config.rootPanel, "", "v_newLevelToggle", false);
-			newLevelToggle.hidden = true;
-			config.rootPanel.onPannelOpenEvent += (external) =>
-			{
-				if (newLevelToggle.value)
-				{
-					newLevelNotifier.text = string.Join("\n", newLevelNotifierLevels.value.Split('`').Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=#00FF00>New level: {name}</color>"));
-					newLevelNotifier.hidden = false;
-					newLevelNotifierLevels.value = "";
-				}
-				newLevelToggle.value = false;
-			};
-
-			newLevelNotifier = new ConfigHeader(config.rootPanel, "<color=#00FF00>New levels are available!</color>", 16);
-			newLevelNotifier.hidden = true;
-			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=#00FF00>Level updates available!</color>", 16);
-			levelUpdateNotifier.hidden = true;
-			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
-			new ConfigBridge(OnlineLevelsManager.onlineLevelsPanel, config.rootPanel);
-			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(workingDir, "online-icon.png"));
-			OnlineLevelsManager.onlineLevelsPanel.onPannelOpenEvent += (e) =>
-			{
-				newLevelNotifier.hidden = true;
-			};
-			OnlineLevelsManager.Init();
-			leaderboardsDivision = new ConfigDivision(config.rootPanel, "leaderboardsDivision");
-			leaderboardsDivision.hidden = !leaderboardToggle.value;
-			bannedModsPanel = new ConfigPanel(leaderboardsDivision, "Leaderboard banned mods", "bannedModsPanel", ConfigPanel.PanelFieldType.StandardWithIcon);
-			bannedModsPanel.SetIconWithURL("file://" + Path.Combine(workingDir, "banned-mods-icon.png"));
-			bannedModsPanel.hidden = true;
-			bannedModsText = new ConfigHeader(bannedModsPanel, "", 24, TextAnchor.MiddleLeft);
-			pendingRecords = new ConfigPanel(leaderboardsDivision, "Pending records", "pendingRecords", ConfigPanel.PanelFieldType.StandardWithIcon);
-			pendingRecords.SetIconWithURL("file://" + Path.Combine(workingDir, "pending.png"));
-			sendPendingRecords = new ButtonField(pendingRecords, "Send Pending Records", "sendPendingRecordsButton");
-			sendPendingRecords.onClick += ProcessPendingRecords;
-			pendingRecordsStatus = new ConfigHeader(pendingRecords, "", 20, TextAnchor.MiddleLeft);
-			new ConfigSpace(pendingRecords, 5f);
-			pendingRecordsInfo = new ConfigHeader(pendingRecords, "", 18, TextAnchor.MiddleLeft);
-			UpdatePendingRecordsUI();
-
-			difficultyField = new DifficultyField(config.rootPanel);
-
-			bundleSortingMode = new EnumField<BundleSorting>(internalConfig.rootPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
-			bundleSortingMode.onValueChange += (e) =>
-			{
-				bundleSortingMode.value = e.value;
-				SortBundles();
-			};
-			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastPlayed, "Last Played");
-			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastUpdate, "Last Update");
-			new ConfigBridge(bundleSortingMode, config.rootPanel);
-
-			ConfigHeader difficultyOverrideWarning = new ConfigHeader(config.rootPanel, "Difficulty is overridden by gamemode\nWarning: Some levels may not be compatible with gamemodes", 18);
-			difficultyOverrideWarning.textColor = Color.yellow;
-			difficultyOverrideWarning.hidden = true;
-
-			difficultyField.postDifficultyChange += (difficultyName, difficultyIndex) =>
-			{
-				selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), difficultyName);
-				if (selectedDifficulty == -1)
-				{
-					logger.LogWarning("Invalid difficulty, setting to violent");
-					selectedDifficulty = 3;
-					difficultyField.difficultyListValue = "VIOLENT";
-				}
-				else
-				{
-					if (difficultyName == "ULTRAPAIN")
-						selectedDifficulty = 100;
-					else if (difficultyName == "BANANAS")
-						selectedDifficulty = 101;
-					else if (difficultyName == "BILLION")
-						selectedDifficulty = 102;
-					else if (difficultyName == "BILLION (HARD)")
-						selectedDifficulty = 103;
-				}
-
-				if (difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2)
-				{
-					difficultyOverrideWarning.hidden = false;
-					difficultyField.difficultyInteractable = false;
-					difficultyField.ForceSetDifficultyUI(0);
-					selectedDifficulty = 0;
-				}
-				else
-				{
-					difficultyOverrideWarning.hidden = true;
-					difficultyField.difficultyInteractable = true;
-
-					switch (selectedDifficulty)
-					{
-						case 0:
-						case 1:
-						case 2:
-						case 3:
-						case 4:
-							difficultyField.ForceSetDifficultyUI(selectedDifficulty);
-							break;
-
-						case 100:
-							difficultyField.ForceSetDifficultyUI(difficultyList.IndexOf("ULTRAPAIN"));
-							break;
-
-						case 101:
-							difficultyField.ForceSetDifficultyUI(difficultyList.IndexOf("BANANAS"));
-							break;
-					}
-				}
-			};
-			difficultyField.postGamemodeChange += (gamemodeName, gamemodeIndex) =>
-			{
-				difficultyField.TriggerPostDifficultyChangeEvent();
-			};
-			config.rootPanel.onPannelOpenEvent += (externally) =>
-			{
-				difficultyField.TriggerPostDifficultyChangeEvent();
-			};
-			difficultyField.TriggerPostDifficultyChangeEvent();
-
-			ConfigPanel settingsPanel = new ConfigPanel(internalConfig.rootPanel, "Settings", "p_settings", ConfigPanel.PanelFieldType.Standard);
-			new ConfigBridge(settingsPanel, config.rootPanel);
-			settingsPanel.hidden = true;
-
-			// Settings panel
-			changelogButton = new ButtonField(settingsPanel, "Changelog", "changelogButton");
-			changelogButton.onClick += () => {
-				openButtons.SetButtonInteractable(1, false);
-				_ = PluginUpdateHandler.CheckPluginUpdate();
-			};
-			openButtons = new ButtonArrayField(settingsPanel, "settingButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Open Levels Folder", "Open Scripts Folder" });
-			openButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(levelsPath);
-			openButtons.OnClickEventHandler(1).onClick += () => Application.OpenURL(ScriptManager.ScriptsPath);
-
-			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
-			reloadFileKeybind.onValueChange += (e) =>
-			{
-				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
-					e.canceled = true;
-			};
-
-			reloadScriptKeybind = new KeyCodeField(settingsPanel, "Reload Script", "f_reloadScript", KeyCode.None);
-			reloadScriptKeybind.onValueChange += (e) =>
-			{
-				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
-					e.canceled = true;
-			};
-
-			new ConfigHeader(settingsPanel, "User Interface") { textColor = new Color(1f, 0.504717f, 0.9454f) };
-
-			customLevelButtonPosition = new EnumField<CustomLevelButtonPosition>(settingsPanel, "Custom level button position", "s_customLevelButtonPosition", CustomLevelButtonPosition.Bottom);
-			customLevelButtonPosition.postValueChangeEvent += (pos) =>
-			{
-				if (currentCustomLevelButton == null)
-					return;
-
-				currentCustomLevelButton.gameObject.SetActive(true);
-				switch (pos)
-				{
-					case CustomLevelButtonPosition.Disabled:
-						currentCustomLevelButton.gameObject.SetActive(false);
-						break;
-
-					case CustomLevelButtonPosition.Bottom:
-						currentCustomLevelButton.transform.localPosition = new Vector3(currentCustomLevelButton.transform.localPosition.x, -303, currentCustomLevelButton.transform.localPosition.z);
-						break;
-
-					case CustomLevelButtonPosition.Top:
-						currentCustomLevelButton.transform.localPosition = new Vector3(currentCustomLevelButton.transform.localPosition.x, 192, currentCustomLevelButton.transform.localPosition.z);
-						break;
-				}
-
-				if (bossRushButton != null)
-				{
-					if (pos == CustomLevelButtonPosition.Bottom)
-					{
-						currentCustomLevelButton.rect.sizeDelta = new Vector2((380f - 5) / 2, 50);
-						currentCustomLevelButton.transform.localPosition = new Vector3((380f + 5) / -4, currentCustomLevelButton.transform.localPosition.y, currentCustomLevelButton.transform.localPosition.z);
-
-						bossRushButton.sizeDelta = new Vector2((380f - 5) / 2, 50);
-						bossRushButton.transform.localPosition = new Vector3((380f + 5) / 4, -303, 0);
-					}
-					else
-					{
-						currentCustomLevelButton.rect.sizeDelta = new Vector2(380, 50);
-						currentCustomLevelButton.transform.localPosition = new Vector3(0, currentCustomLevelButton.transform.localPosition.y, currentCustomLevelButton.transform.localPosition.z);
-
-						bossRushButton.sizeDelta = new Vector2(380, 50);
-						bossRushButton.transform.localPosition = new Vector3(0, -303, 0);
-					}
-				}
-			};
-
-			ConfigPanel customLevelButtonPanel = new ConfigPanel(settingsPanel, "Custom level button colors", "customLevelButtonPanel");
-
-			customLevelButtonFrameColor = new ColorField(customLevelButtonPanel, "Custom level button frame color", "s_customLevelButtonFrameColor", Color.white);
-			customLevelButtonFrameColor.postValueChangeEvent += (clr) =>
-			{
-				if (currentCustomLevelButton == null)
-					return;
-
-				ColorBlock block = new ColorBlock();
-				block.colorMultiplier = 1f;
-				block.fadeDuration = 0.1f;
-				block.normalColor = clr;
-				block.selectedColor = clr * 0.8f;
-				block.highlightedColor = clr * 0.8f;
-				block.pressedColor = clr * 0.5f;
-				block.disabledColor = Color.gray;
-
-				currentCustomLevelButton.button.colors = block;
-			};
-
-			customLevelButtonTextColor = new ColorField(customLevelButtonPanel, "Custom level button text color", "s_customLevelButtonTextColor", Color.white);
-			customLevelButtonTextColor.postValueChangeEvent += (clr) =>
-			{
-				if (currentCustomLevelButton == null)
-					return;
-
-				currentCustomLevelButton.text.color = clr;
-			};
-
-			new ConfigHeader(settingsPanel, "Leaderboards") { textColor = new Color(1f, 0.692924f, 0.291f) };
-			new ConfigBridge(leaderboardToggle, settingsPanel);
-			showLeaderboardOnLevelEnd = new BoolField(settingsPanel, "Show leaderboard on level end", "showLeaderboardOnLevelEnd", true);
-			showLeaderboardOnSecretLevelEnd = new BoolField(settingsPanel, "Show leaderboard on secret level end", "showLeaderboardOnSecretLevelEnd", true);
-			new SpaceField(settingsPanel, 5);
-			defaultLeaderboardCategory = new EnumField<DefaultLeaderboardCategory>(settingsPanel, "Default leaderboard category", "defaultLeaderboardCategory", DefaultLeaderboardCategory.All);
-			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.PRank, "P Rank");
-			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.Nomo, "No Monsters");
-			defaultLeaderboardCategory.SetEnumDisplayName(DefaultLeaderboardCategory.Nomow, "No Monsters/Weapons");
-			defaultLeaderboardDifficulty = new EnumField<DefaultLeaderboardDifficulty>(settingsPanel, "Default leaderboard difficulty", "defaultLeaderboardDifficulty", DefaultLeaderboardDifficulty.Any);
-			defaultLeaderboardFilter = new EnumField<DefaultLeaderboardFilter>(settingsPanel, "Default leaderboard filter", "defaultLeaderboardFilter", DefaultLeaderboardFilter.Global);
-
-			new ConfigHeader(settingsPanel, "Online") { textColor = new Color(0.532f, 0.8284001f, 1f) };
-			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
-			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
-			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
-			useLocalServer = new BoolField(settingsPanel, "Use local server", "s_useLocalServer", false);
-			if (!devMode.value)
-			{
-				useDevelopmentBranch.hidden = true;
-				useDevelopmentBranch.value = false;
-
-				useLocalServer.hidden = true;
-				useLocalServer.value = false;
-			}
-			levelUpdateNotifierToggle = new BoolField(settingsPanel, "Notify on level updates", "s_levelUpdateNofify", true);
-			levelUpdateNotifierToggle.onValueChange += (e) =>
-			{
-				levelUpdateNotifierToggle.value = e.value;
-				OnlineLevelsManager.CheckLevelUpdateText();
-			};
-			levelUpdateIgnoreCustomBuilds = new BoolField(settingsPanel, "Ignore updates for custom build", "s_levelUpdateIgnoreCustomBuilds", false);
-			levelUpdateIgnoreCustomBuilds.onValueChange += (e) =>
-			{
-				levelUpdateIgnoreCustomBuilds.value = e.value;
-				OnlineLevelsManager.CheckLevelUpdateText();
-			};
-			newLevelNotifierLevels = new StringField(settingsPanel, "h_New levels", "s_newLevelNotifierLevels", "", true);
-			newLevelNotifierLevels.hidden = true;
-			newLevelNotifierToggle = new BoolField(settingsPanel, "Notify on new level release", "s_newLevelNotiftToggle", true);
-			newLevelNotifierToggle.onValueChange += (e) =>
-			{
-				newLevelNotifierToggle.value = e.value;
-				if (!e.value)
-					newLevelNotifier.hidden = true;
-			};
-			new ConfigHeader(settingsPanel, "Scripts") { textColor = new Color(0.6248745f, 1f, 0.617f) };
-			scriptUpdateIgnoreCustom = new BoolField(settingsPanel, "Ignore updates for custom builds", "s_scriptUpdateIgnoreCustom", false);
-			scriptCertificateIgnoreField = new StringMultilineField(settingsPanel, "Certificate ignore", "s_scriptCertificateIgnore", "", true);
-			scriptCertificateIgnore = scriptCertificateIgnoreField.value.Split('\n').ToList();
-
-			new SpaceField(settingsPanel, 5);
-			new ConfigHeader(settingsPanel, "Danger Zone") { textColor = Color.red };
-			StringField dataPathInput = new StringField(settingsPanel, "Data Path", "s_dataPathInput", dataPath, false, false);
-			ButtonField changeDataPath = new ButtonField(settingsPanel, "Move Data", "s_changeDataPath");
-			ConfigHeader dataInfo = new ConfigHeader(settingsPanel, "<color=red>RESTART REQUIRED</color>", 18);
-			dataInfo.hidden = true;
-			changeDataPath.onClick += () =>
-			{
-				string newPath = dataPathInput.value;
-				if (newPath == configDataPath.value)
-					return;
-
-				if (!Directory.Exists(newPath))
-				{
-					dataInfo.text = "<color=red>Could not find the directory</color>";
-					dataInfo.hidden = false;
-					return;
-				}
-
-				string newLevelsFolder = Path.Combine(newPath, "Levels");
-				IOUtils.TryCreateDirectory(newLevelsFolder);
-				foreach (string levelFile in Directory.GetFiles(levelsPath))
-				{
-					string destinationLevelFile = Path.Combine(newLevelsFolder, Path.GetFileName(levelFile));
-					if (File.Exists(destinationLevelFile))
-					{
-						File.Copy(levelFile, destinationLevelFile, true);
-						File.Delete(levelFile);
-					}
-					else
-					{
-						File.Move(levelFile, destinationLevelFile);
-					}
-				}
-				Directory.Delete(levelsPath, true);
-				levelsPath = newLevelsFolder;
-
-				string newLevelsUnpackedFolder = Path.Combine(newPath, "LevelsUnpacked");
-				IOUtils.TryCreateDirectory(newLevelsUnpackedFolder);
-				foreach (string unpackedLevelFolder in Directory.GetDirectories(tempFolderPath))
-				{
-					string dest = Path.Combine(newLevelsUnpackedFolder, Path.GetFileName(unpackedLevelFolder));
-					if (Directory.Exists(dest))
-						Directory.Delete(dest, true);
-
-					IOUtils.DirectoryCopy(unpackedLevelFolder, dest, true, true);
-				}
-				Directory.Delete(tempFolderPath, true);
-				tempFolderPath = newLevelsUnpackedFolder;
-
-				string newMapVarsFolder = Path.Combine(newPath, "MapVars");
-				IOUtils.TryCreateDirectory(newMapVarsFolder);
-				foreach (string mapVarPresetFolder in Directory.GetDirectories(Path.Combine(dataPath, "MapVars")))
-				{
-					string dest = Path.Combine(newMapVarsFolder, Path.GetFileName(mapVarPresetFolder));
-					if (Directory.Exists(dest))
-						Directory.Delete(dest, true);
-
-					IOUtils.DirectoryCopy(mapVarPresetFolder, dest, true, true);
-				}
-				if (Directory.Exists(Path.Combine(dataPath, "MapVars")))
-					Directory.Delete(Path.Combine(dataPath, "MapVars"), true);
-
-				dataInfo.text = "<color=red>RESTART REQUIRED</color>";
-				dataInfo.hidden = false;
-				configDataPath.value = newPath;
-
-				DisableAllConfig();
-			};
-			ButtonField deleteOldBundles = new ButtonField(settingsPanel, "Delete Old Bundles", "s_deleteOldBundles");
-			deleteOldBundles.onClick += () =>
-			{
-				NotificationPanel.Open(new DeleteOldBundlesNotification());
-			};
-
-			ButtonArrayField settingsAndReload = new ButtonArrayField(config.rootPanel, "settingsAndReload", 2, new float[] { 0.5f, 0.5f }, new string[] { "Settings", "Scan For Levels" });
-			settingsAndReload.OnClickEventHandler(0).onClick += () =>
-			{
-				settingsPanel.OpenPanel();
-			};
-			settingsAndReload.OnClickEventHandler(1).onClick += () =>
-			{
-				ScanForLevels();
-			};
-
-			// Developer panel
-			ConfigPanel devPanel = new ConfigPanel(config.rootPanel, "Developer Panel", "devPanel", ConfigPanel.PanelFieldType.BigButton);
-			if (!devMode.value)
-				devPanel.hidden = true;
-
-			new ConfigHeader(devPanel, "Angry Server Interface");
-			ConfigDivision devDiv = new ConfigDivision(devPanel, "devDiv");
-			
-			ButtonField addAllBundles = new ButtonField(devDiv, "Update All Bundles", "updateAllBundles");
-			StringField angryLevelsPath = new StringField(devDiv, "Path to AngryLevels", "dev_pathToAngryLevels", "/", false);
-			ButtonField updateAngryLevelsCatalog = new ButtonField(devDiv, "Update Angry Levels Catalog", "updateAngryLevelsCatalog");
-
-			new ConfigHeader(devPanel, "Output", 18, TextAnchor.MiddleLeft);
-			ConfigHeader processInfo = new ConfigHeader(devPanel, "", 18, TextAnchor.MiddleLeft);
-			ConfigHeader debugInfo = new ConfigHeader(devPanel, "", 18, TextAnchor.MiddleLeft);
-			
-			addAllBundles.onClick += async () =>
-			{
-				devDiv.interactable = false;
-				processInfo.text = "";
-				debugInfo.text = "";
-
-				try
-				{
-					if (OnlineLevelsManager.catalog == null)
-					{
-						processInfo.text = "<color=red>Catalog is not loaded</color>";
-						return;
-					}
-
-					debugInfo.text = "<color=grey>Fetching existing bundles...</color>";
-
-					var existingBundles = await AngryAdmin.GetAllLevelInfoTask();
-					if (existingBundles.networkError)
-					{
-						processInfo.text = "Network error, check connection";
-						return;
-					}
-					if (existingBundles.httpError)
-					{
-						processInfo.text = "Http error, check server";
-						return;
-					}
-					if (existingBundles.status != AngryAdmin.GetAllLevelInfoStatus.OK)
-					{
-						processInfo.text = $"Status error: {existingBundles.message}:{existingBundles.status}";
-						return;
-					}
-
-					foreach (var bundle in OnlineLevelsManager.catalog.Levels)
-					{
-						processInfo.text = $"\nChecking {bundle.Name}...";
-						var existingBundle = existingBundles.response.result.Where(b => b.bundleGuid == bundle.Guid).FirstOrDefault();
-
-						if (existingBundle == null)
-						{
-							debugInfo.text += $"\nMissing, adding to the server";
-							debugInfo.text += $"\n<color=grey>command: add_bundle {bundle.Guid}</color>";
-							AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_bundle {bundle.Guid}");
-
-							if (res.completedSuccessfully && res.status == AngryAdmin.CommandStatus.OK)
-							{
-								debugInfo.text += $"\n{res.response.result}";
-							}
-							else if (res.networkError)
-							{
-								debugInfo.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
-							}
-							else if (res.httpError)
-							{
-								debugInfo.text += $"\n<color=red>HTTP ERROR</color> Check server";
-							}
-							else
-							{
-								if (res.response != null)
-									debugInfo.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
-								else
-									debugInfo.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
-							}
-						}
-
-						if (existingBundle == null || existingBundle.hash != bundle.Hash)
-						{
-							debugInfo.text += $"\nOut of date hash, updating";
-							debugInfo.text += $"\n<color=grey>command: update_leaderboard_hash {bundle.Guid} {bundle.Hash}</color>";
-							AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"update_leaderboard_hash {bundle.Guid} {bundle.Hash}");
-
-							if (res.completedSuccessfully && res.status == AngryAdmin.CommandStatus.OK)
-							{
-								debugInfo.text += $"\n{res.response.result}";
-							}
-							else if (res.networkError)
-							{
-								debugInfo.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
-							}
-							else if (res.httpError)
-							{
-								debugInfo.text += $"\n<color=red>HTTP ERROR</color> Check server";
-							}
-							else
-							{
-								if (res.response != null)
-									debugInfo.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
-								else
-									debugInfo.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
-							}
-						}
-					
-						AngryBundleContainer container = GetAngryBundleByGuid(bundle.Guid);
-						if (container == null)
-						{
-							debugInfo.text += $"\n<color=red>Bundle {bundle.Name} is not installed locally to check levels</color>";
-						}
-						else if (container.bundleData.buildHash != bundle.Hash)
-						{
-							debugInfo.text += $"\n<color=red>Local bundle {bundle.Name} is out of date</color>";
-						}
-						else
-						{
-							if (container.locator == null)
-							{
-								if (container.updating)
-									await container.UpdateScenes(false, false);
-								await container.UpdateScenes(false, false);
-							}
-
-							string[] levelIds = container.GetAllLevelData().Select(data => data.uniqueIdentifier).ToArray();
-							string[] existingLevels = existingBundle == null ? new string[0] : existingBundle.levels;
-							foreach (string levelId in levelIds)
-							{
-								if (existingLevels.Contains(levelId))
-									continue;
-
-								if (levelId.Contains('~'))
-								{
-									debugInfo.text += $"\n<color=red>Level ID '{levelId}' contains ~. Cannot process</color>";
-									continue;
-								}
-
-								string commandId = levelId.Replace(' ', '~');
-
-								debugInfo.text += $"\n<color=grey>command: add_leaderboard {bundle.Guid} {bundle.Hash} {commandId}</color>";
-								AngryAdmin.CommandResult res = await AngryAdmin.SendCommand($"add_leaderboard {bundle.Guid} {bundle.Hash} {commandId}");
-
-								if (res.completedSuccessfully && res.status == AngryAdmin.CommandStatus.OK)
-								{
-									debugInfo.text += $"\n{res.response.result}";
-								}
-								else if (res.networkError)
-								{
-									debugInfo.text += $"\n<color=red>NETWORK ERROR</color> Check conntection";
-								}
-								else if (res.httpError)
-								{
-									debugInfo.text += $"\n<color=red>HTTP ERROR</color> Check server";
-								}
-								else
-								{
-									if (res.response != null)
-										debugInfo.text += $"\n<color=red>ERROR: </color>{res.message}:{res.status}";
-									else
-										debugInfo.text += $"\n<color=red>ERROR: </color>Encountered unknown error. Status: " + res.status;
-								}
-							}
-						}
-					}
-
-					processInfo.text = $"<color=#00FF00>Done!</color>";
-				}
-				finally
-				{
-					devDiv.interactable = true;
-				}
-			};
-
-			updateAngryLevelsCatalog.onClick += async () =>
-			{
-				devDiv.interactable = false;
-				processInfo.text = "";
-				debugInfo.text = "";
-
-				try
-				{
-					if (!Directory.Exists(angryLevelsPath.value) || !File.Exists(Path.Combine(angryLevelsPath.value, "V2", "LevelCatalog.json")))
-					{
-						processInfo.text = "<color=red>Invalid project path</color>";
-						return;
-					}
-
-					debugInfo.text = "<color=grey>Updating catalog level info</color>";
-
-					LevelCatalog catalog = JsonConvert.DeserializeObject<LevelCatalog>(File.ReadAllText(Path.Combine(angryLevelsPath.value, "V2", "LevelCatalog.json")));
-
-					foreach (var bundle in catalog.Levels)
-					{
-						string guid = bundle.Guid;
-						if (!angryBundles.TryGetValue(guid, out var localBundle))
-						{
-							debugInfo.text += $"\n<color=red>Bundle {bundle.Name} not installed locally</color>";
-							continue;
-						}
-
-						if (localBundle.bundleData.buildHash != bundle.Hash)
-						{
-							debugInfo.text += $"\n<color=red>Bundle {bundle.Name} not up to date</color>";
-							continue;
-						}
-
-						if (localBundle.locator == null)
-						{
-							if (localBundle.updating)
-								await localBundle.UpdateScenes(false, false);
-							await localBundle.UpdateScenes(false, false);
-						}
-
-						bundle.Levels = new List<LevelInfo>();
-						
-						string levelThumbnailsPath = Path.Combine(angryLevelsPath.value, "Levels", guid, "LevelThumbnails");
-						if (!Directory.Exists(levelThumbnailsPath))
-							Directory.CreateDirectory(levelThumbnailsPath);
-
-						foreach (var levelData in localBundle.GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
-						{
-							bundle.Levels.Add(new LevelInfo()
-							{
-								LevelName = levelData.levelName,
-								LevelId = levelData.uniqueIdentifier,
-								isSecretLevel = levelData.isSecretLevel,
-								secretCount = levelData.secretCount,
-								levelChallengeEnabled = levelData.levelChallengeEnabled,
-								levelChallengeText = levelData.levelChallengeText,
-								requiredCompletedLevelIdsForUnlock = new List<string>(levelData.requiredCompletedLevelIdsForUnlock ?? new string[0]),
-								requiredDllNames = new List<string>(levelData.requiredDllNames ?? new string[0]),
-							});
-
-							if (levelData.levelPreviewImage != null && levelData.levelPreviewImage.texture != null)
-							{
-								static Texture2D DuplicateTexture(Texture unreadableTexture)
-								{
-									RenderTexture rt = new RenderTexture(unreadableTexture.width, unreadableTexture.height, 24);
-									RenderTexture previous = RenderTexture.active;
-
-									RenderTexture.active = rt;
-									Graphics.Blit(unreadableTexture, rt);
-
-									Texture2D duplicateTexture = new Texture2D(unreadableTexture.width, unreadableTexture.height, TextureFormat.ARGB32, false);
-									duplicateTexture.ReadPixels(new Rect(0, 0, unreadableTexture.width, unreadableTexture.height), 0, 0);
-									duplicateTexture.Apply();
-
-									RenderTexture.active = previous;
-									UnityEngine.Object.Destroy(rt);
-
-									return duplicateTexture;
-								}
-
-								string levelIdHash = CryptographyUtils.GetMD5String(levelData.uniqueIdentifier);
-								Texture2D thumbnail = DuplicateTexture(levelData.levelPreviewImage.texture);
-								File.WriteAllBytes(Path.Combine(levelThumbnailsPath, $"{levelIdHash}.png"), thumbnail.EncodeToPNG());
-								UnityEngine.Object.Destroy(thumbnail);
-							}
-						}
-					}
-
-					File.WriteAllText(Path.Combine(angryLevelsPath.value, "V2", "LevelCatalog.json"), JsonConvert.SerializeObject(catalog, Formatting.Indented));
-					processInfo.text = $"<color=#00FF00>Done!</color>";
-				}
-				finally
-				{
-					devDiv.interactable = true;
-				}
-			};
-
-			errorText = new ConfigHeader(config.rootPanel, "", 16, TextAnchor.UpperLeft); ;
-
-			levelBundlesHeader = new ConfigHeader(config.rootPanel, "Level Bundles");
-			searchBar = new SearchBarField(config.rootPanel);
-			folderDivision = new ConfigDivision(config.rootPanel, "div_folders");
-			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
-			searchInfo = new ConfigHeader(config.rootPanel, "", 18);
-			searchInfo.textColor = Color.gray;
-			searchInfo.hidden = true;
-		}
-
 		#region Leaderboards
 		public static void CheckForBannedMods()
 		{
 			bool bannedModsFound = false;
-			bannedModsText.text = "";
+			ConfigManager.bannedModsText.text = "";
 
 			foreach (SoftBan checker in BannedModsManager.checkers)
 			{
@@ -2028,10 +1219,10 @@ namespace AngryLevelLoader
 
 					if (result.banned)
 					{
-						if (!string.IsNullOrEmpty(bannedModsText.text))
-							bannedModsText.text += '\n';
-
-						bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>{result.message}</size>\n\n";
+						if (!string.IsNullOrEmpty(ConfigManager.bannedModsText.text))
+							ConfigManager.bannedModsText.text += '\n';
+						ConfigManager.
+												bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>{result.message}</size>\n\n";
 						bannedModsFound = true;
 					}
 				}
@@ -2039,15 +1230,15 @@ namespace AngryLevelLoader
 				{
 					logger.LogError($"Exception thrown while checking for soft ban for {checker.ModName}\n{e}");
 
-					if (!string.IsNullOrEmpty(bannedModsText.text))
-						bannedModsText.text += '\n';
-
-					bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>- Encountered an error while checking for the soft ban status, check console</size>\n\n";
+					if (!string.IsNullOrEmpty(ConfigManager.bannedModsText.text))
+						ConfigManager.bannedModsText.text += '\n';
+					ConfigManager.
+										bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>- Encountered an error while checking for the soft ban status, check console</size>\n\n";
 					bannedModsFound = true;
 				}
 			}
-		
-			bannedModsPanel.hidden = !bannedModsFound;
+
+			ConfigManager.bannedModsPanel.hidden = !bannedModsFound;
 		}
 
 		private class RecordInfoJsonWrapper
@@ -2102,19 +1293,19 @@ namespace AngryLevelLoader
 			List<RecordInfoJsonWrapper> pendingRecordsList;
 			try
 			{
-				pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(pendingRecordsField.value);
+				pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(InternalConfigManager.pendingRecordsField.value);
 				if (pendingRecordsList == null)
 					pendingRecordsList = new List<RecordInfoJsonWrapper>();
 			}
 			catch (Exception ex)
 			{
 				logger.LogError($"Caught exception while trying to deserialize pending records\n{ex}");
-				pendingRecordsField.value = "[]";
+				InternalConfigManager.pendingRecordsField.value = "[]";
 				pendingRecordsList = new List<RecordInfoJsonWrapper>();
 			}
 
 			pendingRecordsList.Add(new RecordInfoJsonWrapper(record));
-			pendingRecordsField.value = JsonConvert.SerializeObject(pendingRecordsList);
+			InternalConfigManager.pendingRecordsField.value = JsonConvert.SerializeObject(pendingRecordsList);
 			UpdatePendingRecordsUI();
 		}
 
@@ -2122,12 +1313,12 @@ namespace AngryLevelLoader
 		{
 			try
 			{
-				List<RecordInfoJsonWrapper> pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(pendingRecordsField.value);
+				List<RecordInfoJsonWrapper> pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(InternalConfigManager.pendingRecordsField.value);
 				if (pendingRecordsList == null)
 					pendingRecordsList = new List<RecordInfoJsonWrapper>();
-
-				pendingRecords.hidden = pendingRecordsList.Count == 0;
-				pendingRecordsInfo.text = "";
+				ConfigManager.
+								pendingRecords.hidden = pendingRecordsList.Count == 0;
+				ConfigManager.pendingRecordsInfo.text = "";
 
 				foreach (var record in pendingRecordsList)
 				{
@@ -2140,34 +1331,34 @@ namespace AngryLevelLoader
 
 					if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
 						levelName = level.data.levelName;
-
-					pendingRecordsInfo.text += $"Bundle: <color=grey>{bundleName}</color>\nLevel: <color=grey>{levelName}</color>\nCategory: <color=grey>{record.category}</color>\nDifficulty: <color=grey>{record.difficulty}</color>\nTime: <color=grey>{record.time}</color>\n\n\n";
+					ConfigManager.
+										pendingRecordsInfo.text += $"Bundle: <color=grey>{bundleName}</color>\nLevel: <color=grey>{levelName}</color>\nCategory: <color=grey>{record.category}</color>\nDifficulty: <color=grey>{record.difficulty}</color>\nTime: <color=grey>{record.time}</color>\n\n\n";
 				}
 			}
 			catch (Exception ex)
 			{
 				logger.LogError($"Caught exception while trying to deserialize pending records\n{ex}");
-				pendingRecordsField.value = "[]";
-				pendingRecords.hidden = true;
+				InternalConfigManager.pendingRecordsField.value = "[]";
+				ConfigManager.pendingRecords.hidden = true;
 			}
 		}
 
 		private static Task pendingRecordsTask = null;
 		private static async Task ProcessPendingRecordsTask()
 		{
-			pendingRecordsStatus.text = "";
+			ConfigManager.pendingRecordsStatus.text = "";
 
 			List<RecordInfoJsonWrapper> pendingRecordsList;
 			try
 			{
-				pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(pendingRecordsField.value);
+				pendingRecordsList = JsonConvert.DeserializeObject<List<RecordInfoJsonWrapper>>(InternalConfigManager.pendingRecordsField.value);
 				if (pendingRecordsList == null)
 					pendingRecordsList = new List<RecordInfoJsonWrapper>();
 			}
 			catch (Exception ex)
 			{
-				pendingRecordsStatus.text = $"<color=red>Exception thrown while deserializing pending records, discarding\n\n{ex}</color>";
-				pendingRecordsField.value = "[]";
+				ConfigManager.pendingRecordsStatus.text = $"<color=red>Exception thrown while deserializing pending records, discarding\n\n{ex}</color>";
+				InternalConfigManager.pendingRecordsField.value = "[]";
 				UpdatePendingRecordsUI();
 				return;
 			}
@@ -2187,47 +1378,48 @@ namespace AngryLevelLoader
 
 				if (!record.TryParseRecordInfo(out AngryLeaderboards.PostRecordInfo parsedRecord))
 				{
-					pendingRecordsStatus.text += $"<color=red>Failed to parse record info for level {levelName} in bundle {bundleName}. Discarded.</color>\n\n";
+					ConfigManager.pendingRecordsStatus.text += $"<color=red>Failed to parse record info for level {levelName} in bundle {bundleName}. Discarded.</color>\n\n";
 					continue;
 				}
 
-				pendingRecordsStatus.text += $"Posting record for level <color=grey>{levelName}</color> in bundle <color=grey>{bundleName}</color>...\n";
+				ConfigManager.
+								pendingRecordsStatus.text += $"Posting record for level <color=grey>{levelName}</color> in bundle <color=grey>{bundleName}</color>...\n";
 
 				var postResult = await PostRecordTask(parsedRecord.category, parsedRecord.difficulty, parsedRecord.bundleGuid, parsedRecord.hash, parsedRecord.levelId, parsedRecord.time);
 				if (postResult.completedSuccessfully)
 				{
 					if (postResult.status == PostRecordStatus.OK)
 					{
-						pendingRecordsStatus.text += $"<color=#00FF00>Record posted successfully!</color> Ranking: #{postResult.response.ranking}, New Best: {postResult.response.newBest}\n\n";
+						ConfigManager.pendingRecordsStatus.text += $"<color=#00FF00>Record posted successfully!</color> Ranking: #{postResult.response.ranking}, New Best: {postResult.response.newBest}\n\n";
 					}
 					else
 					{
 						switch (postResult.status)
 						{
 							case PostRecordStatus.BANNED:
-								pendingRecordsStatus.text += "<color=red>User banned from the leaderboards. Discarded.</color>\n\n";
+								ConfigManager.pendingRecordsStatus.text += "<color=red>User banned from the leaderboards. Discarded.</color>\n\n";
 								break;
 
 							case PostRecordStatus.INVALID_BUNDLE:
 							case PostRecordStatus.INVALID_ID:
-								pendingRecordsStatus.text += "<color=red>Level's leaderboards are not enabled. Discarded.</color>\n\n";
+								ConfigManager.pendingRecordsStatus.text += "<color=red>Level's leaderboards are not enabled. Discarded.</color>\n\n";
 								break;
 
 							case PostRecordStatus.RATE_LIMITED:
-								pendingRecordsStatus.text += "<color=red>Too many requests sent. Returning record to the pending list</color>\n\n";
+								ConfigManager.pendingRecordsStatus.text += "<color=red>Too many requests sent. Returning record to the pending list</color>\n\n";
 								failedToSend.Add(record);
 								break;
 
 							case PostRecordStatus.INVALID_HASH:
-								pendingRecordsStatus.text += "<color=red>Record bundle version is not up to date with the leaderboard. Discarded.</color>\n\n";
+								ConfigManager.pendingRecordsStatus.text += "<color=red>Record bundle version is not up to date with the leaderboard. Discarded.</color>\n\n";
 								break;
 
 							case PostRecordStatus.INVALID_TIME:
-								pendingRecordsStatus.text += $"<color=red>Angry server rejected the sent time {record.time}. Discarded.</color>\n\n";
+								ConfigManager.pendingRecordsStatus.text += $"<color=red>Angry server rejected the sent time {record.time}. Discarded.</color>\n\n";
 								break;
 
 							default:
-								pendingRecordsStatus.text += $"<color=red>Encountered an unknown error while posting record. Status: {postResult.status}, Message: '{postResult.message}'. Returning record to the pending list</color>\n\n";
+								ConfigManager.pendingRecordsStatus.text += $"<color=red>Encountered an unknown error while posting record. Status: {postResult.status}, Message: '{postResult.message}'. Returning record to the pending list</color>\n\n";
 								failedToSend.Add(record);
 								break;
 						}
@@ -2235,13 +1427,14 @@ namespace AngryLevelLoader
 				}
 				else
 				{
-					pendingRecordsStatus.text += $"<color=red>Encountered a network error while posting record. Returning record to the pending list</color>\n\n";
+					ConfigManager.pendingRecordsStatus.text += $"<color=red>Encountered a network error while posting record. Returning record to the pending list</color>\n\n";
 					failedToSend.Add(record);
 				}
 			}
 
-			pendingRecordsStatus.text += $"<color=#00FF00>Done!</color>";
-			pendingRecordsField.value = JsonConvert.SerializeObject(failedToSend);
+			ConfigManager.
+						pendingRecordsStatus.text += $"<color=#00FF00>Done!</color>";
+			InternalConfigManager.pendingRecordsField.value = JsonConvert.SerializeObject(failedToSend);
 			UpdatePendingRecordsUI();
 		}
 
@@ -2249,9 +1442,9 @@ namespace AngryLevelLoader
 		{
 			if (pendingRecordsTask != null && !pendingRecordsTask.IsCompleted)
 				return;
-
-			sendPendingRecords.interactable = false;
-			pendingRecordsTask = ProcessPendingRecordsTask().ContinueWith((task) => sendPendingRecords.interactable = true, TaskScheduler.FromCurrentSynchronizationContext());
+			ConfigManager.
+						sendPendingRecords.interactable = false;
+			pendingRecordsTask = ProcessPendingRecordsTask().ContinueWith((task) => ConfigManager.sendPendingRecords.interactable = true, TaskScheduler.FromCurrentSynchronizationContext());
 		}
 		#endregion
 
@@ -2295,62 +1488,20 @@ namespace AngryLevelLoader
 			catch (Exception ex)
 			{
 				logger.LogError(ex);
-
-				InitializeErrorConfig("Encountered an unknown error, cannot recover!", ex);
+				ConfigManager.InitializeErrorConfig("Encountered an unknown error, cannot recover!", ex);
 				enabled = false;
 			}
 		}
 
 		private void PostAwake()
 		{
-			// Initialize internal config
-			internalConfig = PluginConfigurator.Create("Angry Level Loader (INTERNAL)" ,PLUGIN_GUID + "_internal");
-			internalConfig.hidden = true;
-			internalConfig.interactable = false;
-			internalConfig.presetButtonHidden = true;
-			internalConfig.presetButtonInteractable = false;
+			InternalConfigManager.InitializeInternalConfig();
 
-			devMode = new BoolField(internalConfig.rootPanel, "devMode", "devMode", false);
-            lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true, true, false);
-			updateLastVersion = new StringField(internalConfig.rootPanel, "updateLastVersion", "updateLastVersion", "", true, true, false);
-			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
-			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
-
-			// Might be corrupted
-			Regex badDataPath = new Regex(@"^[^:]+:\\Users\\User\\AppData\\Roaming");
-			if (badDataPath.IsMatch(configDataPath.value) && !Directory.Exists(configDataPath.value))
-			{
-				logger.LogWarning("Bad data path detected, resetting the value!");
-				configDataPath.value = configDataPath.defaultValue;
-			}
-
-			pendingRecordsField = new StringField(internalConfig.rootPanel, "pendingRecordsField", "pendingRecordsField", "", true, true, false);
-			ignoreEpilepsyWarning = new BoolField(internalConfig.rootPanel, "ignoreEpilepsyWarning", "ignoreEpilepsyWarning", false);
-			instantLoadLevel = new BoolField(internalConfig.rootPanel, "instantLoadLevel", "instantLoadLevel", false);
-			instantLoadLevelGuid = new StringField(internalConfig.rootPanel, "instantLoadLevelGuid", "instantLoadLevelGuid", "", true);
-			instantLoadLevelId = new StringField(internalConfig.rootPanel, "instantLoadLevelId", "instantLoadLevelId", "", true);
-			
-			askedPermissionForLeaderboards = new BoolField(internalConfig.rootPanel, "askedPermissionForLeaderboards", "askedPermissionForLeaderboards", false);
-			leaderboardToggle = new BoolField(internalConfig.rootPanel, "Post records to leaderboards", "leaderboardToggle", false);
-			leaderboardToggle.onValueChange += (e =>
-			{
-				if (e.value == true)
-				{
-					e.canceled = true;
-					NotificationPanel.Open(new LeaderboardPermissionNotification());
-				}
-			});
-
-			leaderboardToggle.postValueChangeEvent += (newVal =>
-			{
-				leaderboardsDivision.hidden = newVal;
-			});
-
-			if (askedPermissionForLeaderboards.value == false)
+			if (InternalConfigManager.askedPermissionForLeaderboards.value == false)
 				NotificationPanel.Open(new LeaderboardPermissionNotification());
 
 			// Setup variable dependent paths
-			dataPath = configDataPath.value;
+			dataPath = InternalConfigManager.configDataPath.value;
 
 			try
 			{
@@ -2358,11 +1509,11 @@ namespace AngryLevelLoader
 			}
 			catch (IOException ex)
 			{
-				logger.LogError($"Failed to create data path at '{dataPath}'! Overwriting with the default value '{configDataPath.defaultValue}'");
+				logger.LogError($"Failed to create data path at '{dataPath}'! Overwriting with the default value '{InternalConfigManager.configDataPath.defaultValue}'");
 				logger.LogError(ex);
-
-				configDataPath.value = configDataPath.defaultValue;
-				dataPath = configDataPath.defaultValue;
+				InternalConfigManager.
+								configDataPath.value = InternalConfigManager.configDataPath.defaultValue;
+				dataPath = InternalConfigManager.configDataPath.defaultValue;
 
 				try
 				{
@@ -2371,7 +1522,7 @@ namespace AngryLevelLoader
 				catch (IOException innerEx)
 				{
 					logger.LogError($"Failed to create data path at '{dataPath}'! Cannot recover, disabling plugin.");
-					InitializeErrorConfig($"Error! Failed to create plugin's data folder at '{dataPath}'", innerEx);
+					ConfigManager.InitializeErrorConfig($"Error! Failed to create plugin's data folder at '{dataPath}'", innerEx);
 
 					enabled = false;
 					return;
@@ -2447,33 +1598,33 @@ namespace AngryLevelLoader
 			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))
 			{
 				ultrapainLoaded = true;
-				difficultyList.Add("ULTRAPAIN");
+				ConfigManager.difficultyList.Add("ULTRAPAIN");
 			}
 			if (Chainloader.PluginInfos.ContainsKey("com.banana.BananaDifficulty"))
 			{
 				bananasDifficultyLoaded = true;
-				difficultyList.Add("BANANAS");
+				ConfigManager.difficultyList.Add("BANANAS");
 			}
 			if (Chainloader.PluginInfos.ContainsKey("billy.billiondifficulty"))
 			{
 				billionDifficultyLoaded = true;
-				difficultyList.Add("BILLION");
-				difficultyList.Add("BILLION (HARD)");
+				ConfigManager.difficultyList.Add("BILLION");
+				ConfigManager.difficultyList.Add("BILLION (HARD)");
 			}
 
-			InitializeConfig();
-			config.rootPanel.onPannelOpenEvent += (externally) =>
+			ConfigManager.InitializeConfig();
+			ConfigManager.config.rootPanel.onPannelOpenEvent += (externally) =>
 			{
 				CheckForBannedMods();
 			};
-			config.rootPanel.onPannelOpenEvent += (externally) =>
+			ConfigManager.config.rootPanel.onPannelOpenEvent += (externally) =>
 			{
 				Button.ButtonClickedEvent backButtonEvent = PluginConfiguratorController.backButton.onClick;
 
 				PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
 				PluginConfiguratorController.backButton.onClick.AddListener(() =>
 				{
-					if (folderStack.Count <= 1 || !string.IsNullOrEmpty(searchBar.value))
+					if (folderStack.Count <= 1 || !string.IsNullOrEmpty(ConfigManager.searchBar.value))
 					{
 						backButtonEvent.Invoke();
 					}
@@ -2489,23 +1640,23 @@ namespace AngryLevelLoader
 				});
 			};
 
-			searchBar.onValueChange += UpdateBundleSearch;
-			searchBar.onReset += () => searchBar.value = "";
-			searchBar.onEndEdit += (bool wasCanceled) =>
+			ConfigManager.searchBar.onValueChange += UpdateBundleSearch;
+			ConfigManager.searchBar.onReset += () => ConfigManager.searchBar.value = "";
+			ConfigManager.searchBar.onEndEdit += (bool wasCanceled) =>
 			{
 				if (!wasCanceled)
 					return;
 
-				if (!string.IsNullOrWhiteSpace(searchBar.value))
+				if (!string.IsNullOrWhiteSpace(ConfigManager.searchBar.value))
 				{
-					searchBar.value = "";
+					ConfigManager.searchBar.value = "";
 					return;
 				}
 
 				if (folderStack.Count > 1)
 					return;
 
-				config.rootPanel.ClosePanel();
+				ConfigManager.config.rootPanel.ClosePanel();
 			};
 
 			BannedModsManager.Init();
@@ -2574,7 +1725,7 @@ namespace AngryLevelLoader
 		float lastPress = 0;
 		private void OnGUI()
 		{
-			if (reloadFileKeybind.value == KeyCode.None && reloadScriptKeybind.value == KeyCode.None)
+			if (ConfigManager.reloadFileKeybind.value == KeyCode.None && ConfigManager.reloadScriptKeybind.value == KeyCode.None)
 				return;
 
 			if (!AngrySceneManager.isInCustomLevel)
@@ -2633,7 +1784,7 @@ namespace AngryLevelLoader
 			if (keyCode == KeyCode.None)
 				return;
 			
-			if (keyCode == reloadFileKeybind.value)
+			if (keyCode == ConfigManager.reloadFileKeybind.value)
 			{
 				if (Time.time - lastPress < 3)
 					return;
@@ -2644,7 +1795,7 @@ namespace AngryLevelLoader
 					ReloadFileKeyPressed();
 			}
 
-			if (keyCode == reloadScriptKeybind.value)
+			if (keyCode == ConfigManager.reloadScriptKeybind.value)
 			{
 				if (currentPanel != null && currentPanel.reloadScriptPrompt != null && currentPanel.reloadScriptPrompt.reloadButton != null)
 					currentPanel.reloadScriptPrompt.reloadButton.onClick?.Invoke();

@@ -184,10 +184,10 @@ namespace AngryLevelLoader.Patches
             }
 
 			// Send record
-			if (Plugin.leaderboardToggle.value)
+			if (InternalConfigManager.leaderboardToggle.value)
 			{
 				// No gamemode
-				if (Plugin.difficultyField.gamemodeListValueIndex == 0)
+				if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
 				{
 					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
 					record.category = AngryLeaderboards.RecordCategory.ALL;
@@ -218,10 +218,10 @@ namespace AngryLevelLoader.Patches
 					}
 				}
 				// Nomo/Nomow
-				else if (Plugin.difficultyField.gamemodeListValueIndex == 1 || Plugin.difficultyField.gamemodeListValueIndex == 2)
+				else if (ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2)
 				{
 					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
-					record.category = Plugin.difficultyField.gamemodeListValueIndex == 1 ? AngryLeaderboards.RecordCategory.NOMO : AngryLeaderboards.RecordCategory.NOMOW;
+					record.category = ConfigManager.difficultyField.gamemodeListValueIndex == 1 ? AngryLeaderboards.RecordCategory.NOMO : AngryLeaderboards.RecordCategory.NOMOW;
 					record.difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
 					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
 					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
@@ -237,7 +237,7 @@ namespace AngryLevelLoader.Patches
 				}
 			}
 
-			bool isPlayingWithoutGamemode = Plugin.difficultyField.gamemodeListValueIndex == 0;
+			bool isPlayingWithoutGamemode = ConfigManager.difficultyField.gamemodeListValueIndex == 0;
 
 			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
 			if (secretLevel && isPlayingWithoutGamemode)

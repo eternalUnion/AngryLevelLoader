@@ -219,7 +219,7 @@ namespace AngryLevelLoader.Containers
                     && rootPanel.currentPanel != null
                     && PluginConfiguratorController.activePanel == rootPanel.currentPanel.gameObject)
                 {
-                    Plugin.config.rootPanel.OpenPanel();
+					ConfigManager.config.rootPanel.OpenPanel();
                 }
             }
 
@@ -425,8 +425,8 @@ namespace AngryLevelLoader.Containers
                 else
                 {
                     field.status = OnlineLevelField.OnlineLevelStatus.updateAvailable;
-                    if (Plugin.levelUpdateNotifierToggle.value)
-                        Plugin.levelUpdateNotifier.hidden = false;
+                    if (ConfigManager.levelUpdateNotifierToggle.value)
+						ConfigManager.levelUpdateNotifier.hidden = false;
                 }
 
                 field.UpdateUI();
@@ -472,7 +472,7 @@ namespace AngryLevelLoader.Containers
             int order = 0;
             AngryBundleContainer[] allBundles = Plugin.angryBundles.Values.OrderBy(b => b.rootPanel.siblingIndex).ToArray();
 
-            if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.Alphabetically)
+            if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
             {
                 while (order < allBundles.Length)
                 {
@@ -488,7 +488,7 @@ namespace AngryLevelLoader.Containers
                     order += 1;
                 }
             }
-            else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.Author)
+            else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
             {
                 while (order < allBundles.Length)
                 {
@@ -504,7 +504,7 @@ namespace AngryLevelLoader.Containers
                     order += 1;
                 }
             }
-            else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.LastPlayed)
+            else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
             {
                 if (!Plugin.lastPlayed.TryGetValue(bundleData.bundleGuid, out long lastTime))
                     lastTime = 0;
@@ -526,7 +526,7 @@ namespace AngryLevelLoader.Containers
                     order += 1;
                 }
             }
-			else if (Plugin.bundleSortingMode.value == Plugin.BundleSorting.LastUpdate)
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
 			{
 				if (!Plugin.lastUpdate.TryGetValue(bundleData.bundleGuid, out long lastUpdate))
 					lastUpdate = 0;
@@ -662,7 +662,7 @@ namespace AngryLevelLoader.Containers
 					{
 						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(true);
 						Plugin.currentPanel.reloadBundlePrompt.audio.Play();
-						Plugin.currentPanel.reloadBundlePrompt.text.text = $"File update detected\nPress <color=orange>{Plugin.reloadFileKeybind.value}</color> to reload\n(Can be binded in the settings)";
+						Plugin.currentPanel.reloadBundlePrompt.text.text = $"File update detected\nPress <color=orange>{ConfigManager.reloadFileKeybind.value}</color> to reload\n(Can be binded in the settings)";
 						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
 						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick.AddListener(() =>
 						{
@@ -694,7 +694,7 @@ namespace AngryLevelLoader.Containers
             pathToAngryBundle = path;
             bundleData = data;
 
-            rootPanel = new ConfigPanelForBundles(this, Plugin.bundleDivision, data.bundleName, data.bundleGuid);
+            rootPanel = new ConfigPanelForBundles(this, ConfigManager.bundleDivision, data.bundleName, data.bundleGuid);
             rootPanel.onPannelOpenEvent += (external) =>
             {
                 if (locator == null && !_loadedAfterPanelOpen)

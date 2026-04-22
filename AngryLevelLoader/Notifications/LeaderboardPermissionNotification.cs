@@ -1,4 +1,5 @@
-﻿using AngryUiComponents;
+﻿using AngryLevelLoader.Managers;
+using AngryUiComponents;
 using PluginConfig;
 using System;
 using System.Collections.Generic;
@@ -21,14 +22,14 @@ namespace AngryLevelLoader.Notifications
 			currentUi.okButton.onClick.AddListener(() =>
 			{
 				Close();
-				Plugin.askedPermissionForLeaderboards.value = true;
-				Plugin.leaderboardToggle.value = true;
+				InternalConfigManager.askedPermissionForLeaderboards.value = true;
+				InternalConfigManager.leaderboardToggle.value = true;
 			});
 
 			currentUi.cancelButton.onClick.AddListener(() =>
 			{
 				Close();
-				Plugin.askedPermissionForLeaderboards.value = true;
+				InternalConfigManager.askedPermissionForLeaderboards.value = true;
 			});
 		}
 	}

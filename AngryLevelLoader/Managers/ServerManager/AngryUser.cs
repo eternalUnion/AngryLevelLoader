@@ -30,8 +30,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 		internal static void Init()
         {
-            tokenCache = new StringField(Plugin.internalConfig.rootPanel, "token", "angryServerToken", "", true);
-            lastTokenFetch = new StringField(Plugin.internalConfig.rootPanel, "last token fetch", "angryServerTokenFetchTime", "0", false);
+            tokenCache = new StringField(InternalConfigManager.internalConfig.rootPanel, "token", "angryServerToken", "", true);
+            lastTokenFetch = new StringField(InternalConfigManager.internalConfig.rootPanel, "last token fetch", "angryServerTokenFetchTime", "0", false);
 
             try
             {

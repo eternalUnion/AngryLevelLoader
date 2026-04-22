@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers;
 using AngryUiComponents;
 using PluginConfig;
 using System;
@@ -49,7 +50,7 @@ namespace AngryLevelLoader.Notifications
 			ui.continueAndIgnoreButton.onClick.AddListener(() =>
 			{
 				Close();
-				Plugin.ignoreEpilepsyWarning.value = true;
+				InternalConfigManager.ignoreEpilepsyWarning.value = true;
 				if (onContinue != null)
 					onContinue();
 			});

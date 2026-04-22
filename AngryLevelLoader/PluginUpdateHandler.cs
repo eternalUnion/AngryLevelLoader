@@ -25,7 +25,7 @@ namespace AngryLevelLoader
             {
                 Plugin.logger.LogError("Could not download plugin data");
                 infoReq.Dispose();
-                Plugin.openButtons.SetButtonInteractable(1, true);
+				ConfigManager.openButtons.SetButtonInteractable(1, true);
                 return;
             }
 
@@ -34,14 +34,14 @@ namespace AngryLevelLoader
             if (startIndex > 0)
                 text = text.Substring(startIndex);
             PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(text);
-			Plugin.openButtons.SetButtonInteractable(1, true);
+			ConfigManager.openButtons.SetButtonInteractable(1, true);
 			infoReq.Dispose();
 
             if (!userRequested)
             {
-                bool pluginUpdated = Plugin.lastVersion.value != Plugin.PLUGIN_VERSION;
-                bool updateReleased = new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion) && !Plugin.ignoreUpdates.value;
-                bool newUpdateReleased = json.latestVersion != Plugin.updateLastVersion.value;
+                bool pluginUpdated = InternalConfigManager.lastVersion.value != Plugin.PLUGIN_VERSION;
+                bool updateReleased = new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion) && !InternalConfigManager.ignoreUpdates.value;
+                bool newUpdateReleased = json.latestVersion != InternalConfigManager.updateLastVersion.value;
 
 				if (!(pluginUpdated || updateReleased || newUpdateReleased))
                     return;
@@ -56,7 +56,7 @@ namespace AngryLevelLoader
             // Levels folders are moved to data folder on version 2.3.0
             string oldLevelsPath = Path.Combine(Plugin.workingDir, "Levels");
 
-            if (Directory.Exists(oldLevelsPath) && !Path.GetFullPath(Plugin.configDataPath.value).StartsWith(Path.GetFullPath(Plugin.workingDir)))
+            if (Directory.Exists(oldLevelsPath) && !Path.GetFullPath(InternalConfigManager.configDataPath.value).StartsWith(Path.GetFullPath(Plugin.workingDir)))
             {
                 Plugin.logger.LogWarning("Version 2.3.0 migration: Moving levels from working dir to data folder");
 
@@ -132,17 +132,17 @@ namespace AngryLevelLoader
             }
 
 			// 2.8.0: Added any difficulty leaderboard
-            if (string.IsNullOrEmpty(Plugin.lastVersion.value) || new Version(Plugin.lastVersion.value) <= new Version("2.7.3"))
+            if (string.IsNullOrEmpty(InternalConfigManager.lastVersion.value) || new Version(InternalConfigManager.lastVersion.value) <= new Version("2.7.3"))
             {
-                Plugin.defaultLeaderboardDifficulty.value = Plugin.DefaultLeaderboardDifficulty.Any;
+				ConfigManager.defaultLeaderboardDifficulty.value = ConfigManager.DefaultLeaderboardDifficulty.Any;
             }
 
 			// Reset ignore update on version change
-			if (Plugin.PLUGIN_VERSION != Plugin.lastVersion.value)
-                Plugin.ignoreUpdates.value = false;
+			if (Plugin.PLUGIN_VERSION != InternalConfigManager.lastVersion.value)
+				InternalConfigManager.ignoreUpdates.value = false;
 
             // Show update notification
-            if (Plugin.checkForUpdates.value)
+            if (ConfigManager.checkForUpdates.value)
             {
 				_ = CheckPluginUpdate(false);
 			}

@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine;
 using AngryUiComponents;
 using UnityEngine.AddressableAssets;
+using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader.Notifications
 {
@@ -49,16 +50,16 @@ namespace AngryLevelLoader.Notifications
             ui.cancel.onClick.AddListener(() =>
             {
                 Close();
-                Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
-                Plugin.updateLastVersion.value = json.latestVersion;
+				InternalConfigManager.lastVersion.value = Plugin.PLUGIN_VERSION;
+				InternalConfigManager.updateLastVersion.value = json.latestVersion;
 			});
 
             ui.ignoreUpdate.onClick.AddListener(() =>
             {
                 Close();
-                Plugin.lastVersion.value = Plugin.PLUGIN_VERSION;
-                Plugin.ignoreUpdates.value = true;
-				Plugin.updateLastVersion.value = json.latestVersion;
+				InternalConfigManager.lastVersion.value = Plugin.PLUGIN_VERSION;
+				InternalConfigManager.ignoreUpdates.value = true;
+				InternalConfigManager.updateLastVersion.value = json.latestVersion;
 			});
 
             ui.header.text = "<color=#00FFFF>Changelog</color>";

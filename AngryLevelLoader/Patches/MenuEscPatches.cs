@@ -6,6 +6,7 @@ using System.Text;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader.Patches
 {
@@ -16,7 +17,7 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		public static bool OnMainPanelExit(MenuEsc __instance)
 		{
-			if (Plugin.config.rootPanel.currentPanel.gameObject != __instance.gameObject)
+			if (ConfigManager.config.rootPanel.currentPanel.gameObject != __instance.gameObject)
 				return true;
 
 			bool escape = MonoSingleton<InputManager>.Instance.InputSource.Pause.WasPerformedThisFrame || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame && EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.TryGetComponent<Slider>(out _));
@@ -24,9 +25,9 @@ namespace AngryLevelLoader.Patches
 			if (!escape || selectedObject)
 				return true;
 
-			if (!string.IsNullOrEmpty(Plugin.searchBar.value))
+			if (!string.IsNullOrEmpty(ConfigManager.searchBar.value))
 			{
-				Plugin.searchBar.value = "";
+				ConfigManager.searchBar.value = "";
 				return false;
 			}
 

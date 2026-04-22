@@ -83,7 +83,7 @@ namespace AngryLevelLoader.Notifications
 				currentUi.reportLoadCircle.AddComponent<RefreshCircleSpin>();
 				currentUi.historyPanel.loadingCircle.AddComponent<RefreshCircleSpin>();
 
-				currentUi.category.value = (int)Plugin.defaultLeaderboardCategory.value;
+				currentUi.category.value = (int)ConfigManager.defaultLeaderboardCategory.value;
 				currentUi.difficulty.interactable = currentUi.category.value != 3 && currentUi.category.value != 4;
 				currentUi.category.onValueChanged.AddListener((index) =>
 				{
@@ -95,7 +95,7 @@ namespace AngryLevelLoader.Notifications
 					Reload(true);
 				});
 
-				currentUi.difficulty.value = (int)Plugin.defaultLeaderboardDifficulty.value;
+				currentUi.difficulty.value = (int)ConfigManager.defaultLeaderboardDifficulty.value;
 				currentUi.difficulty.onValueChanged.AddListener((index) =>
 				{
 					currentPage = 0;
@@ -105,7 +105,7 @@ namespace AngryLevelLoader.Notifications
 					Reload(true);
 				});
 
-				currentUi.group.value = (int)Plugin.defaultLeaderboardFilter.value;
+				currentUi.group.value = (int)ConfigManager.defaultLeaderboardFilter.value;
 				currentUi.group.onValueChanged.AddListener((index) =>
 				{
 					currentPage = 0;

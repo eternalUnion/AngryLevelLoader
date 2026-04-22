@@ -49,8 +49,8 @@ namespace AngryLevelLoader.Managers
                         _currentLevelContainer.discovered.value = true;
                         _currentLevelContainer.UpdateUI();
                         SceneHelper.CurrentScene = _currentLevelData.uniqueIdentifier;
-                        Plugin.config.presetButtonInteractable = false;
-                        Plugin.difficultyField.interactable = false;
+						ConfigManager.config.presetButtonInteractable = false;
+						ConfigManager.difficultyField.interactable = false;
 
                         return;
                     }
@@ -60,8 +60,8 @@ namespace AngryLevelLoader.Managers
                 _currentBundleContainer = null;
                 _currentLevelData = null;
                 _currentLevelContainer = null;
-                Plugin.config.presetButtonInteractable = true;
-				Plugin.difficultyField.interactable = true;
+				ConfigManager.config.presetButtonInteractable = true;
+				ConfigManager.difficultyField.interactable = true;
 			}
         }
 
@@ -129,7 +129,7 @@ namespace AngryLevelLoader.Managers
                             string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
                             if (hash != info.Hash)
                             {
-                                if (Plugin.scriptUpdateIgnoreCustom.value)
+                                if (ConfigManager.scriptUpdateIgnoreCustom.value)
                                 {
                                     if (info.Updates != null && !info.Updates.Contains(hash))
                                         continue;
@@ -156,7 +156,7 @@ namespace AngryLevelLoader.Managers
                 }
             }
 
-            if (bundleContainer.bundleData.epilepsyWarning && !Plugin.ignoreEpilepsyWarning.value)
+            if (bundleContainer.bundleData.epilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
             {
                 EpilepsyWarningNotification notification = new EpilepsyWarningNotification(ContinueLoadLevel, "Play", "Play and do not ask again");
                 NotificationPanel.Open(notification);
@@ -170,7 +170,7 @@ namespace AngryLevelLoader.Managers
         public static void LoadLevelWithScripts(List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
             Stack<ScriptWarningNotification> notifications = new Stack<ScriptWarningNotification>();
-            Plugin.scriptCertificateIgnore = Plugin.scriptCertificateIgnoreField.value.Split('\n').ToList();
+			ConfigManager.scriptCertificateIgnore = ConfigManager.scriptCertificateIgnoreField.value.Split('\n').ToList();
             foreach (string script in scripts)
             {
                 if (ScriptManager.ScriptLoaded(script))
@@ -203,7 +203,7 @@ namespace AngryLevelLoader.Managers
                     if (result == ScriptManager.LoadScriptResult.Loaded)
                         continue;
 
-                    if (Plugin.scriptCertificateIgnore.Contains(script))
+                    if (ConfigManager.scriptCertificateIgnore.Contains(script))
                     {
                         ScriptManager.ForceLoadScript(script);
                         continue;
@@ -229,8 +229,8 @@ namespace AngryLevelLoader.Managers
                     "Don't Ask Again For This Script",
                     (inst) =>
                     {
-                        Plugin.scriptCertificateIgnore.Add(script);
-                        Plugin.scriptCertificateIgnoreField.value = string.Join("\n", Plugin.scriptCertificateIgnore);
+						ConfigManager.scriptCertificateIgnore.Add(script);
+						ConfigManager.scriptCertificateIgnoreField.value = string.Join("\n", ConfigManager.scriptCertificateIgnore);
 
                         inst.Close();
                         notifications.Pop();
@@ -297,8 +297,7 @@ namespace AngryLevelLoader.Managers
             _currentLevelContainer = levelContainer;
             _currentLevelData = levelData;
             _currentLevel = levelPath;
-
-            Plugin.config.presetButtonInteractable = false;
+			ConfigManager.config.presetButtonInteractable = false;
             
             if (Plugin.ultrapainLoaded)
             {
@@ -313,7 +312,7 @@ namespace AngryLevelLoader.Managers
                 UnsetBillionDifficulty();
             }
 
-            if (Plugin.difficultyField.gamemodeListValueIndex == 0)
+            if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
             {
                 if (Plugin.selectedDifficulty == 100)
                 {
@@ -337,7 +336,7 @@ namespace AngryLevelLoader.Managers
                 }
             }
             // NoMo/NoMoW = Harmless
-            else if (Plugin.difficultyField.gamemodeListValueIndex == 1 || Plugin.difficultyField.gamemodeListValueIndex == 2)
+            else if (ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2)
             {
 				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 0);
 			}

@@ -384,7 +384,7 @@ namespace AngryLevelLoader.Fields
                 if (OnlineLevelsManager.catalog != null
                     && (bundleInfo = OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).FirstOrDefault()) != null
                     && bundleInfo.EpilepsyWarning
-                    && !Plugin.ignoreEpilepsyWarning.value)
+                    && !InternalConfigManager.ignoreEpilepsyWarning.value)
                 {
                     EpilepsyWarningNotification notification = new EpilepsyWarningNotification(Download, "Download", "Download and do not ask again");
                     NotificationPanel.Open(notification);

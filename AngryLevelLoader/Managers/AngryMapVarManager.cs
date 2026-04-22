@@ -45,7 +45,7 @@ namespace AngryLevelLoader.Managers
 		internal static string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + MAPVAR_FILE_EXTENSION);
 
 		//Current config preset. default if there is no preset.
-		internal static string GetConfigPresetID() => string.IsNullOrEmpty(Plugin.config.currentPresetId) ? DEFAULT_PRESET_NAME : Plugin.config.currentPresetId ;
+		internal static string GetConfigPresetID() => string.IsNullOrEmpty(ConfigManager.config.currentPresetId) ? DEFAULT_PRESET_NAME : ConfigManager.config.currentPresetId ;
 
         private List<MapVarHandler> allHandlers;
 
@@ -60,17 +60,13 @@ namespace AngryLevelLoader.Managers
         {
             Instance = this;
             allHandlers = new List<MapVarHandler>();
-
-            //Handle config preset change, 
-            Plugin.config.postPresetChangeEvent += (_, __) =>
+			ConfigManager.config.postPresetChangeEvent += (_, __) =>
             {
                 //I dont think this is possible to do in level but just in case.
                 if (AngrySceneManager.isInCustomLevel)
                     ReloadMapVars();
             };
-            
-            //Handle config preset reset
-            Plugin.config.postPresetResetEvent += (_) =>
+			ConfigManager.config.postPresetResetEvent += (_) =>
             {
                 //Delete the preset's mapvar directory.
                 if(Directory.Exists(GetCurrentMapVarsDirectory()))

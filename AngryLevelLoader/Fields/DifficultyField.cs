@@ -1,4 +1,5 @@
-﻿using AngryUiComponents;
+﻿using AngryLevelLoader.Managers;
+using AngryUiComponents;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
@@ -130,8 +131,8 @@ namespace AngryLevelLoader.Fields
 		{
 			inited = true;
 
-			internalDifficultyField = new StringListField(Plugin.internalConfig.rootPanel, "Difficulty", "difficultySelect", Plugin.difficultyList.ToArray(), "VIOLENT");
-			internalGamemodeField = new StringListField(Plugin.internalConfig.rootPanel, "Gamemode", "gamemode", Plugin.gamemodeList, "None");
+			internalDifficultyField = new StringListField(InternalConfigManager.internalConfig.rootPanel, "Difficulty", "difficultySelect", ConfigManager.difficultyList.ToArray(), "VIOLENT");
+			internalGamemodeField = new StringListField(InternalConfigManager.internalConfig.rootPanel, "Gamemode", "gamemode", ConfigManager.gamemodeList, "None");
 
 			if (fieldUi != null)
 				OnCreateUI(fieldUi);
@@ -151,8 +152,8 @@ namespace AngryLevelLoader.Fields
 			currentUiRect.anchorMax = new Vector2(0, 1);
 			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
-			currentUi.difficultyList.AddOptions(Plugin.difficultyList);
-			currentUi.gamemodeList.AddOptions(Plugin.gamemodeList);
+			currentUi.difficultyList.AddOptions(ConfigManager.difficultyList);
+			currentUi.gamemodeList.AddOptions(ConfigManager.gamemodeList);
 
 			currentUi.difficultyList.value = internalDifficultyField.valueIndex;
 			currentUi.gamemodeList.value = internalGamemodeField.valueIndex;

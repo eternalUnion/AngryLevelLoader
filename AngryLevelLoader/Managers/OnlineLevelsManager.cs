@@ -153,7 +153,7 @@ namespace AngryLevelLoader.Managers
         public static string GetGithubURL(Repo repo, string path)
         {
             string branch = "release";
-            if (Plugin.useDevelopmentBranch.value)
+            if (ConfigManager.useDevelopmentBranch.value)
                 branch = "dev";
 
             string repoName = "AngryLevels";
@@ -262,8 +262,7 @@ namespace AngryLevelLoader.Managers
 					searchBar.value = "";
 					return;
 				}
-
-                Plugin.config.rootPanel.OpenPanel();
+				ConfigManager.config.rootPanel.OpenPanel();
 			};
 
 			searchBar.onReset = () => searchBar.value = "";
@@ -490,25 +489,24 @@ namespace AngryLevelLoader.Managers
                     Plugin.logger.LogWarning($"Catalog hash does not match, github did not cache the new catalog yet (current hash is {catalogHash}. online hash is {newHash})");
                 }
 
-                if (Plugin.newLevelNotifierToggle.value && prevCatalog != null)
+                if (ConfigManager.newLevelNotifierToggle.value && prevCatalog != null)
                 {
                     List<string> newLevels = catalog.Levels.Where(level => prevCatalog.Levels.Where(l => l.Guid == level.Guid).FirstOrDefault() == null).Select(level => level.Name).ToList();
 
                     if (newLevels.Count != 0)
                     {
-                        if (!string.IsNullOrEmpty(Plugin.newLevelNotifierLevels.value))
-                            newLevels.AddRange(Plugin.newLevelNotifierLevels.value.Split('`'));
+                        if (!string.IsNullOrEmpty(ConfigManager.newLevelNotifierLevels.value))
+                            newLevels.AddRange(ConfigManager.newLevelNotifierLevels.value.Split('`'));
                         newLevels = newLevels.Distinct().ToList();
-                        Plugin.newLevelNotifierLevels.value = string.Join("`", newLevels);
-
-                        Plugin.newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=#00FF00>New level: {name}</color>"));
-                        Plugin.newLevelNotifier.hidden = false;
-                        Plugin.newLevelToggle.value = true;
+						ConfigManager.newLevelNotifierLevels.value = string.Join("`", newLevels);
+						ConfigManager.newLevelNotifier.text = string.Join("\n", newLevels.Where(level => !string.IsNullOrEmpty(level)).Select(name => $"<color=#00FF00>New level: {name}</color>"));
+						ConfigManager.newLevelNotifier.hidden = false;
+						ConfigManager.newLevelToggle.value = true;
                     }
                 }
                 else
                 {
-                    Plugin.newLevelNotifier.hidden = true;
+					ConfigManager.newLevelNotifier.hidden = true;
                 }
             }
         }
@@ -738,19 +736,18 @@ namespace AngryLevelLoader.Managers
 
         public static void CheckLevelUpdateText()
         {
-            if (!Plugin.levelUpdateNotifierToggle.value)
+            if (!ConfigManager.levelUpdateNotifierToggle.value)
             {
-                Plugin.levelUpdateNotifier.hidden = true;
+				ConfigManager.levelUpdateNotifier.hidden = true;
                 return;
             }
-
-            Plugin.levelUpdateNotifier.text = "";
-            Plugin.levelUpdateNotifier.hidden = true;
+			ConfigManager.levelUpdateNotifier.text = "";
+			ConfigManager.levelUpdateNotifier.hidden = true;
             foreach (OnlineLevelField field in onlineLevels.Values)
             {
                 if (field.status == OnlineLevelField.OnlineLevelStatus.updateAvailable)
                 {
-                    if (Plugin.levelUpdateIgnoreCustomBuilds.value)
+                    if (ConfigManager.levelUpdateIgnoreCustomBuilds.value)
                     {
                         AngryBundleContainer container = Plugin.GetAngryBundleByGuid(field.bundleGuid);
                         if (container != null)
@@ -761,10 +758,10 @@ namespace AngryLevelLoader.Managers
                         }
                     }
 
-                    if (Plugin.levelUpdateNotifier.text != "")
-                        Plugin.levelUpdateNotifier.text += '\n';
-                    Plugin.levelUpdateNotifier.text += $"<color=#00FFFF>Update available for {field.bundleName}</color>";
-                    Plugin.levelUpdateNotifier.hidden = false;
+                    if (ConfigManager.levelUpdateNotifier.text != "")
+						ConfigManager.levelUpdateNotifier.text += '\n';
+					ConfigManager.levelUpdateNotifier.text += $"<color=#00FFFF>Update available for {field.bundleName}</color>";
+					ConfigManager.levelUpdateNotifier.hidden = false;
                 }
             }
         }

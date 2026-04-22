@@ -31,7 +31,7 @@ namespace AngryLevelLoader.Patches
 
 			if (AngrySceneManager.currentLevelData.isSecretLevel)
 			{
-				if (!Plugin.showLeaderboardOnSecretLevelEnd.value)
+				if (!ConfigManager.showLeaderboardOnSecretLevelEnd.value)
 				{
 					__instance.gameObject.SetActive(false);
 					return false;
@@ -39,7 +39,7 @@ namespace AngryLevelLoader.Patches
 			}
 			else
 			{
-				if (!Plugin.showLeaderboardOnLevelEnd.value)
+				if (!ConfigManager.showLeaderboardOnLevelEnd.value)
 				{
 					__instance.gameObject.SetActive(false);
 					return false;
@@ -50,15 +50,15 @@ namespace AngryLevelLoader.Patches
 			TextMeshProUGUI loadingText = __instance.loadingPanel.gameObject.GetComponent<TextMeshProUGUI>();
 			loadingText.text = "CONNECTING TO\nANGRY SERVER";
 
-			if (Plugin.difficultyField.gamemodeListValueIndex == 0)
+			if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
 			{
 				currentCategory = MonoSingleton<StatsManager>.Instance.rankScore == 12 ? AngryLeaderboards.RecordCategory.PRANK : AngryLeaderboards.RecordCategory.ALL;
 			}
-			else if (Plugin.difficultyField.gamemodeListValueIndex == 1)
+			else if (ConfigManager.difficultyField.gamemodeListValueIndex == 1)
 			{
 				currentCategory = AngryLeaderboards.RecordCategory.NOMO;
 			}
-			else if (Plugin.difficultyField.gamemodeListValueIndex == 2)
+			else if (ConfigManager.difficultyField.gamemodeListValueIndex == 2)
 			{
 				currentCategory = AngryLeaderboards.RecordCategory.NOMOW;
 			}
