@@ -49,6 +49,39 @@ namespace AngryLevelLoader.Managers.BannedMods
 				LOCAL_BANNED_MODS_LIST.Add(instance.ModGuid);
 				checkers.Add(instance);
 			}
+
+			ConfigManager.config.rootPanel.onPannelOpenEvent += (externally) =>
+			{
+				bool bannedModsFound = false;
+				ConfigManager.bannedModsText.text = "";
+
+				foreach (SoftBan checker in checkers)
+				{
+					try
+					{
+						var result = checker.Check();
+
+						if (result.banned)
+						{
+							if (!string.IsNullOrEmpty(ConfigManager.bannedModsText.text))
+								ConfigManager.bannedModsText.text += '\n';
+							ConfigManager.bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>{result.message}</size>\n\n";
+							bannedModsFound = true;
+						}
+					}
+					catch (Exception e)
+					{
+						Plugin.logger.LogError($"Exception thrown while checking for soft ban for {checker.ModName}\n{e}");
+
+						if (!string.IsNullOrEmpty(ConfigManager.bannedModsText.text))
+							ConfigManager.bannedModsText.text += '\n';
+						ConfigManager.bannedModsText.text += $"<color=red>{checker.ModName}</color>\n<size=18>- Encountered an error while checking for the soft ban status, check console</size>\n\n";
+						bannedModsFound = true;
+					}
+				}
+
+				ConfigManager.bannedModsPanel.hidden = !bannedModsFound;
+			};
 		}
 	}
 }

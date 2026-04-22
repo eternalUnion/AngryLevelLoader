@@ -185,13 +185,12 @@ namespace AngryLevelLoader.Managers
 			pendingRecords.SetIconWithURL("file://" + Path.Combine(Plugin.workingDir, "pending.png"));
 			
 			sendPendingRecords = new ButtonField(pendingRecords, "Send Pending Records", "sendPendingRecordsButton");
-			sendPendingRecords.onClick += Plugin.ProcessPendingRecords;
+			sendPendingRecords.onClick += PendingRecordsManager.ProcessPendingRecords;
 			
 			pendingRecordsStatus = new ConfigHeader(pendingRecords, "", 20, TMPro.TextAlignmentOptions.Left);
 			new ConfigSpace(pendingRecords, 5f);
 			pendingRecordsInfo = new ConfigHeader(pendingRecords, "", 18, TMPro.TextAlignmentOptions.Left);
-			
-			Plugin.UpdatePendingRecordsUI();
+			PendingRecordsManager.UpdatePendingRecordsUI();
 
 			difficultyField = new DifficultyField(config.rootPanel);
 

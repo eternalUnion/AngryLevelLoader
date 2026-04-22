@@ -235,7 +235,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 						case PostRecordStatus.RATE_LIMITED:
 							Plugin.logger.LogWarning("Too many requests sent. Adding record to the pending list");
-							Plugin.AddPendingRecord(info);
+							PendingRecordsManager.AddPendingRecord(info);
 							return "<color=red>Failed to post record:\nSent too many requests, added to pending list</color>";
 
 						case PostRecordStatus.INVALID_HASH:
@@ -248,7 +248,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 						default:
 							Plugin.logger.LogWarning($"Encountered an unknown error while posting record. Status: {postResult.status}, Message: '{postResult.message}'. Adding record to the pending list");
-							Plugin.AddPendingRecord(info);
+							PendingRecordsManager.AddPendingRecord(info);
 							return "<color=red>Failed to post record:\nReason unknown</color>";
 					}
 				}
@@ -256,7 +256,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			else
 			{
 				Plugin.logger.LogWarning($"Encountered a network error while posting record. Adding to the pending list");
-				Plugin.AddPendingRecord(info);
+				PendingRecordsManager.AddPendingRecord(info);
 				return "<color=red>Failed to post record:\nNetwork error, added to the pending list</color>";
 			}
 		}
