@@ -3,6 +3,7 @@ using AngryUiComponents;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,8 +14,24 @@ using UnityEngine.Events;
 
 namespace AngryLevelLoader.Fields
 {
-	public class FolderButtonField : CustomConfigField
+	public class FolderButtonField : CustomConfigField, IEnumerable<AngryBundleContainer>
 	{
+		private IEnumerator<AngryBundleContainer> FolderEnumerator(FolderButtonField folder)
+		{
+			foreach (AngryBundleContainer bundle in folder.bundles)
+				yield return bundle;
+
+			foreach (FolderButtonField subfolder in folder.folders)
+			{
+				IEnumerator<AngryBundleContainer> subfolderEnumerator = FolderEnumerator(subfolder);
+				while (subfolderEnumerator.MoveNext())
+					yield return subfolderEnumerator.Current;
+			}
+		}
+
+		public readonly List<AngryBundleContainer> bundles = new List<AngryBundleContainer>();
+		public readonly List<FolderButtonField> folders = new List<FolderButtonField>();
+
 		private const string ASSET_PATH = "AngryLevelLoader/Fields/FolderButtonField.prefab";
 		private const int ICON_SIZE = 128;
 		private const int ICON_GAP = 8;
@@ -153,6 +170,16 @@ namespace AngryLevelLoader.Fields
 		{
 			if (currentUi != null)
 				currentUi.folderButton.interactable = selfInteractable && hierarchyInteractable;
+		}
+
+		public IEnumerator<AngryBundleContainer> GetEnumerator()
+		{
+			return FolderEnumerator(this);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return GetEnumerator();
 		}
 	}
 }

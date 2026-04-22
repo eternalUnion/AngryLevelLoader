@@ -34,7 +34,7 @@ namespace AngryLevelLoader.Patches
 			if (Plugin.folderStack.Count > 1)
 			{
 				Plugin.folderStack.Pop();
-				Plugin.OpenFolder(Plugin.folderStack.Peek());
+				Plugin.DisplayFolder(Plugin.folderStack.Peek());
 				return false;
 			}
 
