@@ -298,47 +298,18 @@ namespace AngryLevelLoader.Managers
             _currentLevelData = levelData;
             _currentLevel = levelPath;
 			ConfigManager.config.presetButtonInteractable = false;
-            
-            if (Plugin.ultrapainLoaded)
-            {
-                UnsetUltrapainDifficulty();
-            }
-            if (Plugin.bananasDifficultyLoaded)
-            {
-                UnsetBananasDifficulty();
-            }
-            if (Plugin.billionDifficultyLoaded)
-            {
-                UnsetBillionDifficulty();
-            }
+
+            foreach (AngryDifficulty difficulty in AngryDifficultyManager.Difficulties)
+                difficulty.UnsetDifficulty();
 
             if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
             {
-                if (Plugin.selectedDifficulty == 100)
-                {
-                    SetToUltrapainDifficulty();
-                }
-                else if (Plugin.selectedDifficulty == 101)
-                {
-                    SetToBananasDifficulty();
-                }
-                else if (Plugin.selectedDifficulty == 102)
-                {
-                    SetToBillionDifficulty(false);
-                }
-                else if (Plugin.selectedDifficulty == 103)
-                {
-                    SetToBillionDifficulty(true);
-                }
-                else
-                {
-                    MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", Plugin.selectedDifficulty);
-                }
-            }
+				AngryDifficultyManager.SelectedDifficulty.SetDifficulty();
+			}
             // NoMo/NoMoW = Harmless
             else if (ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2)
             {
-				MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 0);
+                AngryDifficultyManager.HARMLESS.SetDifficulty();
 			}
 
 			int levelVersion = bundleContainer.bundleData.bundleVersion;

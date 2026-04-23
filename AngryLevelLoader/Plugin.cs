@@ -485,9 +485,6 @@ namespace AngryLevelLoader
 
 			return loaded;
 		}
-
-		// Defaults to violent
-        public static int selectedDifficulty = 3;
 		
 		public static bool NoMonsters => ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2;
 		public static bool NoWeapons => ConfigManager.difficultyField.gamemodeListValueIndex == 2;
@@ -602,75 +599,9 @@ namespace AngryLevelLoader
 					ConfigManager.config.rootPanel.currentPanel.rect.normalizedPosition = new Vector2(0, 1);
 
 					// Set the difficulty based on the previously selected act
-					int difficulty = PrefsManager.Instance.GetInt("difficulty", 3);
-					switch (difficulty)
-					{
-						// Stock difficulties
-						case 0:
-						case 1:
-						case 2:
-						case 3:
-						case 4:
-							logger.LogInfo($"Angry setting difficulty to {ConfigManager.difficultyList[difficulty]}");
-							ConfigManager.difficultyField.difficultyListValueIndex = difficulty;
-							break;
-
-						// Possibly bananas
-						case 5:
-							if (bananasDifficultyLoaded)
-							{
-								ConfigManager.difficultyField.difficultyListValueIndex = ConfigManager.difficultyList.IndexOf("BANANAS");
-							}
-							else
-							{
-								logger.LogWarning("Difficulty was set to BANANAS, but angry does not support it. Setting to violent");
-								ConfigManager.difficultyField.difficultyListValueIndex = 3;
-							}
-							break;
-
-						// Possibly ultrapain
-						case 6:
-							if (ultrapainLoaded)
-							{
-								if (GetUltrapainDifficultySet())
-								{
-									ConfigManager.difficultyField.difficultyListValueIndex = ConfigManager.difficultyList.IndexOf("ULTRAPAIN");
-								}
-								else
-								{
-									logger.LogWarning("Difficulty was set to UKMD, but angry does not support it. Setting to violent");
-									ConfigManager.difficultyField.difficultyListValueIndex = 3;
-								}
-							}
-							break;
-
-						// Possibly billion
-						case 19:
-							if (billionDifficultyLoaded)
-							{
-								if (GetBillionDifficultySet())
-								{
-									ConfigManager.difficultyField.difficultyListValueIndex = ConfigManager.difficultyList.IndexOf(IsBrilliantBillion() ? "BILLION (HARD)" : "BILLION");
-								}
-								else
-								{
-									logger.LogWarning("Difficulty was set to 19, but angry does not support it. Setting to violent");
-									ConfigManager.difficultyField.difficultyListValueIndex = 3;
-								}
-							}
-							break;
-
-						// Invalid difficulty
-						default:
-							logger.LogWarning("Unknown difficulty, defaulting to violent");
-							ConfigManager.difficultyField.difficultyListValueIndex = 3;
-							break;
-					}
-
-					ConfigManager.difficultyField.TriggerPostDifficultyChangeEvent();
+					AngryDifficultyManager.SetDifficultyFromPrefs();
 				});
-				ConfigManager.
-								customLevelButtonPosition.TriggerPostValueChangeEvent();
+				ConfigManager.customLevelButtonPosition.TriggerPostValueChangeEvent();
 				ConfigManager.customLevelButtonFrameColor.TriggerPostValueChangeEvent();
 				ConfigManager.customLevelButtonTextColor.TriggerPostValueChangeEvent();
 			}
@@ -1111,24 +1042,6 @@ namespace AngryLevelLoader
 
 			// Delay the catalog reload on boot until the main menu since steam must be initialized for the ticket request
 			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;
-
-			// See if custom difficulties are loaded. BepInEx soft dependency forces them to be loaded first
-			if (Chainloader.PluginInfos.ContainsKey(Ultrapain.Plugin.PLUGIN_GUID))
-			{
-				ultrapainLoaded = true;
-				ConfigManager.difficultyList.Add("ULTRAPAIN");
-			}
-			if (Chainloader.PluginInfos.ContainsKey("com.banana.BananaDifficulty"))
-			{
-				bananasDifficultyLoaded = true;
-				ConfigManager.difficultyList.Add("BANANAS");
-			}
-			if (Chainloader.PluginInfos.ContainsKey("billy.billiondifficulty"))
-			{
-				billionDifficultyLoaded = true;
-				ConfigManager.difficultyList.Add("BILLION");
-				ConfigManager.difficultyList.Add("BILLION (HARD)");
-			}
 
 			ConfigManager.InitializeConfig();
 

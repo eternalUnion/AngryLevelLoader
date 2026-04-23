@@ -61,8 +61,7 @@ namespace AngryLevelLoader.Managers
 
 		// Difficulty and gamemode select
 		public static DifficultyField difficultyField;
-		internal static List<string> difficultyList = new List<string> { "HARMLESS", "LENIENT", "STANDARD", "VIOLENT", "BRUTAL" };
-		internal static List<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
+		internal static IReadOnlyList<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
 
 		// Main panel
 		public static ConfigHeader levelUpdateNotifier;
@@ -210,55 +209,32 @@ namespace AngryLevelLoader.Managers
 
 			difficultyField.postDifficultyChange += (difficultyName, difficultyIndex) =>
 			{
-				Plugin.selectedDifficulty = Array.IndexOf(difficultyList.ToArray(), difficultyName);
-				if (Plugin.selectedDifficulty == -1)
-				{
-					Plugin.logger.LogWarning("Invalid difficulty, setting to violent");
-					Plugin.selectedDifficulty = 3;
-					difficultyField.difficultyListValue = "VIOLENT";
-				}
-				else
-				{
-					if (difficultyName == "ULTRAPAIN")
-						Plugin.selectedDifficulty = 100;
-					else if (difficultyName == "BANANAS")
-						Plugin.selectedDifficulty = 101;
-					else if (difficultyName == "BILLION")
-						Plugin.selectedDifficulty = 102;
-					else if (difficultyName == "BILLION (HARD)")
-						Plugin.selectedDifficulty = 103;
-				}
+				AngryDifficulty selectedDifficulty = AngryDifficultyManager.Difficulties.Where(d => d.name == difficultyName).FirstOrDefault();
+				if (selectedDifficulty == null)
+					selectedDifficulty = AngryDifficultyManager.VIOLENT;
+
+				AngryDifficultyManager.SelectedDifficulty = selectedDifficulty;
 
 				if (difficultyField.gamemodeListValueIndex == 1 || difficultyField.gamemodeListValueIndex == 2)
 				{
 					difficultyOverrideWarning.hidden = false;
 					difficultyField.difficultyInteractable = false;
 					difficultyField.ForceSetDifficultyUI(0);
-					Plugin.selectedDifficulty = 0;
+					AngryDifficultyManager.SelectedDifficulty = AngryDifficultyManager.HARMLESS;
 				}
 				else
 				{
 					difficultyOverrideWarning.hidden = true;
 					difficultyField.difficultyInteractable = true;
 
-					switch (Plugin.selectedDifficulty)
+					difficultyIndex = AngryDifficultyManager.Difficulties.IndexOf(selectedDifficulty);
+					if (difficultyIndex == -1)
 					{
-						case 0:
-						case 1:
-						case 2:
-						case 3:
-						case 4:
-							difficultyField.ForceSetDifficultyUI(Plugin.selectedDifficulty);
-							break;
-
-						case 100:
-							difficultyField.ForceSetDifficultyUI(difficultyList.IndexOf("ULTRAPAIN"));
-							break;
-
-						case 101:
-							difficultyField.ForceSetDifficultyUI(difficultyList.IndexOf("BANANAS"));
-							break;
+						selectedDifficulty = AngryDifficultyManager.VIOLENT;
+						difficultyIndex = AngryDifficultyManager.Difficulties.IndexOf(selectedDifficulty);
 					}
+
+					difficultyField.ForceSetDifficultyUI(difficultyIndex);
 				}
 			};
 			difficultyField.postGamemodeChange += (gamemodeName, gamemodeIndex) =>
