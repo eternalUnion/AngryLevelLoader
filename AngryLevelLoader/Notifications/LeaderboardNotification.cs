@@ -826,13 +826,13 @@ namespace AngryLevelLoader.Notifications
 			Dictionary<string, string> bundleGuidToName = history.bundleGuidPK
 				.ToDictionary(pair => pair.Key, pair =>
 				{
-					var bundle = OnlineLevelsManager.catalog.Levels.Where(b => b.Guid == pair.Key).FirstOrDefault();
+					var bundle = OnlineCatalogManager.Catalog.Levels.Where(b => b.Guid == pair.Key).FirstOrDefault();
 					return bundle == null ? pair.Key : bundle.Name;
 				});
 			Dictionary<string, string> levelIdToName = history.levelIdPK
 				.ToDictionary(pair => pair.Key, pair =>
 				{
-					var level = OnlineLevelsManager.catalog.Levels.Select(b => b.Levels).SelectMany(x => x).Where(l => l.LevelId == pair.Key).FirstOrDefault();
+					var level = OnlineCatalogManager.Catalog.Levels.Select(b => b.Levels).SelectMany(x => x).Where(l => l.LevelId == pair.Key).FirstOrDefault();
 					return level == null ? pair.Key : level.LevelName;
 				});
 			Dictionary<int, string> categoryMap = new Dictionary<int, string>()
@@ -889,7 +889,7 @@ namespace AngryLevelLoader.Notifications
 						case 2:
 							Dictionary<int, int> bundleIdToOrder = history.bundleGuidPK.Select(pair =>
 							{
-								var bundle = OnlineLevelsManager.catalog.Levels.Where(b => b.Guid == pair.Key).FirstOrDefault();
+								var bundle = OnlineCatalogManager.Catalog.Levels.Where(b => b.Guid == pair.Key).FirstOrDefault();
 								return new KeyValuePair<int, string>(pair.Value, bundle == null ? null : richText.Replace(bundle.Name, string.Empty).ToLower());
 							}).Where(pair => pair.Value != null)
 							.OrderBy(pair => pair.Value)
@@ -905,7 +905,7 @@ namespace AngryLevelLoader.Notifications
 						case 3:
 							Dictionary<int, int> levelIdToOrder = history.levelIdPK.Select(pair =>
 							{
-								var level = OnlineLevelsManager.catalog.Levels.Select(b => b.Levels).SelectMany(x => x).Where(l => l.LevelId == pair.Key).FirstOrDefault();
+								var level = OnlineCatalogManager.Catalog.Levels.Select(b => b.Levels).SelectMany(x => x).Where(l => l.LevelId == pair.Key).FirstOrDefault();
 								return new KeyValuePair<int, string>(pair.Value, level == null ? null : richText.Replace(level.LevelName, string.Empty).ToLower());
 							}).Where(pair => pair.Value != null)
 							.OrderBy(pair => pair.Value)
@@ -961,12 +961,12 @@ namespace AngryLevelLoader.Notifications
 					entry.recordInfo.text = $"<color=grey>Posted on {updateTimeString}</color>\nCategory: {categoryMap[record[3]]}\nDifficulty: {difficultyMap[record[4]]}";
 					entry.time.text = MillisecondsToString(record[5]);
 
-					ThumbnailManager.GetBundleThumbnailTask(bundleGuid).ContinueWith(res =>
+					AngryOnlineThumbnailCache.GetThumbnail(bundleGuid).ContinueWith(res =>
 					{
 						entry.bundleIcon.texture = res.Result;
 					}, TaskScheduler.FromCurrentSynchronizationContext());
 
-					ThumbnailManager.GetLevelThumbnailTask(bundleGuid, levelId).ContinueWith(res =>
+					AngryLevelThumbnailCache.GetThumbnail(bundleGuid, levelId).ContinueWith(res =>
 					{
 						entry.levelIcon.texture = res.Result;
 					}, TaskScheduler.FromCurrentSynchronizationContext());
@@ -998,7 +998,7 @@ namespace AngryLevelLoader.Notifications
 				{
 					HashSet<int> allowedBundles = new HashSet<int>();
 					
-					foreach (var bundle in OnlineLevelsManager.catalog.Levels)
+					foreach (var bundle in OnlineCatalogManager.Catalog.Levels)
 					{
 						string bundleName = richText.Replace(bundle.Name, string.Empty).ToLower();
 						if (bundleSearchKeys.Any(key => bundleName.IndexOf(key) == -1))
@@ -1016,7 +1016,7 @@ namespace AngryLevelLoader.Notifications
 				{
 					HashSet<int> allowedLevels = new HashSet<int>();
 
-					foreach (var bundle in OnlineLevelsManager.catalog.Levels)
+					foreach (var bundle in OnlineCatalogManager.Catalog.Levels)
 					{
 						foreach (var level in bundle.Levels)
 						{

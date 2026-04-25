@@ -87,7 +87,7 @@ namespace AngryLevelLoader.Notifications
 
                 if (string.IsNullOrEmpty(fileSizeText))
                 {
-                    if (ScriptCatalogLoader.TryGetScriptInfo(scriptName, out ScriptInfo info))
+                    if (OnlineScriptsManager.TryGetScriptInfo(scriptName, out ScriptInfo info))
                     {
                         string prefix = "B";
                         float size = info.Size;
@@ -135,8 +135,8 @@ namespace AngryLevelLoader.Notifications
 
                 try
                 {
-                    currentDllRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, $"Scripts/{scriptName}"));
-                    currentCertRequest = new UnityWebRequest(OnlineLevelsManager.GetGithubURL(OnlineLevelsManager.Repo.AngryLevels, $"Scripts/{scriptName}.cert"));
+                    currentDllRequest = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevels, $"Scripts/{scriptName}"));
+                    currentCertRequest = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevels, $"Scripts/{scriptName}.cert"));
 
                     string tempPath = Path.Combine(Plugin.workingDir, "TempDownloads");
                     if (!Directory.Exists(tempPath))
@@ -237,7 +237,7 @@ namespace AngryLevelLoader.Notifications
                     ScriptUpdateProgressField field = new ScriptUpdateProgressField();
                     field.scriptName = script;
                     field.caller = this;
-                    if (ScriptCatalogLoader.TryGetScriptInfo(script, out var scriptInfo))
+                    if (OnlineScriptsManager.TryGetScriptInfo(script, out var scriptInfo))
                     {
                         if (ScriptManager.ScriptExists(script))
                             field.scriptStatus = ScriptUpdateProgressField.ScriptStatus.Update;

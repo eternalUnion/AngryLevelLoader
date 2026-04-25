@@ -37,6 +37,7 @@ namespace AngryLevelLoader.Containers
         public string pathToTempFolder;
         public string pathToAngryBundle;
 
+        public readonly string bundleGuid;
         public AngryBundleData bundleData;
 
         public Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
@@ -416,20 +417,10 @@ namespace AngryLevelLoader.Containers
 			}
             
             // Update online field if there are any
-            if (OnlineLevelsManager.onlineLevels.TryGetValue(bundleData.bundleGuid, out OnlineLevelField field))
+            if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
             {
-                if (field.bundleBuildHash == bundleData.buildHash)
-                {
-                    field.status = OnlineLevelField.OnlineLevelStatus.installed;
-                }
-                else
-                {
-                    field.status = OnlineLevelField.OnlineLevelStatus.updateAvailable;
-                    if (ConfigManager.levelUpdateNotifierToggle.value)
-						ConfigManager.levelUpdateNotifier.hidden = false;
-                }
-
-                field.UpdateUI();
+                field.UpdateStatus();
+                OnlineLevelsUI.CheckLevelUpdateText();
             }
 
             if (!lazyLoad)
@@ -611,15 +602,13 @@ namespace AngryLevelLoader.Containers
             if (Directory.Exists(pathToTempFolder))
                 Directory.Delete(pathToTempFolder, true);
 
-            if (OnlineLevelsManager.onlineLevels.TryGetValue(bundleData.bundleGuid, out var onlineField))
+            if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleData.bundleGuid, out var onlineField))
             {
-                onlineField.status = OnlineLevelField.OnlineLevelStatus.notInstalled;
-                onlineField.UpdateUI();
+                onlineField.UpdateStatus();
             }
 
             pathToAngryBundle = "";
             pathToTempFolder = "";
-            bundleData = null;
             rootPanel.hidden = true;
 
             await Unload();
@@ -636,7 +625,7 @@ namespace AngryLevelLoader.Containers
             if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData updatedData, out Exception e))
             {
                 // Different guid, would break the container
-                if (updatedData.bundleGuid != bundleData.bundleGuid)
+                if (updatedData.bundleGuid != bundleGuid)
                 {
                     Plugin.logger.LogError($"File {Path.GetFileName(pathToAngryBundle)} was changed, but the new file's guid does not match its container! Unlinking");
                     fileChangeDetected = false;
@@ -693,6 +682,7 @@ namespace AngryLevelLoader.Containers
             Plugin.logger.LogInfo($"Creating bundle container for {path}");
             pathToAngryBundle = path;
             bundleData = data;
+            bundleGuid = bundleData.bundleGuid;
 
             rootPanel = new ConfigPanelForBundles(this, ConfigManager.bundleDivision, data.bundleName, data.bundleGuid);
             rootPanel.onPannelOpenEvent += (external) =>

@@ -1,49 +1,151 @@
-﻿using System;
+﻿using AngryLevelLoader.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using static AngryLevelLoader.Managers.OnlineLevelsManager;
+using static AngryLevelLoader.Managers.OnlineLevelsUI;
 
 namespace AngryLevelLoader.Managers
 {
-	public static class ThumbnailManager
+	class CachedTexture
 	{
-		private static Dictionary<string, Texture2D> bundleThumbnails = new Dictionary<string, Texture2D>();
-		private static Dictionary<string, Texture2D> levelThumbnails = new Dictionary<string, Texture2D>();
+		public Texture2D texture;
+		public string hash;
+		public CachedTask<Texture2D> currentTask;
 
-		private static Dictionary<string, Task<Texture2D>> bundleThumbnailRequests = new Dictionary<string, Task<Texture2D>>();
-		private static Dictionary<string, Task<Texture2D>> levelThumbnailRequests = new Dictionary<string, Task<Texture2D>>();
-
-		private static async Task<Texture2D> _GetBundleThumbnailTask(string bundleGuid)
+		public CachedTexture(Texture2D texture, string hash)
 		{
-			if (bundleThumbnails.TryGetValue(bundleGuid, out Texture2D cachedThumbnail))
-				return cachedThumbnail;
+			this.texture = texture;
+			this.hash = hash;
+		}
 
-			UnityWebRequest thumbnailReq = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, $"Levels/{bundleGuid}/thumbnail.png"));
-			thumbnailReq.downloadHandler = new DownloadHandlerTexture();
+		public static async Task<Texture2D> GetTextureFromFile(string path)
+		{
+			UnityWebRequest req = UnityWebRequestTexture.GetTexture("file://" + path);
+			await req.SendWebRequest();
+
+			if (req.result != UnityWebRequest.Result.Success)
+				return null;
+
+			return DownloadHandlerTexture.GetContent(req);
+		}
+	}
+
+	/// <summary>
+	/// Cache for online icons of online bundles. Icons are saved locally to avoid
+	/// unnecessary downloads.
+	/// </summary>
+	public static class AngryOnlineThumbnailCache
+	{
+		private static Dictionary<string, CachedTexture> textureCache = new Dictionary<string, CachedTexture>();
+
+		public static Task<Texture2D> GetThumbnail(string bundleGuid)
+		{
+			if (!textureCache.TryGetValue(bundleGuid, out CachedTexture cachedTexture))
+			{
+				cachedTexture = new CachedTexture(null, string.Empty);
+				cachedTexture.currentTask = new CachedTask<Texture2D>(() => _GetTexture(bundleGuid));
+				textureCache.Add(bundleGuid, cachedTexture);
+			}
+
+			return cachedTexture.currentTask.GetTask();
+		}
+
+		private static async Task<Texture2D> _GetTexture(string guid)
+		{
+			LevelCatalog catalog = OnlineCatalogManager.Catalog ?? await OnlineCatalogManager.DownloadCatalogAsync();
+			if (catalog == null)
+				return null;
+
+			BundleInfo bundle = catalog.Levels.Where(b => b.Guid == guid).FirstOrDefault();
+			if (bundle == null)
+				return null;
+
+			string hash = bundle.ThumbnailHash;
+
+			if (textureCache.TryGetValue(guid, out CachedTexture cachedTexture))
+			{
+				if (cachedTexture.texture != null && cachedTexture.hash == hash)
+					return cachedTexture.texture;
+			}
+			else
+			{
+				cachedTexture = new CachedTexture(null, hash);
+				textureCache.Add(guid, cachedTexture);
+			}
+
+			string imageCacheDir = AngryPaths.ThumbnailCacheFolderPath;
+			IOUtils.TryCreateDirectory(imageCacheDir);
+			string imageCachePath = Path.Combine(imageCacheDir, $"{guid}.png");
+
+			if (File.Exists(imageCachePath))
+			{
+				string fileHash = CryptographyUtils.GetMD5String(File.ReadAllBytes(imageCachePath));
+				if (fileHash == hash)
+				{
+					Texture2D fileTexture = await CachedTexture.GetTextureFromFile(imageCachePath);
+					if (fileTexture != null)
+					{
+						cachedTexture.texture = fileTexture;
+						cachedTexture.hash = hash;
+						return fileTexture;
+					}
+				}
+			}
+
+			if (File.Exists(imageCachePath))
+				File.Delete(imageCachePath);
+
+			string url = GetGithubURL(Repo.AngryLevels, $"Levels/{guid}/thumbnail.png");
+
+			UnityWebRequest thumbnailReq = new UnityWebRequest(url);
+			thumbnailReq.downloadHandler = new DownloadHandlerFile(imageCachePath);
 			await thumbnailReq.SendWebRequest();
 
 			if (thumbnailReq.result != UnityWebRequest.Result.Success)
 				return null;
 
-			return bundleThumbnails[bundleGuid] = ((DownloadHandlerTexture)thumbnailReq.downloadHandler).texture;
+			Texture2D texture = await CachedTexture.GetTextureFromFile(imageCachePath);
+			if (texture != null)
+			{
+				cachedTexture.texture = texture;
+				cachedTexture.hash = hash;
+				return texture;
+			}
+
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Cache for level icons of online bundles. Downloaded on demand since there is
+	/// no hashing implemented for level icons.
+	/// </summary>
+	public static class AngryLevelThumbnailCache
+	{
+		private static Dictionary<string, CachedTexture> textureCache = new Dictionary<string, CachedTexture>();
+
+		public static Task<Texture2D> GetThumbnail(string bundleGuid, string levelId)
+		{
+			if (!textureCache.TryGetValue(levelId, out CachedTexture cachedTexture))
+			{
+				cachedTexture = new CachedTexture(null, string.Empty);
+				cachedTexture.currentTask = new CachedTask<Texture2D>(() => _GetTexture(bundleGuid, levelId));
+				textureCache.Add(levelId, cachedTexture);
+			}
+
+			return cachedTexture.currentTask.GetTask();
 		}
 
-		public static async Task<Texture2D> GetBundleThumbnailTask(string bundleGuid)
+		private static async Task<Texture2D> _GetTexture(string bundleGuid, string levelId)
 		{
-			if (bundleThumbnailRequests.TryGetValue(bundleGuid, out Task<Texture2D> currentTask) && !currentTask.IsCompleted)
-				return await currentTask;
-
-			return await (bundleThumbnailRequests[bundleGuid] = _GetBundleThumbnailTask(bundleGuid));
-		}
-
-		private static async Task<Texture2D> _GetLevelThumbnailTask(string bundleGuid, string levelId)
-		{
-			if (levelThumbnails.TryGetValue(levelId, out Texture2D cachedThumbnail))
-				return cachedThumbnail;
+			CachedTexture cache = textureCache[levelId];
+			if (cache.texture != null)
+				return cache.texture;
 
 			string levelMd5 = CryptographyUtils.GetMD5String(levelId);
 
@@ -54,15 +156,8 @@ namespace AngryLevelLoader.Managers
 			if (thumbnailReq.result != UnityWebRequest.Result.Success)
 				return null;
 
-			return levelThumbnails[levelId] = ((DownloadHandlerTexture)thumbnailReq.downloadHandler).texture;
-		}
-
-		public static async Task<Texture2D> GetLevelThumbnailTask(string bundleGuid, string levelId)
-		{
-			if (levelThumbnailRequests.TryGetValue(levelId, out Task<Texture2D> currentTask) && !currentTask.IsCompleted)
-				return await currentTask;
-
-			return await (levelThumbnailRequests[levelId] = _GetLevelThumbnailTask(bundleGuid, levelId));
+			cache.texture = ((DownloadHandlerTexture)thumbnailReq.downloadHandler).texture;
+			return cache.texture;
 		}
 	}
 }

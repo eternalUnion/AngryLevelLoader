@@ -161,15 +161,15 @@ namespace AngryLevelLoader.Managers
 			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=#00FF00>Level updates available!</color>", 16);
 			levelUpdateNotifier.hidden = true;
 
-			OnlineLevelsManager.onlineLevelsPanel = new ConfigPanel(InternalConfigManager.internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
-			new ConfigBridge(OnlineLevelsManager.onlineLevelsPanel, config.rootPanel);
-			OnlineLevelsManager.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(Plugin.workingDir, "online-icon.png"));
-			OnlineLevelsManager.onlineLevelsPanel.onPannelOpenEvent += (e) =>
+			OnlineLevelsUI.onlineLevelsPanel = new ConfigPanel(InternalConfigManager.internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
+			new ConfigBridge(OnlineLevelsUI.onlineLevelsPanel, config.rootPanel);
+			OnlineLevelsUI.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(Plugin.workingDir, "online-icon.png"));
+			OnlineLevelsUI.onlineLevelsPanel.onPannelOpenEvent += (e) =>
 			{
 				newLevelNotifier.hidden = true;
 			};
 			
-			OnlineLevelsManager.Init();
+			OnlineLevelsUI.Init();
 
 			leaderboardsDivision = new ConfigDivision(config.rootPanel, "leaderboardsDivision");
 			leaderboardsDivision.hidden = !InternalConfigManager.leaderboardToggle.value;
@@ -390,14 +390,14 @@ namespace AngryLevelLoader.Managers
 			levelUpdateNotifierToggle.onValueChange += (e) =>
 			{
 				levelUpdateNotifierToggle.value = e.value;
-				OnlineLevelsManager.CheckLevelUpdateText();
+				OnlineLevelsUI.CheckLevelUpdateText();
 			};
 			
 			levelUpdateIgnoreCustomBuilds = new BoolField(settingsPanel, "Ignore updates for custom build", "s_levelUpdateIgnoreCustomBuilds", false);
 			levelUpdateIgnoreCustomBuilds.onValueChange += (e) =>
 			{
 				levelUpdateIgnoreCustomBuilds.value = e.value;
-				OnlineLevelsManager.CheckLevelUpdateText();
+				OnlineLevelsUI.CheckLevelUpdateText();
 			};
 			
 			newLevelNotifierLevels = new StringField(settingsPanel, "h_New levels", "s_newLevelNotifierLevels", "", true);

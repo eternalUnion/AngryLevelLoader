@@ -401,7 +401,7 @@ namespace AngryLevelLoader
 			folderStack.Clear();
 			folderStack.Push(rootFolder);
 
-			OnlineLevelsManager.UpdateUI();
+			OnlineLevelsUI.UpdateUI();
 		}
 
 		public static void SortBundles()
@@ -498,26 +498,9 @@ namespace AngryLevelLoader
 				return;
 
 			if (ConfigManager.refreshCatalogOnBoot.value)
-				OnlineLevelsManager.RefreshAsync();
+				OnlineLevelsUI.RefreshAsync();
 
 			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
-		}
-
-		// Is ultrapain difficulty enabled?
-		private static bool GetUltrapainDifficultySet()
-		{
-			return Ultrapain.Plugin.ultrapainDifficulty;
-		}
-
-		// Is billion difficulty enabled?
-		private static bool GetBillionDifficultySet()
-		{
-			return BillionDifficulty.Util.IsDifficulty(19);
-		}
-
-		private static bool IsBrilliantBillion()
-		{
-			return BillionDifficulty.Util.IsHardMode();
 		}
 
 		// Create the shortcut in chapters menu
@@ -703,7 +686,7 @@ namespace AngryLevelLoader
 
 				if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
 				{
-					if (bundle.bundleData.bundleGuid == data.bundleGuid && !File.Exists(bundle.pathToAngryBundle))
+					if ((bundle.bundleData == null || bundle.bundleData.bundleGuid == data.bundleGuid) && !File.Exists(bundle.pathToAngryBundle))
 					{
 						logger.LogWarning($"Bundle {fullPath} was just added, and a container with the same guid had no file linked. Linked, container notified");
 						bundle.pathToAngryBundle = fullPath;
@@ -962,8 +945,7 @@ namespace AngryLevelLoader
 			{
 				logger.LogError($"Failed to create data path at '{dataPath}'! Overwriting with the default value '{InternalConfigManager.configDataPath.defaultValue}'");
 				logger.LogError(ex);
-				InternalConfigManager.
-								configDataPath.value = InternalConfigManager.configDataPath.defaultValue;
+				InternalConfigManager.configDataPath.value = InternalConfigManager.configDataPath.defaultValue;
 				dataPath = InternalConfigManager.configDataPath.defaultValue;
 
 				try
@@ -995,6 +977,8 @@ namespace AngryLevelLoader
 			
 			// Load the loader's assets
 			Addressables.InitializeAsync().WaitForCompletion();
+			ForceLoadAddressableDependencies();
+
 			angryCatalogPath = Path.Combine(workingDir, "Assets");
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 			AssetManager.Init();
@@ -1089,36 +1073,6 @@ namespace AngryLevelLoader
 
 			BannedModsManager.Init();
 
-			// TODO: Investigate further on this issue:
-			//
-			// if I don't do that, when I load an addressable scene (custom level)
-			// it results in whatever this is. I guess it doesn't load the dependencies
-			// but I am not too sure. Same thing happens when I load trough asset bundles
-			// instead and everything is white unless I load a prefab which creates a chain
-			// reaction of texture, material, shader dependency loads. Though it MIGHT be incorrect,
-			// and I am not sure of the actual origin of the issue (because when I check the loaded
-			// bundles every addressable bundle is already in the memory like what?)
-			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab").WaitForCompletion();
-
-            // Rant #2: Addressables being a pain again
-            //
-            // After the update from Unity 2019 to 2022, it seems like attempting to load an asset
-            // from addressables during a scene load synchronously could cause a deadlock because
-            // addressables now tries to load the asset bundle asynchronously. Most of the scene load
-            // stuff can be done in a co-routine but room spawns should be done in-time, else many
-            // scripts that reference the player on start will fail. So force these assets to be
-            // always loaded. BTW, this is """"THE SOLUTION""" unity provides, yes the SOLUTION, and they
-            // are not planning to do anything about it (flagged as Won't Fix).
-            Addressables.LoadAssetAsync<GameObject>("FirstRoom").WaitForCompletion();
-            Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret").WaitForCompletion();
-            Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime").WaitForCompletion();
-            Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab").WaitForCompletion();
-
-            Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
-			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png").WaitForCompletion();
-			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png").WaitForCompletion();
-			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat").WaitForCompletion();
-
 			// Also load some necessary assets which are needed during scene load
 			MeshCombineManagerPatches.Initialize();
 
@@ -1149,6 +1103,33 @@ namespace AngryLevelLoader
 
 			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
+
+		private void ForceLoadAddressableDependencies()
+		{
+			// For some reason, we need a dangling reference to load in game addressable asset bundles.
+			// Level asset bundle dependencies do not work for some reason. That is, loading a custom
+			// level alone does not load the dependencies.
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab").WaitForCompletion();
+
+			// Rant #2: Addressables being a pain again
+			//
+			// After the update from Unity 2019 to 2022, it seems like attempting to load an asset
+			// from addressables during a scene load synchronously could cause a deadlock because
+			// addressables now tries to load the asset bundle asynchronously. Most of the scene load
+			// stuff can be done in a co-routine but room spawns should be done in-time, else many
+			// scripts that reference the player on start will fail. So force these assets to be
+			// always loaded. BTW, this is """"THE SOLUTION""" unity provides, yes the SOLUTION, and they
+			// are not planning to do anything about it (flagged as Won't Fix).
+			Addressables.LoadAssetAsync<GameObject>("FirstRoom").WaitForCompletion();
+			Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret").WaitForCompletion();
+			Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime").WaitForCompletion();
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab").WaitForCompletion();
+
+			Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png").WaitForCompletion();
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png").WaitForCompletion();
+			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat").WaitForCompletion();
+		}
 
 		float lastPress = 0;
 		private void OnGUI()

@@ -1,21 +1,19 @@
 ﻿using AngryLevelLoader.DataTypes;
 using Newtonsoft.Json;
-using PluginConfig;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace AngryLevelLoader
@@ -423,6 +421,62 @@ namespace AngryLevelLoader
             return false;
         }
     }
+
+	// Helper classes for creation of singleton tasks. If a task is running, the currently
+	// running task is returned instead of creating a new task. This is useful for tasks
+	// concerned with IO operations.
+
+	public class CachedTask
+	{
+		private Func<Task> task;
+
+		public CachedTask(Func<Task> task)
+		{
+			this.task = task;
+		}
+
+		private Task currentTask = null;
+		public bool Running => currentTask != null && !currentTask.IsCompleted;
+
+		public async Task GetTask(CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (!Running)
+			{
+				currentTask = task();
+			}
+
+			await Task.Run(async () =>
+			{
+				await currentTask;
+			}, cancellationToken);
+		}
+	}
+
+	public class CachedTask<T>
+	{
+		private Func<Task<T>> task;
+
+		public CachedTask(Func<Task<T>> task)
+		{
+			this.task = task;
+		}
+
+		private Task<T> currentTask = null;
+		public bool Running => currentTask != null && !currentTask.IsCompleted;
+
+		public async Task<T> GetTask(CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (!Running)
+			{
+				currentTask = task();
+			}
+
+			return await Task.Run(async () =>
+			{
+				return await currentTask;
+			}, cancellationToken);
+		}
+	}
 
 	public static class AsyncExtensions
 	{

@@ -123,7 +123,7 @@ namespace AngryLevelLoader.Managers
                     if (ScriptManager.ScriptExists(script))
                     {
                         // Download if out of date
-                        ScriptInfo info = ScriptCatalogLoader.scriptCatalog == null ? null : ScriptCatalogLoader.scriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
+                        ScriptInfo info = OnlineScriptsManager.ScriptCatalog == null ? null : OnlineScriptsManager.ScriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
                         if (info != null)
                         {
                             string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));

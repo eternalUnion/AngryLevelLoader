@@ -4,35 +4,39 @@ using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryUiComponents;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
-using UnityEngine.EventSystems;
 using UnityEngine.Networking;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace AngryLevelLoader.Fields
 {
-    public class OnlineLevelField : CustomConfigField
+	class DisableWhenHidden : MonoBehaviour
+	{
+		void OnDisable()
+		{
+			gameObject.SetActive(false);
+		}
+	}
+
+    /// <summary>
+    /// UI entry for an online bundle in the online levels panel.
+    /// Also controls downloading, updating and voting the bundle.
+    /// </summary>
+	public class OnlineLevelField : CustomConfigField
     {
+        // Assets
+
         private const string ASSET_PATH = "AngryLevelLoader/Fields/OnlineLevelField.prefab";
 
         private static Sprite arrow;
@@ -44,323 +48,297 @@ namespace AngryLevelLoader.Fields
             arrowFilled = AssetManager.arrowFilled;
         }
 
-        public readonly string bundleGuid;
-        public string bundleBuildHash;
-        public long lastUpdate;
+        // Data
 
-        private AngryBundleContainer _bundle = null;
-        public AngryBundleContainer bundle
+        private BundleInfo _onlineBundle;
+        /// <summary>
+        /// Entry from the online level catalog associated with this field.
+        /// </summary>
+        public BundleInfo OnlineBundle
+        {
+            get => _onlineBundle;
+            internal set
+            {
+                if (value == null)
+                    throw new ArgumentException("Parameter is null");
+
+                if (_onlineBundle != null && _onlineBundle.Guid != value.Guid)
+                    throw new ArgumentException("Guid mismatch when updating online bundle info");
+
+                _onlineBundle = value;
+                UpdateStatus();
+
+				if (currentUi != null)
+                {
+				    bool locked = OnlineBundle.Locked;
+				    currentUi.install.interactable = !locked;
+				    currentUi.update.interactable = !locked;
+				    currentUi.votes.gameObject.SetActive(!locked);
+                }
+			}
+        }
+
+		private string GetFileSizeString()
+		{
+			const int kilobyteSize = 1024;
+			const int megabyteSize = 1024 * 1024;
+
+			int bundleFileSize = OnlineBundle.Size;
+
+			if (bundleFileSize >= megabyteSize)
+				return $"{((float)bundleFileSize / megabyteSize).ToString("0.00")} MB";
+			if (bundleFileSize >= kilobyteSize)
+				return $"{((float)bundleFileSize / kilobyteSize).ToString("0.00")} KB";
+			return $"{bundleFileSize} B";
+		}
+
+		private AngryBundleContainer _bundle = null;
+        /// <summary>
+        /// Locally installed bundle that has the same guid as OnlineBundle.
+        /// Can be null if the bundle is not locally installed.
+        /// </summary>
+        public AngryBundleContainer Bundle
         {
             get
             {
                 if (_bundle == null)
-                    _bundle = Plugin.GetAngryBundleByGuid(bundleGuid);
+                    _bundle = Plugin.GetAngryBundleByGuid(OnlineBundle.Guid);
 
                 return _bundle;
             }
         }
 
-        private RectTransform currentContainer = null;
-
-        private UnityEvent onCancel = new UnityEvent();
+		// UI properties
 
         private Texture2D _previewImage;
-        public Texture2D previewImage
+        /// <summary>
+        /// Online 4:3 thumbnail of the bundle.
+        /// </summary>
+        public Texture2D PreviewImage
         {
             get => _previewImage;
-            set
+            internal set
             {
                 _previewImage = value;
                 if (currentUi != null)
-                    currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
+                    currentUi.thumbnail.texture = OnlineBundle.Locked ? AssetManager.lockedPreview.texture : _previewImage;
             }
         }
 
-        public void DownloadPreviewImage(string URL, bool force)
-        {
-            if (_previewImage != null && !force)
-                return;
+		public enum VoteStat
+		{
+			Upvoted,
+			Downvoted,
+			Cleared,
+			Disabled
+		}
 
-            UnityWebRequest req = UnityWebRequestTexture.GetTexture(URL);
-            var handle = req.SendWebRequest();
-            handle.completed += (e) =>
-            {
-                try
-                {
-                    if (req.isHttpError || req.isNetworkError)
-                        return;
+		private VoteStat _voteStatus = VoteStat.Disabled;
+        /// <summary>
+        /// Current player's vote for this bundle.
+        /// </summary>
+		public VoteStat VoteStatus
+		{
+			get => _voteStatus;
+			internal set
+			{
+				_voteStatus = value;
+				if (currentUi == null)
+					return;
 
-                    previewImage = DownloadHandlerTexture.GetContent(req);
-                }
-                finally
-                {
-                    req.Dispose();
-                }
-            };
-        }
+				if (value == VoteStat.Disabled)
+				{
+					currentUi.upvoteButton.interactable = false;
+					currentUi.downvoteButton.interactable = false;
+					currentUi.votes.color = Color.gray;
 
-        private string _bundleName;
-        public string bundleName
-        {
-            get => _bundleName;
-            set
-            {
-                _bundleName = value;
-                UpdateInfoText();
-            }
-        }
+					currentUi.upvoteImage.sprite = arrowFilled;
+					currentUi.downvoteImage.sprite = arrowFilled;
+				}
+				else
+				{
+					currentUi.upvoteButton.interactable = true;
+					currentUi.downvoteButton.interactable = true;
+					currentUi.votes.color = Color.white;
 
-        private string _author;
-        public string author
-        {
-            get => _author;
-            set
-            {
-                _author = value;
-                UpdateInfoText();
-            }
-        }
+					currentUi.upvoteImage.sprite = (value == VoteStat.Upvoted) ? arrowFilled : arrow;
+					currentUi.downvoteImage.sprite = (value == VoteStat.Downvoted) ? arrowFilled : arrow;
+				}
+			}
+		}
 
-        private int _bundleFileSize;
-        public int bundleFileSize
-        {
-            get => _bundleFileSize;
-            set
-            {
-                _bundleFileSize = value;
-                UpdateInfoText();
-            }
-        }
+		private int _voteCount = 0;
+        /// <summary>
+        /// Net number of votes for this bundle.
+        /// </summary>
+		public int VoteCount
+		{
+			get => _voteCount;
+			internal set
+			{
+				_voteCount = value;
+				if (currentUi == null)
+					return;
 
-        private bool _locked;
-        public bool locked
-        {
-            get => _locked;
-            set
-            {
-                _locked = value;
-                UpdateInfoText();
-
-                if (currentUi != null)
-                {
-                    currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
-                    currentUi.install.interactable = !locked;
-                    currentUi.update.interactable = !locked;
-                    currentUi.votes.gameObject.SetActive(!locked);
-                }
-            }
-        }
-
-        private string GetFileSizeString()
-        {
-            const int kilobyteSize = 1024;
-            const int megabyteSize = 1024 * 1024;
-
-            if (bundleFileSize >= megabyteSize)
-                return $"{((float)_bundleFileSize / megabyteSize).ToString("0.00")} MB";
-            if (bundleFileSize >= kilobyteSize)
-                return $"{((float)_bundleFileSize / kilobyteSize).ToString("0.00")} KB";
-            return $"{_bundleFileSize} B";
-        }
+				currentUi.votes.text = value.ToString();
+			}
+		}
 
         public enum OnlineLevelStatus
         {
-            installed,
-            notInstalled,
-            updateAvailable
+            Installed,
+            NotInstalled,
+            UpdateAvailable
         }
 
-        public enum ErrorStatus
-        {
-            NoError,
-            NetworkError,
-            ValidationError
-        }
-
-        private OnlineLevelStatus _status = OnlineLevelStatus.notInstalled;
-        public OnlineLevelStatus status
+        private OnlineLevelStatus _status = OnlineLevelStatus.NotInstalled;
+        /// <summary>
+        /// Version state of the bundle.
+        /// </summary>
+        public OnlineLevelStatus Status
         {
             get => _status;
-            set
+            private set
             {
                 _status = value;
-                UpdateInfoText();
-            }
+				SearchKeywords = SearchKeywords;
+			}
         }
 
-        private ErrorStatus _errorStatus = ErrorStatus.NoError;
-        public ErrorStatus errorStatus
+		internal void UpdateStatus()
+		{
+			if (Bundle == null || string.IsNullOrEmpty(Bundle.pathToAngryBundle) || !File.Exists(Bundle.pathToAngryBundle))
+				Status = OnlineLevelStatus.NotInstalled;
+			else if (Bundle.bundleData.buildHash != OnlineBundle.Hash)
+				Status = OnlineLevelStatus.UpdateAvailable;
+			else
+				Status = OnlineLevelStatus.Installed;
+		}
+
+		public enum ErrorStat
+		{
+			NoError,
+			NetworkError,
+			ValidationError
+		}
+
+		private ErrorStat _errorStatus = ErrorStat.NoError;
+        /// <summary>
+        /// Error from the last download attempt.
+        /// </summary>
+        public ErrorStat ErrorStatus
         {
             get => _errorStatus;
-            set
+            private set
             {
                 _errorStatus = value;
-                UpdateInfoText();
-            }
+
+				// Recalculate info text
+				OnlineBundle = OnlineBundle;
+			}
         }
 
         private string GetStatusString()
         {
-            if (_errorStatus != ErrorStatus.NoError)
+            if (_errorStatus != ErrorStat.NoError)
             {
-                if (_errorStatus == ErrorStatus.NetworkError)
+                if (_errorStatus == ErrorStat.NetworkError)
                     return $"<color=red><b>Network error</b></color>";
-                else if (_errorStatus == ErrorStatus.ValidationError)
+                else if (_errorStatus == ErrorStat.ValidationError)
                     return $"<color=red><b>Validation error</b></color>";
             }
 
-            if (_status == OnlineLevelStatus.notInstalled)
+            if (_status == OnlineLevelStatus.NotInstalled)
                 return $"<color=red>Not installed</color>";
-            else if (_status == OnlineLevelStatus.updateAvailable)
+            else if (_status == OnlineLevelStatus.UpdateAvailable)
                 return $"<color=#00FFFF>Update available</color>";
             else
                 return $"<color=#00FF00>Installed</color>";
         }
 
-		internal bool ApplySearch(string[] keywords)
-		{
-			Regex richText = new Regex(@"<[^>]*>");
-			string bundleName = richText.Replace(_bundleName, string.Empty);
-			string authorName = richText.Replace(_author, string.Empty);
+        internal bool SearchMatch { get; private set; } = true;
 
-			WordHighlighter formattedName = new WordHighlighter(bundleName);
-			WordHighlighter formattedAuthor = new WordHighlighter(authorName);
-
-			bundleName = bundleName.ToLower();
-			authorName = authorName.ToLower();
-
-			foreach (string keyword in keywords)
-			{
-				bool matches = false;
-
-				int currentIndex = bundleName.IndexOf(keyword);
-				while (currentIndex != -1)
-				{
-					matches = true;
-
-					formattedName.Highlight(currentIndex, currentIndex + keyword.Length - 1);
-					currentIndex = bundleName.IndexOf(keyword, currentIndex + keyword.Length);
-				}
-
-				currentIndex = authorName.IndexOf(keyword);
-				while (currentIndex != -1)
-				{
-					matches = true;
-
-					formattedAuthor.Highlight(currentIndex, currentIndex + keyword.Length - 1);
-					currentIndex = authorName.IndexOf(keyword, currentIndex + keyword.Length);
-				}
-
-				if (!matches)
-					return false;
-			}
-
-			currentUi.infoText.text = $"{formattedName.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\n<color=#909090>Author: {formattedAuthor.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
-
-			return true;
-		}
-
-		public void UpdateInfoText()
+        private static Regex richText = new Regex(@"<[^>]*>");
+        private string[] _searchKeywords = new string[0];
+		internal string[] SearchKeywords
         {
-            if (currentUi == null)
-                return;
-
-            if (locked)
-            {
-                currentUi.infoText.text = $"{_bundleName} <color=red>(OUTDATED/LOCKED)</color>\n<color=#909090>Author: {_author}</color>";
-            }
-            else
-            {
-                currentUi.infoText.text = $"{_bundleName}\n<color=#909090>Author: {_author}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
-            }
-
-            if (OnlineLevelsManager.searchKeywords.Length != 0)
-            {
-                bool matches = ApplySearch(OnlineLevelsManager.searchKeywords);
-                if (!matches)
-                {
-                    hidden = true;
-                    return;
-                }
-			}
-            
-            hidden = !(OnlineLevelsManager.catalog != null && OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).Any());
-		}
-
-        public enum VoteStatus
-        {
-            Upvoted,
-            Downvoted,
-            Cleared,
-            Disabled
-        }
-
-        private VoteStatus _voteStatus = VoteStatus.Disabled;
-		public VoteStatus voteStatus
-        {
-            get => _voteStatus;
+            get => _searchKeywords;
             set
             {
-                _voteStatus = value;
-                if (currentUi == null)
-                    return;
+                _searchKeywords = value;
+                SearchMatch = true;
 
-                if (value == VoteStatus.Disabled)
-                {
-                    currentUi.upvoteButton.interactable = false;
-                    currentUi.downvoteButton.interactable = false;
-                    currentUi.votes.color = Color.gray;
+				string bundleName = richText.Replace(OnlineBundle.Name, string.Empty);
+				string authorName = richText.Replace(OnlineBundle.Author, string.Empty);
 
-					currentUi.upvoteImage.sprite = arrowFilled;
-                    currentUi.downvoteImage.sprite = arrowFilled;
+				WordHighlighter formattedName = new WordHighlighter(bundleName);
+				WordHighlighter formattedAuthor = new WordHighlighter(authorName);
+
+				bundleName = bundleName.ToLower();
+				authorName = authorName.ToLower();
+
+				foreach (string keyword in value)
+				{
+					bool matches = false;
+
+					int currentIndex = bundleName.IndexOf(keyword);
+					while (currentIndex != -1)
+					{
+						matches = true;
+
+						formattedName.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+						currentIndex = bundleName.IndexOf(keyword, currentIndex + keyword.Length);
+					}
+
+					currentIndex = authorName.IndexOf(keyword);
+					while (currentIndex != -1)
+					{
+						matches = true;
+
+						formattedAuthor.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+						currentIndex = authorName.IndexOf(keyword, currentIndex + keyword.Length);
+					}
+
+					if (!matches)
+                    {
+                        SearchMatch = false;
+                        break;
+					}
 				}
-                else
+
+                hidden = !SearchMatch;
+
+                if (currentUi != null)
                 {
-					currentUi.upvoteButton.interactable = true;
-					currentUi.downvoteButton.interactable = true;
-					currentUi.votes.color = Color.white;
-
-					currentUi.upvoteImage.sprite = (value == VoteStatus.Upvoted) ? arrowFilled : arrow;
-                    currentUi.downvoteImage.sprite = (value == VoteStatus.Downvoted) ? arrowFilled : arrow;
+                    if (OnlineBundle.Locked)
+				        currentUi.infoText.text = $"{formattedName.GenerateFormattedText("<color=yellow><b>", "</b></color>")} <color=red>(OUTDATED/LOCKED)</color>\n<color=#909090>Author: {formattedAuthor.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
+                    else
+						currentUi.infoText.text = $"{formattedName.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\n<color=#909090>Author: {formattedAuthor.GenerateFormattedText("<color=yellow><b>", "</b></color>")}\nSize: {GetFileSizeString()}</color>\n{GetStatusString()}";
 				}
-            }
-        }
-
-        private int _voteCount = 0;
-        public int voteCount
-        {
-            get => _voteCount;
-            set
-            {
-                _voteCount = value;
-                if (currentUi == null)
-                    return;
-
-                currentUi.votes.text = value.ToString();
-            }
-        }
-
-        private bool installActive = false;
-        private AngryOnlineLevelFieldComponent currentUi;
-
-        internal class DisableWhenHidden : MonoBehaviour
-        {
-            void OnDisable()
-            {
-                gameObject.SetActive(false);
-            }
+			}
         }
 
         private bool inited = false;
-        public OnlineLevelField(ConfigPanel parentPanel, string guid) : base(parentPanel, 600, 170)
+        internal OnlineLevelField(ConfigPanel parentPanel, BundleInfo onlineBundle) : base(parentPanel, 600, 170)
         {
-            bundleGuid = guid;
-
             inited = true;
+            OnlineBundle = onlineBundle;
+            UpdateStatus();
+
             if (currentContainer != null)
                 OnCreateUI(currentContainer);
         }
 
+		// UI
+
+		private AngryOnlineLevelFieldComponent currentUi;
+		private RectTransform currentContainer = null;
+
+		private bool InstallActive => !OnlineBundle.Locked && !Downloading && Status == OnlineLevelStatus.NotInstalled;
+        private bool UpdateActive => !OnlineBundle.Locked && !Downloading && Status == OnlineLevelStatus.UpdateAvailable;
+		private UnityEvent onCancel = new UnityEvent();
+
+        /// <inheritdoc/>
 		public override void OnCreateUI(RectTransform fieldUI)
         {
             currentContainer = fieldUI;
@@ -375,16 +353,9 @@ namespace AngryLevelLoader.Fields
             currentUiRect.anchorMax = new Vector2(0, 1);
             currentUiRect.anchoredPosition = new Vector2(0, 0);
 
-            currentUi.thumbnail.texture = locked ? AssetManager.lockedPreview.texture : _previewImage;
-            UpdateInfoText();
-
             currentUi.install.onClick.AddListener(() =>
             {
-                BundleInfo bundleInfo = null;
-                if (OnlineLevelsManager.catalog != null
-                    && (bundleInfo = OnlineLevelsManager.catalog.Levels.Where(l => l.Guid == bundleGuid).FirstOrDefault()) != null
-                    && bundleInfo.EpilepsyWarning
-                    && !InternalConfigManager.ignoreEpilepsyWarning.value)
+                if (OnlineBundle.EpilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
                 {
                     EpilepsyWarningNotification notification = new EpilepsyWarningNotification(Download, "Download", "Download and do not ask again");
                     NotificationPanel.Open(notification);
@@ -398,7 +369,7 @@ namespace AngryLevelLoader.Fields
             UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.install,
                 (e) =>
                 {
-                    if (installActive)
+                    if (InstallActive)
                         currentUi.install.gameObject.SetActive(true);
                 },
                 (e) =>
@@ -408,103 +379,81 @@ namespace AngryLevelLoader.Fields
 
             currentUi.upvoteButton.onClick.AddListener(() =>
             {
-                AngryVotes.VoteOperation op = (voteStatus == VoteStatus.Upvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.UPVOTE;
-                voteStatus = VoteStatus.Disabled;
+                AngryVotes.VoteOperation op = (VoteStatus == VoteStat.Upvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.UPVOTE;
+                VoteStatus = VoteStat.Disabled;
 
-                AngryVotes.VoteTask(bundleGuid, op).ContinueWith((resTask) =>
+                AngryVotes.VoteTask(OnlineBundle.Guid, op).ContinueWith((resTask) =>
                 {
                     var res = resTask.Result;
 
                     if (res.completedSuccessfully && res.status == AngryVotes.VoteStatus.VOTE_OK)
                     {
                         if (res.operation == AngryVotes.VoteOperation.UPVOTE)
-                            voteStatus = VoteStatus.Upvoted;
+                            VoteStatus = VoteStat.Upvoted;
                         else if (res.operation == AngryVotes.VoteOperation.DOWNVOTE)
-                            voteStatus = VoteStatus.Downvoted;
+                            VoteStatus = VoteStat.Downvoted;
                         else
-                            voteStatus = VoteStatus.Cleared;
+                            VoteStatus = VoteStat.Cleared;
 
-                        voteCount = res.response.upvotes - res.response.downvotes;
+                        VoteCount = res.response.upvotes - res.response.downvotes;
                     }
                     else
                     {
                         Plugin.logger.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
 
-                        voteStatus = VoteStatus.Disabled;
-                        voteCount = 0;
+                        VoteStatus = VoteStat.Disabled;
+                        VoteCount = 0;
                     }
                 }, TaskScheduler.FromCurrentSynchronizationContext());
             });
             currentUi.upvoteButton.gameObject.AddComponent<DisableWhenHidden>();
             currentUi.upvoteButton.gameObject.SetActive(false);
 			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.upvoteButton,
-                (e) => currentUi.upvoteButton.gameObject.SetActive(!locked),
+                (e) => currentUi.upvoteButton.gameObject.SetActive(!OnlineBundle.Locked),
                 (e) => currentUi.upvoteButton.gameObject.SetActive(false)
                 );
 
 			currentUi.downvoteButton.onClick.AddListener(() =>
 			{
-				AngryVotes.VoteOperation op = (voteStatus == VoteStatus.Downvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.DOWNVOTE;
-				voteStatus = VoteStatus.Disabled;
+				AngryVotes.VoteOperation op = (VoteStatus == VoteStat.Downvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.DOWNVOTE;
+				VoteStatus = VoteStat.Disabled;
 
-				AngryVotes.VoteTask(bundleGuid, op).ContinueWith((resTask) =>
+				AngryVotes.VoteTask(OnlineBundle.Guid, op).ContinueWith((resTask) =>
 				{
                     var res = resTask.Result;
 
 					if (res.completedSuccessfully && res.status == AngryVotes.VoteStatus.VOTE_OK)
 					{
 						if (res.operation == AngryVotes.VoteOperation.UPVOTE)
-							voteStatus = VoteStatus.Upvoted;
+							VoteStatus = VoteStat.Upvoted;
 						else if (res.operation == AngryVotes.VoteOperation.DOWNVOTE)
-							voteStatus = VoteStatus.Downvoted;
+							VoteStatus = VoteStat.Downvoted;
 						else
-							voteStatus = VoteStatus.Cleared;
+							VoteStatus = VoteStat.Cleared;
 
-						voteCount = res.response.upvotes - res.response.downvotes;
+						VoteCount = res.response.upvotes - res.response.downvotes;
 					}
 					else
 					{
 						Plugin.logger.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
 
-						voteStatus = VoteStatus.Disabled;
-						voteCount = 0;
+						VoteStatus = VoteStat.Disabled;
+						VoteCount = 0;
 					}
 				}, TaskScheduler.FromCurrentSynchronizationContext());
 			});
 			currentUi.downvoteButton.gameObject.AddComponent<DisableWhenHidden>();
 			currentUi.downvoteButton.gameObject.SetActive(false);
 			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.downvoteButton,
-				(e) => currentUi.downvoteButton.gameObject.SetActive(!locked),
+				(e) => currentUi.downvoteButton.gameObject.SetActive(!OnlineBundle.Locked),
 				(e) => currentUi.downvoteButton.gameObject.SetActive(false)
 				);
 
-			if (voteStatus == VoteStatus.Disabled)
-			{
-				currentUi.upvoteButton.interactable = false;
-				currentUi.downvoteButton.interactable = false;
-				currentUi.votes.color = Color.gray;
-
-				currentUi.upvoteImage.sprite = arrowFilled;
-				currentUi.downvoteImage.sprite = arrowFilled;
-			}
-			else
-			{
-				currentUi.upvoteButton.interactable = true;
-				currentUi.downvoteButton.interactable = true;
-				currentUi.votes.color = Color.white;
-
-				currentUi.upvoteImage.sprite = (voteStatus == VoteStatus.Upvoted) ? arrowFilled : arrow;
-				currentUi.downvoteImage.sprite = (voteStatus == VoteStatus.Downvoted) ? arrowFilled : arrow;
-			}
-
-			currentUi.votes.text = voteCount.ToString();
-
             currentUi.changelog.onClick.AddListener(() =>
             {
-                BundleInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
                 LevelUpdateNotification notification = new LevelUpdateNotification();
-                notification.currentHash = (bundle == null || status == OnlineLevelStatus.notInstalled) ? "" : bundle.bundleData.buildHash;
-                notification.onlineInfo = onlineBundle;
+                notification.currentHash = (Bundle == null || Status == OnlineLevelStatus.NotInstalled) ? "" : Bundle.bundleData.buildHash;
+                notification.onlineInfo = OnlineBundle;
                 notification.callback = this;
                 NotificationPanel.Open(notification);
             });
@@ -513,7 +462,7 @@ namespace AngryLevelLoader.Fields
             UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.changelog,
                 (e) =>
                 {
-                    if (!downloading)
+                    if (!Downloading)
                         currentUi.changelog.gameObject.SetActive(true);
                 },
                 (e) =>
@@ -523,29 +472,38 @@ namespace AngryLevelLoader.Fields
 
             currentUi.update.onClick.AddListener(() =>
             {
-                BundleInfo onlineBundle = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
-
-                if (onlineBundle.Updates == null)
+                if (OnlineBundle.Updates == null)
                 {
                     Download();
                 }
                 else
                 {
-                    if (bundle == null || string.IsNullOrEmpty(bundle.pathToAngryBundle) || !File.Exists(bundle.pathToAngryBundle))
+                    if (Bundle == null || string.IsNullOrEmpty(Bundle.pathToAngryBundle) || !File.Exists(Bundle.pathToAngryBundle))
                     {
                         Download();
                         return;
                     }
 
                     LevelUpdateNotification notification = new LevelUpdateNotification();
-                    notification.currentHash = bundle.bundleData.buildHash;
-                    notification.onlineInfo = onlineBundle;
+                    notification.currentHash = Bundle.bundleData.buildHash;
+                    notification.onlineInfo = OnlineBundle;
                     notification.callback = this;
                     NotificationPanel.Open(notification);
                 }
             });
+            currentUi.update.gameObject.AddComponent<DisableWhenHidden>();
+			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.update,
+				(e) =>
+				{
+					if (UpdateActive)
+						currentUi.update.gameObject.SetActive(true);
+				},
+				(e) =>
+				{
+					currentUi.update.gameObject.SetActive(false);
+				});
 
-            currentUi.progressText.resizeTextForBestFit = true;
+			currentUi.progressText.resizeTextForBestFit = true;
             currentUi.progressText.resizeTextMaxSize = currentUi.progressText.fontSize;
 
             currentUi.cancel.onClick.AddListener(() =>
@@ -557,117 +515,109 @@ namespace AngryLevelLoader.Fields
             if (hierarchyHidden)
 				currentContainer.gameObject.SetActive(false);
 
-            currentUi.install.interactable = !locked;
-            currentUi.update.interactable = !locked;
-            currentUi.votes.gameObject.SetActive(!locked);
-            UpdateUI();
-        }
+            // Update UI by calling property setters
+            PreviewImage = PreviewImage;
+            OnlineBundle = OnlineBundle;
+			VoteCount = VoteCount;
+            VoteStatus = VoteStatus;
+		}
 
-        public void UpdateState()
-        {
-            if (bundle == null || string.IsNullOrEmpty(bundle.pathToAngryBundle) || !File.Exists(bundle.pathToAngryBundle))
-                status = OnlineLevelStatus.notInstalled;
-            else if (bundle.bundleData.buildHash != bundleBuildHash)
-                status = OnlineLevelStatus.updateAvailable;
-            else
-                status = OnlineLevelStatus.installed;
-        }
-
-        public void UpdateUI(bool calledFromDownloadTask = false)
-        {
-            UpdateState();
-
-            if (currentUi == null)
-                return;
-
-            currentUi.downloadContainer.gameObject.SetActive(downloading && !calledFromDownloadTask);
-
-            if (!downloading || calledFromDownloadTask)
-            {
-                if (status == OnlineLevelStatus.notInstalled)
-                {
-                    installActive = true;
-                    currentUi.install.gameObject.SetActive(false);
-                    currentUi.update.gameObject.SetActive(false);
-                }
-                else if (status == OnlineLevelStatus.updateAvailable)
-                {
-                    installActive = false;
-                    currentUi.install.gameObject.SetActive(false);
-                    currentUi.update.gameObject.SetActive(true);
-                }
-                else
-                {
-                    installActive = false;
-                    currentUi.install.gameObject.SetActive(false);
-                    currentUi.update.gameObject.SetActive(false);
-                }
-            }
-            else
-            {
-                installActive = false;
-                currentUi.install.gameObject.SetActive(false);
-                currentUi.update.gameObject.SetActive(false);
-            }
-        }
-
-        public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
+		/// <inheritdoc/>
+		public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
         {
             if (currentContainer != null)
 				currentContainer.gameObject.SetActive(!hierarchyHidden);
         }
 
         private Task downloadTask = null;
-        public bool downloading
+        /// <summary>
+        /// True if there is a download in progress.
+        /// </summary>
+        public bool Downloading
         {
             get => downloadTask != null && !downloadTask.IsCompleted;
         }
 
+        /// <summary>
+        /// If there is a download in progress, the property is set to a value between 0 and 1, indicating
+        /// amount of data downloaded. If there is no download in progress, the property is set to -1.
+        /// </summary>
+        public float DownloadProgress { get; private set; } = -1f;
+
+        /// <summary>
+        /// Start downloading the bundle associated with this field. If there is a download in progress, this
+        /// method will have no effect. Download progress can be tracted with properties.
+        /// </summary>
         public void Download()
         {
-            if (downloading)
+            if (Downloading)
                 return;
+
+            if (currentUi != null)
+            {
+				currentUi.downloadContainer.gameObject.SetActive(true);
+				currentUi.progressBar.localScale = new Vector3(0, 1, 1);
+			}
 
             downloadTask = DownloadTask().ContinueWith((res) =>
             {
-				UpdateUI(true);
-                OnlineLevelsManager.CheckLevelUpdateText();
+                DownloadProgress = -1f;
+
+				UpdateStatus();
+                if (currentUi != null)
+				    currentUi.downloadContainer.gameObject.SetActive(false);
+
+				OnlineLevelsUI.CheckLevelUpdateText();
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
-        
+
+		/// <summary>
+		/// Forcefully stop the current download. If there is no download in progress, this method
+		/// will have no effect.
+		/// </summary>
+		/// <returns>True if the download was stopped. False if there was no download in progress.</returns>
+		public bool AbortDownload()
+        {
+            if (!Downloading)
+                return false;
+
+            if (onCancel == null)
+                return false;
+
+            onCancel.Invoke();
+            return true;
+        }
+
         private async Task DownloadTask()
         {
-            errorStatus = ErrorStatus.NoError;
+            BundleInfo bundle = OnlineBundle;
+            ErrorStatus = ErrorStat.NoError;
+            DownloadProgress = 0f;
 
-            installActive = false;
-            if (currentUi != null)
+			if (currentUi != null)
             {
                 currentUi.changelog.gameObject.SetActive(false);
                 currentUi.install.gameObject.SetActive(false);
                 currentUi.update.gameObject.SetActive(false);
-                currentUi.downloadContainer.gameObject.SetActive(true);
-                currentUi.progressBar.localScale = new Vector3(0, 1, 1);
             }
 
-            BundleInfo level = OnlineLevelsManager.catalog.Levels.Where(level => level.Guid == bundleGuid).First();
-
             List<string> downloadedParts = new List<string>();
-            string fileMegabytes = (bundleFileSize / (float)(1024 * 1024)).ToString("0.0");
+            string fileMegabytes = (bundle.Size / (float)(1024 * 1024)).ToString("0.0");
             ulong downloadedBytes = 0;
 
             string tempDownloadDir = Path.Combine(Plugin.dataPath, "TempDownloads");
             if (!Directory.Exists(tempDownloadDir))
                 Directory.CreateDirectory(tempDownloadDir);
 
-            int partCount = level.Parts.Count;
+            int partCount = bundle.Parts.Count;
             for (int i = 0; i < partCount; i++)
             {
-                string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundleGuid}.angry{i}");
+                string tempDownloadPath = Path.Combine(tempDownloadDir, $"{bundle.Guid}.angry{i}");
                 if (File.Exists(tempDownloadPath))
                     File.Delete(tempDownloadPath);
                 downloadedParts.Add(tempDownloadPath);
 
-                UnityWebRequest req = new UnityWebRequest(level.Parts[i]);
+                UnityWebRequest req = new UnityWebRequest(bundle.Parts[i]);
                 req.downloadHandler = new DownloadHandlerFile(tempDownloadPath);
                 var handle = req.SendWebRequest();
 
@@ -675,7 +625,7 @@ namespace AngryLevelLoader.Fields
                 onCancel = new UnityEvent();
                 onCancel.AddListener(() =>
                 {
-                    if (!downloading)
+                    if (!Downloading)
                         return;
 
                     req.Abort();
@@ -686,7 +636,8 @@ namespace AngryLevelLoader.Fields
                 {
                     if (currentUi != null)
                     {
-                        currentUi.progressBar.transform.localScale = new Vector3(Mathf.Clamp01((float)(req.downloadedBytes + downloadedBytes) / bundleFileSize), 1, 1);
+                        DownloadProgress = Mathf.Clamp01((float)(req.downloadedBytes + downloadedBytes) / bundle.Size);
+						currentUi.progressBar.transform.localScale = new Vector3(DownloadProgress, 1, 1);
                         string downloadedFileMegabytes = ((req.downloadedBytes + downloadedBytes) / (float)(1024 * 1024)).ToString("0.0");
                         currentUi.progressText.text = $"{downloadedFileMegabytes}/{fileMegabytes}\nMB\n(Part {i + 1}/{partCount})";
                     }
@@ -696,10 +647,10 @@ namespace AngryLevelLoader.Fields
 
                 onCancel = new UnityEvent();
 
-                if (req.isHttpError || req.isNetworkError)
+                if (req.result != UnityWebRequest.Result.Success)
                 {
                     if (!abortToken.Token.IsCancellationRequested)
-                        errorStatus = ErrorStatus.NetworkError;
+                        ErrorStatus = ErrorStat.NetworkError;
 
                     foreach (string part in downloadedParts)
                         if (File.Exists(part))
@@ -733,10 +684,10 @@ namespace AngryLevelLoader.Fields
 			bool valid = true;
 			if (AngryFileUtils.TryGetAngryBundleData(combinedFilePath, out AngryBundleData data, out Exception e))
 			{
-				if (data.bundleGuid != bundleGuid)
+				if (data.bundleGuid != bundle.Guid)
 					valid = false;
-				else if (data.buildHash != level.Hash)
-					Plugin.logger.LogWarning($"Downloaded bundle has hash {data.buildHash} but most recent one is {level.Hash}");
+				else if (data.buildHash != bundle.Hash)
+					Plugin.logger.LogWarning($"Downloaded bundle has hash {data.buildHash} but most recent one is {bundle.Hash}");
 			}
 			else
 			{
@@ -747,16 +698,16 @@ namespace AngryLevelLoader.Fields
 			if (!valid)
 			{
 				File.Delete(combinedFilePath);
-				errorStatus = ErrorStatus.ValidationError;
+				ErrorStatus = ErrorStat.ValidationError;
 				return;
 			}
 
 			string destinationFolder = Plugin.levelsPath;
 			if (!Directory.Exists(destinationFolder))
 				Directory.CreateDirectory(destinationFolder);
-			string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, IOUtils.GetPathSafeName(bundleName) + ".angry"));
-			if (bundle != null && !string.IsNullOrEmpty(bundle.pathToAngryBundle) && File.Exists(bundle.pathToAngryBundle))
-				destinationFile = bundle.pathToAngryBundle;
+			string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, IOUtils.GetPathSafeName(bundle.Name) + ".angry"));
+			if (Bundle != null && !string.IsNullOrEmpty(Bundle.pathToAngryBundle) && File.Exists(Bundle.pathToAngryBundle))
+				destinationFile = Bundle.pathToAngryBundle;
 
             if (File.Exists(destinationFile))
             {
@@ -780,18 +731,18 @@ namespace AngryLevelLoader.Fields
                 File.Move(combinedFilePath, destinationFile);
             }
 
-			if (bundle == null || !IOUtils.PathEquals(bundle.pathToAngryBundle, destinationFile))
+			if (Bundle == null || !IOUtils.PathEquals(Bundle.pathToAngryBundle, destinationFile))
             {
                 // Plugin.ProcessPath(destinationFile);
                 Plugin.ScanForLevels();
             }
             else
             {
-				LastPlayedMapManager.UpdateLastUpdate(bundle);
+				LastPlayedMapManager.UpdateLastUpdate(Bundle);
 
-                if (!(AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == bundle))
+                if (!(AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == Bundle))
                 {
-					_ = bundle.UpdateScenes(false, false);
+					_ = Bundle.UpdateScenes(false, false);
                 }
 
                 // ELSE THERE WILL BE A PROMPT FROM FILE SYSTEM WATCHER
@@ -799,12 +750,12 @@ namespace AngryLevelLoader.Fields
 		}
 
         // Update order for this field only, assuming every other field is ordered correctly
-        public void UpdateOrder()
+        internal void UpdateOrder()
         {
             int order = 0;
-            OnlineLevelField[] allBundles = OnlineLevelsManager.onlineLevels.Values.OrderBy(level => level.siblingIndex).ToArray();
+            OnlineLevelField[] allBundles = OnlineLevelsUI.onlineLevels.Values.OrderBy(level => level.siblingIndex).ToArray();
 
-            if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.Name)
+            if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.Name)
             {
                 while (order < allBundles.Length)
                 {
@@ -814,13 +765,13 @@ namespace AngryLevelLoader.Fields
                         continue;
                     }
 
-                    if (string.Compare(bundleName, allBundles[order].bundleName) == -1)
+                    if (string.Compare(OnlineBundle.Name, allBundles[order].OnlineBundle.Name) == -1)
                         break;
 
                     order += 1;
                 }
             }
-            else if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.Author)
+            else if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.Author)
             {
                 while (order < allBundles.Length)
                 {
@@ -830,13 +781,13 @@ namespace AngryLevelLoader.Fields
                         continue;
                     }
 
-                    if (string.Compare(author, allBundles[order].author) == -1)
+                    if (string.Compare(OnlineBundle.Author, allBundles[order].OnlineBundle.Author) == -1)
                         break;
 
                     order += 1;
                 }
             }
-            else if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.LastUpdate)
+            else if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.LastUpdate)
             {
                 while (order < allBundles.Length)
                 {
@@ -846,13 +797,13 @@ namespace AngryLevelLoader.Fields
                         continue;
                     }
 
-                    if (lastUpdate > allBundles[order].lastUpdate)
+                    if (OnlineBundle.LastUpdate > allBundles[order].OnlineBundle.LastUpdate)
                         break;
 
                     order += 1;
                 }
             }
-			else if (OnlineLevelsManager.sortFilter.value == OnlineLevelsManager.SortFilter.Votes)
+			else if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.Votes)
 			{
 				while (order < allBundles.Length)
 				{
@@ -862,7 +813,7 @@ namespace AngryLevelLoader.Fields
 						continue;
 					}
 
-					if (voteCount > allBundles[order].voteCount)
+					if (VoteCount > allBundles[order].VoteCount)
 						break;
 
 					order += 1;
