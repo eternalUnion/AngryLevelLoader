@@ -1,5 +1,4 @@
 ﻿using AngryLevelLoader.Containers;
-using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using Newtonsoft.Json;
 using System;
@@ -8,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 
-namespace AngryLevelLoader
+namespace AngryLevelLoader.Managers
 {
 	internal static class PendingRecordsManager
 	{
@@ -23,7 +22,7 @@ namespace AngryLevelLoader
 
 			public RecordInfoJsonWrapper() { }
 
-			public RecordInfoJsonWrapper(AngryLeaderboards.PostRecordInfo record)
+			public RecordInfoJsonWrapper(PostRecordInfo record)
 			{
 				category = RECORD_CATEGORY_DICT[record.category];
 				difficulty = RECORD_DIFFICULTY_DICT[record.difficulty];
@@ -33,9 +32,9 @@ namespace AngryLevelLoader
 				time = record.time;
 			}
 
-			public bool TryParseRecordInfo(out AngryLeaderboards.PostRecordInfo record)
+			public bool TryParseRecordInfo(out PostRecordInfo record)
 			{
-				record = new AngryLeaderboards.PostRecordInfo();
+				record = new PostRecordInfo();
 
 				record.category = RECORD_CATEGORY_DICT.FirstOrDefault(i => i.Value == category).Key;
 				if (RECORD_CATEGORY_DICT[record.category] != category)
@@ -55,7 +54,7 @@ namespace AngryLevelLoader
 
 		private static Task pendingRecordsTask = null;
 
-		internal static void AddPendingRecord(AngryLeaderboards.PostRecordInfo record, bool recursiveCall = false)
+		internal static void AddPendingRecord(PostRecordInfo record, bool recursiveCall = false)
 		{
 			if (pendingRecordsTask != null && !pendingRecordsTask.IsCompleted && !recursiveCall)
 			{
@@ -154,7 +153,7 @@ namespace AngryLevelLoader
 				if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
 					levelName = level.data.levelName;
 
-				if (!record.TryParseRecordInfo(out AngryLeaderboards.PostRecordInfo parsedRecord))
+				if (!record.TryParseRecordInfo(out PostRecordInfo parsedRecord))
 				{
 					ConfigManager.pendingRecordsStatus.text += $"<color=red>Failed to parse record info for level {levelName} in bundle {bundleName}. Discarded.</color>\n\n";
 					continue;
