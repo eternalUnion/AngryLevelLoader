@@ -61,7 +61,7 @@ namespace AngryLevelLoader.Managers
 
 		// Difficulty and gamemode select
 		public static DifficultyField difficultyField;
-		internal static IReadOnlyList<string> gamemodeList = new List<string> { "None", "No Monsters", "No Monsters/Weapons" };
+		
 
 		// Main panel
 		public static ConfigHeader levelUpdateNotifier;
@@ -260,7 +260,7 @@ namespace AngryLevelLoader.Managers
 			
 			openButtons = new ButtonArrayField(settingsPanel, "settingButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Open Levels Folder", "Open Scripts Folder" });
 			openButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(Plugin.levelsPath);
-			openButtons.OnClickEventHandler(1).onClick += () => Application.OpenURL(ScriptManager.ScriptsPath);
+			openButtons.OnClickEventHandler(1).onClick += () => Application.OpenURL(AngryPaths.ScriptsPath);
 
 			reloadFileKeybind = new KeyCodeField(settingsPanel, "Reload File", "f_reloadFile", KeyCode.None);
 			reloadFileKeybind.onValueChange += (e) =>

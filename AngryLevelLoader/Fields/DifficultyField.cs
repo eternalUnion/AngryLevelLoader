@@ -80,7 +80,7 @@ namespace AngryLevelLoader.Fields
 
 				if (currentUi != null)
 				{
-					currentUi.difficultyList.SetValueWithoutNotify(internalGamemodeField.valueIndex);
+					currentUi.gamemodeList.SetValueWithoutNotify(internalGamemodeField.valueIndex);
 				}
 			}
 		}
@@ -93,7 +93,7 @@ namespace AngryLevelLoader.Fields
 
 				if (currentUi != null)
 				{
-					currentUi.difficultyList.SetValueWithoutNotify(internalGamemodeField.valueIndex);
+					currentUi.gamemodeList.SetValueWithoutNotify(internalGamemodeField.valueIndex);
 				}
 			}
 		}
@@ -134,7 +134,7 @@ namespace AngryLevelLoader.Fields
 			AngryDifficultyManager.Init();
 
 			internalDifficultyField = new StringListField(InternalConfigManager.internalConfig.rootPanel, "Difficulty", "difficultySelect", AngryDifficultyManager.DifficultyNames, AngryDifficultyManager.VIOLENT.name);
-			internalGamemodeField = new StringListField(InternalConfigManager.internalConfig.rootPanel, "Gamemode", "gamemode", ConfigManager.gamemodeList, "None");
+			internalGamemodeField = new StringListField(InternalConfigManager.internalConfig.rootPanel, "Gamemode", "gamemode", AngryGamemodeManager.gamemodeList, "None");
 
 			if (fieldUi != null)
 				OnCreateUI(fieldUi);
@@ -155,7 +155,7 @@ namespace AngryLevelLoader.Fields
 			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
 			currentUi.difficultyList.AddOptions(AngryDifficultyManager.DifficultyNames.ToList());
-			currentUi.gamemodeList.AddOptions(ConfigManager.gamemodeList.ToList());
+			currentUi.gamemodeList.AddOptions(AngryGamemodeManager.gamemodeList.ToList());
 
 			currentUi.difficultyList.value = internalDifficultyField.valueIndex;
 			currentUi.gamemodeList.value = internalGamemodeField.valueIndex;

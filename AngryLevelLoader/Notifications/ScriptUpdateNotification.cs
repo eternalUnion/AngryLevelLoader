@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Notifications
 {
-	internal class ScriptUpdateNotification : NotificationPanel.Notification
+	public class ScriptUpdateNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH_PANEL = "AngryLevelLoader/Notifications/ScriptUpdateNotification.prefab";
         private const string ASSET_PATH_SCRIPT_INFO = "AngryLevelLoader/Notifications/ScriptUpdatePrefabs/ScriptUpdateInfo.prefab";
@@ -216,13 +217,11 @@ namespace AngryLevelLoader.Notifications
 
         private AngryScriptUpdateNotificationComponent ui;
 
-        public List<string> scripts;
         public BundleContainer bundleContainer;
         public LevelContainer levelContainer;
 
-        public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, LevelContainer levelContainer)
+        public ScriptUpdateNotification(LevelContainer levelContainer, IEnumerable<string> scriptsToDownload)
         {
-            this.scripts = scripts;
             this.bundleContainer = levelContainer.bundleContainer;
             this.levelContainer = levelContainer;
 
@@ -314,7 +313,7 @@ namespace AngryLevelLoader.Notifications
             ui.continueButton.onClick.AddListener(() =>
             {
                 Close();
-                AngrySceneManager.LoadLevelWithScripts(scripts, levelContainer);
+                AngrySceneManager.LoadLevelWithScripts(levelContainer.RequiredScripts.ToList(), levelContainer);
             });
 		}
     }

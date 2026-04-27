@@ -102,7 +102,7 @@ namespace AngryLevelLoader.Fields
             get
             {
                 if (_bundle == null)
-                    _bundle = Plugin.GetAngryBundleByGuid(OnlineBundle.Guid);
+                    Plugin.TryGetAngryBundleByGuid(OnlineBundle.Guid, out _bundle);
 
                 return _bundle;
             }

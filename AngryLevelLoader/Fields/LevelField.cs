@@ -510,7 +510,9 @@ namespace AngryLevelLoader.Fields
 				currentUi.leaderboardsButton.interactable = true;
 				currentUi.openSettingsButton.interactable = true;
 			}
-        }
+
+			container.gameObject.SetActive(!hidden);
+		}
 
 		public override void OnCreateUI(RectTransform fieldUI)
         {

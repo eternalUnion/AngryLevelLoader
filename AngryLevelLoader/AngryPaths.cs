@@ -25,7 +25,7 @@ namespace AngryLevelLoader
             AngryIOUtils.TryCreateDirectory(ConfigFolderPath);
             AngryIOUtils.TryCreateDirectory(OnlineCacheFolderPath);
             AngryIOUtils.TryCreateDirectory(ThumbnailCacheFolderPath);
-			AngryIOUtils.TryCreateDirectory(ScriptManager.ScriptsPath);
+			AngryIOUtils.TryCreateDirectory(ScriptsPath);
 		}
 
         public static string ConfigFolderPath
@@ -48,7 +48,12 @@ namespace AngryLevelLoader
             get => Path.Combine(OnlineCacheFolderPath, "V2", "LevelCatalog.json");
         }
 
-        public static string ScriptCatalogCachePath
+		public static string ScriptsPath
+        {
+            get => Path.Combine(Plugin.workingDir, "Scripts");
+		}
+
+		public static string ScriptCatalogCachePath
         {
             get => Path.Combine(OnlineCacheFolderPath, "ScriptCatalog.json");
         }

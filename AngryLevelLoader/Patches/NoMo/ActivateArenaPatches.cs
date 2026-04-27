@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Patches.NoMo
         [HarmonyPrefix]
         public static bool InstantNomoActivasion(ActivateArena __instance)
         {
-            if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMonsters)
+            if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
                 return true;
 
 			foreach (var door in __instance.doors)

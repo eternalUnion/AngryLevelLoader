@@ -10,7 +10,7 @@ namespace AngryLevelLoader.Patches.NoMo
         [HarmonyPrefix]
         public static bool CheckNoMoActivation(DisabledEnemiesChecker __instance)
         {
-            if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMonsters)
+            if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
                 return true;
 
             //NoMo activated so skip the method regardless of if we activate it ourselves.

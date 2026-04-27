@@ -66,31 +66,67 @@ namespace AngryLevelLoader
 
 		public const string PLUGIN_CONFIG_MIN_VERSION = "1.8.0";
 
-		public static readonly Vector3 defaultGravity = new Vector3(0, -40, 0);
-
-		public static string workingDir;
-		// This is the path addressable remote load path uses
-		// {AngryLevelLoader.Plugin.tempFolderPath}\\{guid}
+		internal static string workingDir;
+		/// <summary>
+		/// This is the path addressable remote load path uses ({AngryLevelLoader.Plugin.tempFolderPath}\\{guid}).
+		/// Do not modify it.
+		/// </summary>
 		public static string tempFolderPath;
-		public static string dataPath;
-        public static string levelsPath;
-        public static string mapVarsFolderPath;
+		internal static string dataPath;
+        internal static string levelsPath;
+		internal static string mapVarsFolderPath;
+		/// <summary>
+		/// This field is required by the addressables system. Do not modify it.
+		/// </summary>
+		public static string angryCatalogPath;
 
-        // This is the path angry addressables use
-        public static string angryCatalogPath;
-
-        public static Plugin instance;
-		public static ManualLogSource logger;
-		public static bool ultrapainLoaded = false;
-		public static bool bananasDifficultyLoaded = false;
-		public static bool billionDifficultyLoaded = false;
+        internal static Plugin instance;
+		internal static ManualLogSource logger;
 
 		#region Loaded bundles
-		public static Dictionary<string, BundleContainer> angryBundles = new Dictionary<string, BundleContainer>();
+		private static Dictionary<string, BundleContainer> angryBundles = new Dictionary<string, BundleContainer>();
 
-		public static BundleContainer GetAngryBundleByGuid(string guid)
+		/// <summary>
+		/// Get all locally installed bundles. <see cref="ScanForLevels"/> ensures that a bundle container is created
+		/// for all angry files.
+		/// </summary>
+		public static IEnumerable<BundleContainer> GetAllBundleContainers()
 		{
-			return angryBundles.Values.Where(bundle => bundle.bundleGuid == guid).FirstOrDefault();
+			return angryBundles.Values;
+		}
+
+		/// <summary>
+		/// Try to get a locally installed bundle with a specific guid.
+		/// <see cref="ScanForLevels"/> ensures that a bundle container is created for all angry files.
+		/// </summary>
+		public static bool TryGetAngryBundleByGuid(string guid, out BundleContainer bundleContainer)
+		{
+			bundleContainer = angryBundles.Values.Where(bundle => bundle.bundleGuid == guid).FirstOrDefault();
+			return bundleContainer != null;
+		}
+
+		/// <summary>
+		/// Attempt to find a local level with the given unique id. It is a standard that
+		/// no two levels share the same unique id.
+		/// <see cref="ScanForLevels"/> ensures that a bundle container is created for all angry files.
+		/// </summary>
+		public static bool TryGetAngryLevel(string id, out LevelContainer level)
+		{
+			level = null;
+
+			foreach (BundleContainer container in Plugin.GetAllBundleContainers())
+			{
+				foreach (LevelContainer levelContainer in container.GetAllLevelContainers())
+				{
+					if (levelContainer.levelId == id)
+					{
+						level = levelContainer;
+						return true;
+					}
+				}
+			}
+
+			return false;
 		}
 		#endregion
 
@@ -225,7 +261,7 @@ namespace AngryLevelLoader
 
 
 		private static int numOfOldBundles = 0;
-		public static void ProcessPath(string path, string folder)
+		private static void ProcessPath(string path, string folder)
 		{
 			FolderButtonField folderField = GetFolder(folder);
 
@@ -321,9 +357,12 @@ namespace AngryLevelLoader
 			".jpg", ".jpeg", ".png"
 		};
 
-		// This does NOT reload the files, only
-		// loads newly added angry levels
-		internal static void ScanForLevels()
+		/// <summary>
+		/// Read all files in the levels directory and create bundle containers for them.
+		/// Bundles are only partially loaded (see <see cref="BundleContainer.LazyLoaded"/>)
+		/// to increase responsiveness and save on memory.
+		/// </summary>
+		public static void ScanForLevels()
         {
 			numOfOldBundles = 0;
 			ConfigManager.errorText.text = "";
@@ -388,7 +427,7 @@ namespace AngryLevelLoader
 			OnlineLevelsUI.UpdateUI();
 		}
 
-		public static void SortBundles()
+		internal static void SortBundles()
 		{
 			int i = 0;
 			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
@@ -461,9 +500,6 @@ namespace AngryLevelLoader
 
 			return loaded;
 		}
-		
-		public static bool NoMonsters => ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2;
-		public static bool NoWeapons => ConfigManager.difficultyField.gamemodeListValueIndex == 2;
 
 		public static Harmony harmony;
 
@@ -677,7 +713,7 @@ namespace AngryLevelLoader
 			levelsWatcher.IncludeSubdirectories = false;
 			levelsWatcher.EnableRaisingEvents = true;
 
-			scriptsWatcher = new FileSystemWatcher(ScriptManager.ScriptsPath);
+			scriptsWatcher = new FileSystemWatcher(AngryPaths.ScriptsPath);
 			scriptsWatcher.SynchronizingObject = CrossThreadInvoker.Instance;
 			void OnScriptChange(object sender, FileSystemEventArgs e)
 			{
@@ -764,8 +800,7 @@ namespace AngryLevelLoader
 			{
 				yield return null;
 
-				BundleContainer bundle = GetAngryBundleByGuid(InternalConfigManager.instantLoadLevelGuid.value);
-				if (bundle == null)
+				if (!Plugin.TryGetAngryBundleByGuid(InternalConfigManager.instantLoadLevelGuid.value, out BundleContainer bundle))
 				{
 					logger.LogInfo("Bundle not found");
 					yield break;
@@ -1197,19 +1232,27 @@ namespace AngryLevelLoader
 		}
 	}
 
-    public static class RudeLevelInterface
+	#region Rude-Angry Interfaces
+
+	/*
+	 * Unity cannot safely load assemblies including BepInEx or Harmony types.
+	 * For this reason, AngryLoaderAPI provides a BepInEx/Harmony free assembly
+	 * which is used for rude essential scripts.
+	 */
+
+	public static class RudeLevelInterface
     {
 		public static char INCOMPLETE_LEVEL_CHAR = '-';
 		public static char GetLevelRank(string levelId)
         {
-			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
+			if (Plugin.TryGetAngryLevel(levelId, out LevelContainer level))
 				return level.FinalRank;
 			return INCOMPLETE_LEVEL_CHAR;
 		}
 	
         public static bool GetLevelChallenge(string levelId)
 		{
-			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
+			if (Plugin.TryGetAngryLevel(levelId, out LevelContainer level))
 				return level.ChallengeDone;
 			return false;
 		}
@@ -1219,7 +1262,7 @@ namespace AngryLevelLoader
 			if (secretIndex < 0)
 				return false;
 
-			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
+			if (Plugin.TryGetAngryLevel(levelId, out LevelContainer level))
 				return level.SecretDiscovered(secretIndex);
 
 			return false;
@@ -1235,13 +1278,15 @@ namespace AngryLevelLoader
 	{
 		public static bool BundleExists(string bundleGuid)
 		{
-			return Plugin.angryBundles.Values.Where(bundle => bundle.bundleGuid == bundleGuid).FirstOrDefault() != null;
+			return Plugin.GetAllBundleContainers().Where(bundle => bundle.bundleGuid == bundleGuid).FirstOrDefault() != null;
 		}
 
 		public static string GetBundleBuildHash(string bundleGuid)
 		{
-			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.bundleGuid == bundleGuid).FirstOrDefault();
+			var bundle = Plugin.GetAllBundleContainers().Where(bundle => bundle.bundleGuid == bundleGuid).FirstOrDefault();
 			return bundle == null ? "" : bundle.BuildHash;
 		}
     }
+
+	#endregion
 }

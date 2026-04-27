@@ -13,7 +13,7 @@ namespace AngryLevelLoader.Patches.NoMo
 		[HarmonyPrefix]
 		public static bool PreventStatueActivation()
 		{
-			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMonsters)
+			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
 				return true;
 
 			return false;

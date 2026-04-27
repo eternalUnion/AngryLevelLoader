@@ -301,10 +301,8 @@ namespace AngryLevelLoader
         }
     }
 
-	public static class AngryCryptographyUtils
+	internal static class AngryCryptographyUtils
 	{
-		public static string AdminPrivateKey => Environment.GetEnvironmentVariable("ANGRY_ADMIN_KEY");
-
 		public static byte[] Encrypt(string data, string keyXml)
 		{
 			RSA rsa = RSA.Create();

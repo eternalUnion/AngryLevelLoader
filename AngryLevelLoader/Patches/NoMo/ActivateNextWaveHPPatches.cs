@@ -78,7 +78,7 @@ namespace AngryLevelLoader.Patches.NoMo
 				UnityEngine.Object.Destroy(wave);
 			}
 
-			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMonsters)
+			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
 				return true;
 
 			if (__instance.target == null)

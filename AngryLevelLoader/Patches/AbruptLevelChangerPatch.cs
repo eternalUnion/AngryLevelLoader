@@ -28,7 +28,7 @@ namespace AngryLevelLoader.Patches
             if (string.IsNullOrEmpty(levelName))
                 return false;
 
-            if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer result))
+            if (Plugin.TryGetAngryLevel(levelName, out LevelContainer result))
             {
                 //Prevent the AbruptLevelChanger from loading the level and load angry level
                 AngrySceneManager.LoadLevel(result);

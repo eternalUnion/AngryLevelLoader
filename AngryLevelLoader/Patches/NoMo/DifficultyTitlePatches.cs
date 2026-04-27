@@ -17,9 +17,9 @@ namespace AngryLevelLoader.Patches.NoMo
 				return;
 
 			string text = null;
-			if (Plugin.NoWeapons)
+			if (AngryGamemodeManager.NoWeapons)
 				text = __instance.lines ? "-- NO MONSTERS AND WEAPONS --" : "NO MONSTERS AND WEAPONS";
-			else if (Plugin.NoMonsters)
+			else if (AngryGamemodeManager.NoMonsters)
 				text = __instance.lines ? "-- NO MONSTERS --" : "NO MONSTERS";
 
 			if (text == null)

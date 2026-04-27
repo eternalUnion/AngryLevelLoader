@@ -306,7 +306,7 @@ namespace AngryLevelLoader.Containers
 		internal void UpdateOrder()
 		{
 			int order = 0;
-			BundleContainer[] allBundles = Plugin.angryBundles.Values.OrderBy(b => b.rootPanel.siblingIndex).ToArray();
+			BundleContainer[] allBundles = Plugin.GetAllBundleContainers().OrderBy(b => b.rootPanel.siblingIndex).ToArray();
 
 			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
 			{

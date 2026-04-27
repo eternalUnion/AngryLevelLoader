@@ -115,7 +115,7 @@ namespace AngryLevelLoader.Patches
             string levelID = FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId;
 
             //Attempt to find the level id from AngrySceneManager, quit mission if it can't be found
-            if (!AngrySceneManager.TryFindLevel(levelID, out LevelContainer level))
+            if (!Plugin.TryGetAngryLevel(levelID, out LevelContainer level))
             {
                 Plugin.logger.LogWarning("Could not find target level id " + levelID);
                 MonoSingleton<OptionsManager>.Instance.QuitMission();

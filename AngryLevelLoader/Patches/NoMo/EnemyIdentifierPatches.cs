@@ -22,7 +22,7 @@ namespace AngryLevelLoader.Patches.NoMo
 		[HarmonyPrefix]
         public static bool DisableSpawnInOnNoMo(EnemyIdentifier __instance)
         {
-            if (!AngrySceneManager.isInCustomLevel || !Plugin.NoMonsters)
+            if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
                 return true;
 
             __instance.spawnIn = false;

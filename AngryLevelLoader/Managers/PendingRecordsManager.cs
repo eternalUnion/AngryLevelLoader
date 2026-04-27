@@ -104,11 +104,10 @@ namespace AngryLevelLoader.Managers
 					string bundleName = record.bundleGuid;
 					string levelName = record.levelId;
 
-					var bundle = Plugin.GetAngryBundleByGuid(bundleName);
-					if (bundle != null)
+					if (Plugin.TryGetAngryBundleByGuid(bundleName, out BundleContainer bundle))
 						bundleName = bundle.BundleName;
 
-					if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
+					if (Plugin.TryGetAngryLevel(levelName, out LevelContainer level))
 						levelName = level.LevelName;
 					ConfigManager.pendingRecordsInfo.text += $"Bundle: <color=grey>{bundleName}</color>\nLevel: <color=grey>{levelName}</color>\nCategory: <color=grey>{record.category}</color>\nDifficulty: <color=grey>{record.difficulty}</color>\nTime: <color=grey>{record.time}</color>\n\n\n";
 				}
@@ -146,11 +145,10 @@ namespace AngryLevelLoader.Managers
 				string bundleName = record.bundleGuid;
 				string levelName = record.levelId;
 
-				var bundle = Plugin.GetAngryBundleByGuid(bundleName);
-				if (bundle != null)
+				if (Plugin.TryGetAngryBundleByGuid(bundleName, out BundleContainer bundle))
 					bundleName = bundle.BundleName;
 
-				if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
+				if (Plugin.TryGetAngryLevel(levelName, out LevelContainer level))
 					levelName = level.LevelName;
 
 				if (!record.TryParseRecordInfo(out PostRecordInfo parsedRecord))

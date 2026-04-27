@@ -67,7 +67,7 @@ namespace AngryLevelLoader.Containers
 		/// </summary>
 		public Texture2D PreviewImageTexture
         {
-            get => field.PreviewImage.texture;
+            get => (field.PreviewImage == null) ? null : field.PreviewImage.texture;
             internal set
             {
                 if (_previewImageTexture != null)

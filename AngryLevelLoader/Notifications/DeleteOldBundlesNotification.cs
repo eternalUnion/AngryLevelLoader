@@ -49,7 +49,7 @@ namespace AngryLevelLoader.Notifications
         {
             try
             {
-                List<BundleContainer> bundlesToDelete = Plugin.angryBundles.Values
+                List<BundleContainer> bundlesToDelete = Plugin.GetAllBundleContainers()
                     .Where(bundle => bundle.HasValidAngryFile && bundle.BundleVersion < 6)
                     .ToList();
 
@@ -95,7 +95,7 @@ namespace AngryLevelLoader.Notifications
                 Close();
             });
 
-            int numberOfBundlesToDelete = Plugin.angryBundles.Values
+            int numberOfBundlesToDelete = Plugin.GetAllBundleContainers()
                 .Where(bundle => bundle.HasValidAngryFile && bundle.BundleVersion < 6)
                 .Count();
 

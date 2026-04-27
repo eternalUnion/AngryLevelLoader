@@ -14,7 +14,7 @@ namespace AngryLevelLoader.Patches.NoMoW
 		[HarmonyPrefix]
 		public static bool PreventForceGun()
 		{
-			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoWeapons)
+			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoWeapons)
 				return true;
 
 			return false;
@@ -24,7 +24,7 @@ namespace AngryLevelLoader.Patches.NoMoW
 		[HarmonyPrefix]
 		public static bool PreventWeapons(GunControl __instance)
 		{
-			if (!AngrySceneManager.isInCustomLevel || !Plugin.NoWeapons)
+			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoWeapons)
 				return true;
 
 			__instance.noWeapons = true;

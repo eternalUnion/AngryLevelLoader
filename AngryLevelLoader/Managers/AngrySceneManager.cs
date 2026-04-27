@@ -39,7 +39,7 @@ namespace AngryLevelLoader.Managers
                 lastLevelContainer = _currentLevelContainer;
                 lastLevelData = _currentLevelData;
 
-                foreach (BundleContainer container in Plugin.angryBundles.Values)
+                foreach (BundleContainer container in Plugin.GetAllBundleContainers())
                 {
                     if (container.GetAllScenePaths().Contains(currentScene))
                     {
@@ -111,7 +111,7 @@ namespace AngryLevelLoader.Managers
 
         #endregion
 
-        public static void LevelButtonPressed(LevelContainer levelContainer)
+        internal static void LevelButtonPressed(LevelContainer levelContainer)
         {
             void ContinueLoadLevel()
             {
@@ -148,7 +148,7 @@ namespace AngryLevelLoader.Managers
 
                 if (scriptsToDownload.Count != 0)
                 {
-                    NotificationPanel.Open(new ScriptUpdateNotification(scriptsToDownload, requiredScripts, levelContainer));
+                    NotificationPanel.Open(new ScriptUpdateNotification(levelContainer, scriptsToDownload));
                 }
                 else
                 {
@@ -167,7 +167,7 @@ namespace AngryLevelLoader.Managers
             }
         }
 
-        public static void LoadLevelWithScripts(List<string> scripts, LevelContainer levelContainer)
+        internal static void LoadLevelWithScripts(List<string> scripts, LevelContainer levelContainer)
         {
             Stack<ScriptWarningNotification> notifications = new Stack<ScriptWarningNotification>();
 			ConfigManager.scriptCertificateIgnore = ConfigManager.scriptCertificateIgnoreField.value.Split('\n').ToList();
@@ -255,42 +255,15 @@ namespace AngryLevelLoader.Managers
                 LoadLevel(levelContainer);
         }
 
-        #region DifficultyHandle
-        public static void SetToUltrapainDifficulty()
-        {
-            MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 6);
-            Ultrapain.Plugin.ultrapainDifficulty = true;
-            Ultrapain.Plugin.realUltrapainDifficulty = true;
-        }
-
-        public static void UnsetUltrapainDifficulty()
-        {
-            Ultrapain.Plugin.realUltrapainDifficulty = false;
-        }
-
-        public static void SetToBananasDifficulty()
-        {
-			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 5);
-		}
-
-        public static void UnsetBananasDifficulty()
-        {
-			// It is sufficient for the difficulty to not be 5
-		}
-
-		public static void SetToBillionDifficulty(bool hardMode)
-        {
-            BillionDifficulty.Plugin.IsBrilliantBillion.SetValue(hardMode);
-			MonoSingleton<PrefsManager>.Instance.SetInt("difficulty", 19);
-		}
-
-        public static void UnsetBillionDifficulty()
-        {
-            // It is sufficient for the difficulty to not be 19
-        }
-        #endregion
-
-        public static async Task<bool> LoadLevel(LevelContainer levelContainer, bool showBlocker = true)
+		/// <summary>
+		/// Load an angry level asynchronously. This method does not load the custom scripts.
+        /// Required custom scripts must be checked with <see cref="ScriptManager.GetRequiredScriptsFromBundle(BundleContainer)"/>.
+        /// Locally installed custom scripts can be checked with <see cref="ScriptManager.ScriptExists(string)"/>.
+        /// Custom scripts available online can be checked from <see cref="OnlineScriptsManager"/>.
+        /// Note that downloading and updating custom scripts require user consent.
+		/// </summary>
+        /// <returns>True if the custom level was successfully loaded. False if the bundle no longer exists or level no longer exists inside the bundle.</returns>
+		public static async Task<bool> LoadLevel(LevelContainer levelContainer, bool showBlocker = true)
         {
             BundleContainer bundleContainer = levelContainer.bundleContainer;
             if (!bundleContainer.Loaded)
@@ -364,10 +337,12 @@ namespace AngryLevelLoader.Managers
             return true;
         }
 
-        public static void PostSceneLoad()
+        internal static void PostSceneLoad()
         {
-            Physics.gravity = Plugin.defaultGravity;
-			SceneHelperPatches.forceDisableIsInCustomLevel = false;
+			Vector3 defaultGravity = new Vector3(0, -40, 0);
+			Physics.gravity = defaultGravity;
+			
+            SceneHelperPatches.forceDisableIsInCustomLevel = false;
 
             foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == currentLevelData.scenePath && bonus.GetComponent<IgnoreSecret>() == null))
             {
@@ -380,25 +355,6 @@ namespace AngryLevelLoader.Managers
                     bonus.BeenFound();
                 }
             }
-        }
-
-        public static bool TryFindLevel(string id, out LevelContainer level)
-        {
-            level = null;
-
-            foreach (BundleContainer container in Plugin.angryBundles.Values)
-            {
-                foreach (LevelContainer levelContainer in container.GetAllLevelContainers())
-                {
-                    if (levelContainer.levelId == id)
-                    {
-                        level = levelContainer;
-                        return true;
-                    }
-                }
-            }
-
-            return false;
         }
     }
 }

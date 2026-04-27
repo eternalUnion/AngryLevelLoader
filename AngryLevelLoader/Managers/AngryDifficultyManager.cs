@@ -231,6 +231,9 @@ namespace AngryLevelLoader.Managers
 		}
 	}
 
+	/// <summary>
+	/// Read or modify difficulty used for angry levels.
+	/// </summary>
 	public static class AngryDifficultyManager
 	{
 		public static readonly AngryDifficulty HARMLESS = new AngryDifficulty("HARMLESS", 0);
