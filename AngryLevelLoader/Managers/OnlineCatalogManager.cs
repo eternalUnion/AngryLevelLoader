@@ -599,7 +599,7 @@ namespace AngryLevelLoader.Managers
                 
                 if (ConfigManager.levelUpdateIgnoreCustomBuilds.value)
                 {
-					if (field.Bundle != null && field.OnlineBundle.Updates != null && !field.OnlineBundle.Updates.Any(u => u.Hash == field.Bundle.bundleData.buildHash))
+					if (field.Bundle != null && field.OnlineBundle.Updates != null && !field.OnlineBundle.Updates.Any(u => u.Hash == field.Bundle.BuildHash))
                         continue;
                 }
 

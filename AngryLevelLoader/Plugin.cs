@@ -85,13 +85,12 @@ namespace AngryLevelLoader
 		public static bool bananasDifficultyLoaded = false;
 		public static bool billionDifficultyLoaded = false;
 
-		#region Loaded levels and bundles
-		public static Dictionary<string, RudeLevelData> idDictionary = new Dictionary<string, RudeLevelData>();
-		public static Dictionary<string, AngryBundleContainer> angryBundles = new Dictionary<string, AngryBundleContainer>();
+		#region Loaded bundles
+		public static Dictionary<string, BundleContainer> angryBundles = new Dictionary<string, BundleContainer>();
 
-		public static AngryBundleContainer GetAngryBundleByGuid(string guid)
+		public static BundleContainer GetAngryBundleByGuid(string guid)
 		{
-			return angryBundles.Values.Where(bundle => bundle.bundleData != null && bundle.bundleData.bundleGuid == guid).FirstOrDefault();
+			return angryBundles.Values.Where(bundle => bundle.bundleGuid == guid).FirstOrDefault();
 		}
 		#endregion
 
@@ -155,13 +154,13 @@ namespace AngryLevelLoader
 				folderField = pathToFolderMap["/"];
 
 			foreach (var bundle in angryBundles.Values)
-				bundle.rootPanel.hidden = true;
+				bundle.Hidden = true;
 			foreach (var folder in pathToFolderMap.Values)
 				folder.hidden = true;
 
 			foreach (var bundle in folderField.bundles)
-				if (bundle.bundleData != null)
-					bundle.rootPanel.hidden = false;
+				if (bundle.LazyLoaded)
+					bundle.Hidden = false;
 
 			foreach (var folder in folderField.folders)
 			{
@@ -196,8 +195,8 @@ namespace AngryLevelLoader
 				ConfigManager.folderDivision.hidden = false;
 				ConfigManager.searchInfo.hidden = true;
 
-				foreach (AngryBundleContainer bundle in angryBundles.Values)
-					bundle.ResetSearch();
+				foreach (BundleContainer bundle in angryBundles.Values)
+					bundle.SearchKeywords = new string[0];
 
 				DisplayFolder(folderStack.Peek());
 				return;
@@ -206,22 +205,15 @@ namespace AngryLevelLoader
 			ConfigManager.folderDivision.hidden = true;
 			ConfigManager.searchInfo.hidden = false;
 			int filterCount = 0, totalCount = 0;
-			foreach (AngryBundleContainer bundle in angryBundles.Values)
+			foreach (BundleContainer bundle in angryBundles.Values)
 			{
-				if (bundle.rootPanel.forceHidden)
-					continue;
+				bundle.SearchKeywords = currentSearchKeywords;
 
-				if (bundle.bundleData == null)
-				{
-					bundle.rootPanel.hidden = true;
+				if (!bundle.HasValidAngryFile)
 					continue;
-				}
-
-				bool matches = bundle.ApplySearch(currentSearchKeywords);
-				bundle.rootPanel.hidden = !matches;
 
 				totalCount += 1;
-				if (matches)
+				if (bundle.SearchMatch)
 					filterCount += 1;
 			}
 
@@ -239,10 +231,10 @@ namespace AngryLevelLoader
 
 			if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
 			{
-                if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
+                if (angryBundles.TryGetValue(data.bundleGuid, out BundleContainer bundle))
                 {
 					// Duplicate file check
-					if (File.Exists(bundle.pathToAngryBundle) && !IOUtils.PathEquals(path, bundle.pathToAngryBundle))
+					if (bundle.HasValidAngryFile && !IOUtils.PathEquals(path, bundle.pathToAngryBundle))
 					{
 						logger.LogError($"Duplicate angry files. Original: {Path.GetFileName(bundle.pathToAngryBundle)}. Duplicate: {Path.GetFileName(path)}");
 
@@ -253,44 +245,42 @@ namespace AngryLevelLoader
 						return;
 					}
 
-					bool newFile = !IOUtils.PathEquals(bundle.pathToAngryBundle, path);
-                    bundle.pathToAngryBundle = path;
-                    bundle.rootPanel.interactable = true;
-                    bundle.rootPanel.forceHidden = false;
-                    bundle.rootPanel.hidden = false;
-
-                    if (newFile)
-                        bundle.UpdateScenes(false, false);
-
 					folderField.bundles.Add(bundle);
 
 					if (data.bundleVersion < 6)
 					{
-                        bundle.rootPanel.forceHidden = true;
-                        numOfOldBundles += 1;
-                    }
+						numOfOldBundles += 1;
+					}
+
+                    bundle.pathToAngryBundle = path;
+
+					// May need to reload the bundle if the loaded bundle is out of date
+					if (bundle.LazyLoaded && bundle.BuildHash != data.buildHash)
+					{
+						if (bundle.Loaded && AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == bundle)
+						{
+							// If the bundle is currently being played, only show a prompt
+							bundle.FileChanged();
+						}
+						else
+						{
+							// Otherwise, only load the required data
+							bundle.ReloadBundle(false, true);
+						}
+					}
 
 					return;
                 }
 
-                AngryBundleContainer newBundle = new AngryBundleContainer(path, data);
+                BundleContainer newBundle = new BundleContainer(path, data);
 				angryBundles[data.bundleGuid] = newBundle;
 				folderField.bundles.Add(newBundle);
 				newBundle.UpdateOrder();
 
                 try
                 {
-                    // If rank score is not cached (invalid value) do not lazy load and calculate rank data
-                    if (newBundle.finalRankScore.value < 0)
-                    {
-						logger.LogWarning("Final rank score for the bundle not cached, skipping lazy reload");
-                        newBundle.UpdateScenes(false, false);
-                    }
-                    else
-                    {
-                        newBundle.UpdateScenes(false, true);
-                    }
-                }
+					newBundle.ReloadBundle(false, true);
+				}
                 catch (Exception e)
                 {
 					logger.LogWarning($"Exception thrown while loading level bundle: {e}");
@@ -302,7 +292,6 @@ namespace AngryLevelLoader
                 // Old bundle, cannot open level
                 if (data.bundleVersion < 6)
                 {
-					newBundle.rootPanel.forceHidden = true;
 					numOfOldBundles += 1;
                 }
             }
@@ -338,12 +327,7 @@ namespace AngryLevelLoader
         {
 			numOfOldBundles = 0;
 			ConfigManager.errorText.text = "";
-
-			ConfigManager.searchBar.SetValueWithoutNotify("");
-			currentSearchKeywords = new string[0];
-			ConfigManager.folderDivision.hidden = false;
-			foreach (var bundle in angryBundles.Values)
-				bundle.ResetSearch();
+			ConfigManager.searchBar.value = "";
 
 			if (!Directory.Exists(levelsPath))
             {
@@ -409,51 +393,43 @@ namespace AngryLevelLoader
 			int i = 0;
 			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
 			{
-				foreach (var bundle in angryBundles.Values.OrderBy(b => b.bundleData.bundleName))
-					bundle.rootPanel.siblingIndex = i++;
+				foreach (var bundle in angryBundles.Values.OrderBy(b => b.BundleName))
+					bundle.SiblingIndex = i++;
 			}
 			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
 			{
-				foreach (var bundle in angryBundles.Values.OrderBy(b => b.bundleData.bundleAuthor))
-					bundle.rootPanel.siblingIndex = i++;
+				foreach (var bundle in angryBundles.Values.OrderBy(b => b.BundleAuthor))
+					bundle.SiblingIndex = i++;
 			}
 			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (LastPlayedMapManager.lastPlayed.TryGetValue(b.bundleData.bundleGuid, out long time))
+					if (LastPlayedMapManager.lastPlayed.TryGetValue(b.bundleGuid, out long time))
 						return time;
 					return 0;
 				}))
 				{
-					bundle.rootPanel.siblingIndex = i++;
+					bundle.SiblingIndex = i++;
 				}
 			}
 			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
 			{
 				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (LastPlayedMapManager.lastUpdate.TryGetValue(b.bundleData.bundleGuid, out long time))
+					if (LastPlayedMapManager.lastUpdate.TryGetValue(b.bundleGuid, out long time))
 						return time;
 					return 0;
 				}))
 				{
-					bundle.rootPanel.siblingIndex = i++;
+					bundle.SiblingIndex = i++;
 				}
 			}
 		}
 
 		internal static void UpdateAllUI()
 		{
-			foreach (AngryBundleContainer angryBundle in  angryBundles.Values)
+			foreach (BundleContainer angryBundle in  angryBundles.Values)
 			{
-				if (angryBundle.finalRankScore.value < 0)
-					angryBundle.UpdateScenes(false, false);
-				else
-					angryBundle.UpdateFinalRankUI();
-
-                foreach (LevelContainer level in angryBundle.levels.Values)
-				{
-					level.UpdateUI();
-				}
+				angryBundle.UpdateAllUI();
 			}
 		}
 
@@ -684,9 +660,9 @@ namespace AngryLevelLoader
 				if (!AngryFileUtils.TryGetAngryBundleData(fullPath, out AngryBundleData data, out Exception exp))
 					return;
 
-				if (angryBundles.TryGetValue(data.bundleGuid, out AngryBundleContainer bundle))
+				if (angryBundles.TryGetValue(data.bundleGuid, out BundleContainer bundle))
 				{
-					if ((bundle.bundleData == null || bundle.bundleData.bundleGuid == data.bundleGuid) && !File.Exists(bundle.pathToAngryBundle))
+					if ((bundle.bundleGuid == data.bundleGuid) && !bundle.HasValidAngryFile)
 					{
 						logger.LogWarning($"Bundle {fullPath} was just added, and a container with the same guid had no file linked. Linked, container notified");
 						bundle.pathToAngryBundle = fullPath;
@@ -727,7 +703,7 @@ namespace AngryLevelLoader
 						if (AngrySceneManager.isInCustomLevel)
 						{
 							InternalConfigManager.instantLoadLevel.value = true;
-							InternalConfigManager.instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
+							InternalConfigManager.instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleGuid;
 							InternalConfigManager.instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.data.uniqueIdentifier;
 						}
 
@@ -788,14 +764,14 @@ namespace AngryLevelLoader
 			{
 				yield return null;
 
-				AngryBundleContainer bundle = GetAngryBundleByGuid(InternalConfigManager.instantLoadLevelGuid.value);
+				BundleContainer bundle = GetAngryBundleByGuid(InternalConfigManager.instantLoadLevelGuid.value);
 				if (bundle == null)
 				{
 					logger.LogInfo("Bundle not found");
 					yield break;
 				}
 
-				var handler = bundle.UpdateScenes(false, false);
+				var handler = bundle.ReloadBundle(false, false);
 				yield return new WaitUntil(() => handler.IsCompleted);
 
 				if (!bundle.levels.TryGetValue(InternalConfigManager.instantLoadLevelId.value, out LevelContainer level))
@@ -855,11 +831,14 @@ namespace AngryLevelLoader
 
 				PluginConfiguratorController.mainPanel.gameObject.SetActive(false);
 				yield return null;
-				ConfigManager.
-								config.rootPanel.OpenPanelInternally(false);
+				ConfigManager.config.rootPanel.OpenPanelInternally(false);
 				yield return null;
 
-				bundle.rootPanel.OpenPanelInternally(false);
+				if (!bundle.Loaded)
+				{
+					Task reloadTask = bundle.ReloadBundle(false, false);
+					yield return new WaitUntil(() => reloadTask.IsCompleted);
+				}
 				yield return null;
 
 				AngrySceneManager.LevelButtonPressed(bundle, level, level.data, level.data.scenePath);
@@ -1214,7 +1193,7 @@ namespace AngryLevelLoader
 		private void ReloadFileKeyPressed()
 		{
 			if (AngrySceneManager.currentBundleContainer != null)
-				AngrySceneManager.currentBundleContainer.UpdateScenes(false, false);
+				AngrySceneManager.currentBundleContainer.ReloadBundle(false, false);
 		}
 	}
 
@@ -1261,13 +1240,13 @@ namespace AngryLevelLoader
 	{
 		public static bool BundleExists(string bundleGuid)
 		{
-			return Plugin.angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == bundleGuid).FirstOrDefault() != null;
+			return Plugin.angryBundles.Values.Where(bundle => bundle.bundleGuid == bundleGuid).FirstOrDefault() != null;
 		}
 
 		public static string GetBundleBuildHash(string bundleGuid)
 		{
-			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.bundleData.bundleGuid == bundleGuid).FirstOrDefault();
-			return bundle == null ? "" : bundle.bundleData.buildHash;
+			var bundle = Plugin.angryBundles.Values.Where(bundle => bundle.bundleGuid == bundleGuid).FirstOrDefault();
+			return bundle == null ? "" : bundle.BuildHash;
 		}
     }
 }

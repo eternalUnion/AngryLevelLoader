@@ -22,7 +22,7 @@ namespace AngryLevelLoader.Fields
         private const string ASSET_PATH_RANK_ICON = "AngryLevelLoader/Fields/BundlePanelPrefabs/RankIcon.prefab";
         private const string ASSET_PATH_DELETE_BUTTON = "AngryLevelLoader/Fields/BundlePanelPrefabs/DeleteButton.prefab";
 
-        public readonly AngryBundleContainer callback;
+        public readonly BundleContainer callback;
 
         protected Text rank;
         protected Image rankBg;
@@ -100,7 +100,7 @@ namespace AngryLevelLoader.Fields
             }
         }
 
-        public ConfigPanelForBundles(AngryBundleContainer creator, ConfigPanel parentPanel, string name, string guid) : base(parentPanel, name, guid, PanelFieldType.StandardWithBigIcon)
+        public ConfigPanelForBundles(BundleContainer creator, ConfigPanel parentPanel, string name, string guid) : base(parentPanel, name, guid, PanelFieldType.StandardWithBigIcon)
         {
             callback = creator;
         }

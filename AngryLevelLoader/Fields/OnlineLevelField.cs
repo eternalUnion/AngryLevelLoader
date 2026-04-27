@@ -92,12 +92,12 @@ namespace AngryLevelLoader.Fields
 			return $"{bundleFileSize} B";
 		}
 
-		private AngryBundleContainer _bundle = null;
+		private BundleContainer _bundle = null;
         /// <summary>
         /// Locally installed bundle that has the same guid as OnlineBundle.
         /// Can be null if the bundle is not locally installed.
         /// </summary>
-        public AngryBundleContainer Bundle
+        public BundleContainer Bundle
         {
             get
             {
@@ -209,7 +209,7 @@ namespace AngryLevelLoader.Fields
 		{
 			if (Bundle == null || string.IsNullOrEmpty(Bundle.pathToAngryBundle) || !File.Exists(Bundle.pathToAngryBundle))
 				Status = OnlineLevelStatus.NotInstalled;
-			else if (Bundle.bundleData.buildHash != OnlineBundle.Hash)
+			else if (Bundle.BuildHash != OnlineBundle.Hash)
 				Status = OnlineLevelStatus.UpdateAvailable;
 			else
 				Status = OnlineLevelStatus.Installed;
@@ -452,7 +452,7 @@ namespace AngryLevelLoader.Fields
             currentUi.changelog.onClick.AddListener(() =>
             {
                 LevelUpdateNotification notification = new LevelUpdateNotification();
-                notification.currentHash = (Bundle == null || Status == OnlineLevelStatus.NotInstalled) ? "" : Bundle.bundleData.buildHash;
+                notification.currentHash = (Bundle == null || Status == OnlineLevelStatus.NotInstalled) ? "" : Bundle.BuildHash;
                 notification.onlineInfo = OnlineBundle;
                 notification.callback = this;
                 NotificationPanel.Open(notification);
@@ -485,7 +485,7 @@ namespace AngryLevelLoader.Fields
                     }
 
                     LevelUpdateNotification notification = new LevelUpdateNotification();
-                    notification.currentHash = Bundle.bundleData.buildHash;
+                    notification.currentHash = Bundle.BuildHash;
                     notification.onlineInfo = OnlineBundle;
                     notification.callback = this;
                     NotificationPanel.Open(notification);
@@ -742,7 +742,7 @@ namespace AngryLevelLoader.Fields
 
                 if (!(AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == Bundle))
                 {
-					_ = Bundle.UpdateScenes(false, false);
+					_ = Bundle.ReloadBundle(false, false);
                 }
 
                 // ELSE THERE WILL BE A PROMPT FROM FILE SYSTEM WATCHER

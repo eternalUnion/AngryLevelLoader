@@ -22,7 +22,7 @@ namespace AngryLevelLoader.Managers
 
         private static string _currentLevel = "";
         private static bool _isInCustomLevel = false;
-        private static AngryBundleContainer _currentBundleContainer = null;
+        private static BundleContainer _currentBundleContainer = null;
         private static LevelContainer _currentLevelContainer = null;
         private static RudeLevelData _currentLevelData = null;
 
@@ -38,7 +38,7 @@ namespace AngryLevelLoader.Managers
                 lastLevelContainer = _currentLevelContainer;
                 lastLevelData = _currentLevelData;
 
-                foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
+                foreach (BundleContainer container in Plugin.angryBundles.Values)
                 {
                     if (container.GetAllScenePaths().Contains(currentScene))
                     {
@@ -74,7 +74,7 @@ namespace AngryLevelLoader.Managers
             }
         }
 
-        public static AngryBundleContainer currentBundleContainer
+        public static BundleContainer currentBundleContainer
         {
             get
             {
@@ -103,7 +103,7 @@ namespace AngryLevelLoader.Managers
 
         public static bool wasInCustomLevel { get; private set; } = false;
 
-        public static AngryBundleContainer lastBundleContainer { get; private set; } = null;
+        public static BundleContainer lastBundleContainer { get; private set; } = null;
 
         public static LevelContainer lastLevelContainer { get; private set; } = null;
 
@@ -111,7 +111,7 @@ namespace AngryLevelLoader.Managers
 
         #endregion
 
-        public static void LevelButtonPressed(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public static void LevelButtonPressed(BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
             void ContinueLoadLevel()
             {
@@ -156,7 +156,7 @@ namespace AngryLevelLoader.Managers
                 }
             }
 
-            if (bundleContainer.bundleData.epilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
+            if (bundleContainer.EpilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
             {
                 EpilepsyWarningNotification notification = new EpilepsyWarningNotification(ContinueLoadLevel, "Play", "Play and do not ask again");
                 NotificationPanel.Open(notification);
@@ -167,7 +167,7 @@ namespace AngryLevelLoader.Managers
             }
         }
 
-        public static void LoadLevelWithScripts(List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public static void LoadLevelWithScripts(List<string> scripts, BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
             Stack<ScriptWarningNotification> notifications = new Stack<ScriptWarningNotification>();
 			ConfigManager.scriptCertificateIgnore = ConfigManager.scriptCertificateIgnoreField.value.Split('\n').ToList();
@@ -290,7 +290,7 @@ namespace AngryLevelLoader.Managers
         }
         #endregion
 
-        public static void LoadLevel(AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelPath, bool showBlocker = true)
+        public static void LoadLevel(BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelPath, bool showBlocker = true)
         {
             _isInCustomLevel = true;
             _currentBundleContainer = bundleContainer;
@@ -312,7 +312,7 @@ namespace AngryLevelLoader.Managers
                 AngryDifficultyManager.HARMLESS.SetDifficulty();
 			}
 
-			int levelVersion = bundleContainer.bundleData.bundleVersion;
+			int levelVersion = bundleContainer.BundleVersion;
             if (levelVersion == 6)
             {
                 LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.V6);
@@ -358,7 +358,7 @@ namespace AngryLevelLoader.Managers
         {
             level = null;
 
-            foreach (AngryBundleContainer container in Plugin.angryBundles.Values)
+            foreach (BundleContainer container in Plugin.angryBundles.Values)
             {
                 foreach (LevelContainer levelContainer in container.levels.Values)
                 {

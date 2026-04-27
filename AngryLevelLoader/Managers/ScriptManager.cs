@@ -69,7 +69,7 @@ namespace AngryLevelLoader.Managers
             return hash != CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(ScriptsPath, scriptName)));
         }
 
-        public static List<string> GetRequiredScriptsFromBundle(AngryBundleContainer bundleContainer)
+        public static List<string> GetRequiredScriptsFromBundle(BundleContainer bundleContainer)
         {
             List<string> requiredScripts = new List<string>();
             foreach (var data in bundleContainer.GetAllLevelData())

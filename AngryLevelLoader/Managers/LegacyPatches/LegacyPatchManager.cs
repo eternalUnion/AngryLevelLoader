@@ -74,7 +74,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 
 				if (AngrySceneManager.isInCustomLevel)
 				{
-					int levelVersion = AngrySceneManager.currentBundleContainer.bundleData.bundleVersion;
+					int levelVersion = AngrySceneManager.currentBundleContainer.BundleVersion;
 
 					if (levelVersion == 6)
 					{

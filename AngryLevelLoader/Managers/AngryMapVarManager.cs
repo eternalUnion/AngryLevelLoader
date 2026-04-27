@@ -30,7 +30,7 @@ namespace AngryLevelLoader.Managers
 		internal static string GetCurrentMapVarsDirectory() => Path.Combine(angryMapVarsDirectory, GetConfigPresetID());
 
 		//Bundle directory, the directory root of a .angry bundle file
-		internal static string GetBundleDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), BUNDLES_DIRECTORY, AngrySceneManager.currentBundleContainer.bundleData.bundleGuid);
+		internal static string GetBundleDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), BUNDLES_DIRECTORY, AngrySceneManager.currentBundleContainer.bundleGuid);
 
 		//Levels directory within a bundle
 		internal static string GetLevelDirectory() => Path.Combine(GetBundleDirectory(), LEVELS_DIRECTORY);
@@ -39,7 +39,7 @@ namespace AngryLevelLoader.Managers
 		internal static string GetCurrentUserMapVarsDirectory() => Path.Combine(GetCurrentMapVarsDirectory(), USER_DEFINED_DIRECTORY);
 
 		//for storing bundle persistent mapvars
-		internal static string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleData.bundleGuid + MAPVAR_FILE_EXTENSION);
+		internal static string GetBundleFilePath() => Path.Combine(GetBundleDirectory(), AngrySceneManager.currentBundleContainer.bundleGuid + MAPVAR_FILE_EXTENSION);
 
 		//for storing level persistent mapvars
 		internal static string GetLevelFilePath() => Path.Combine(GetLevelDirectory(), AngrySceneManager.currentLevelData.uniqueIdentifier + MAPVAR_FILE_EXTENSION);

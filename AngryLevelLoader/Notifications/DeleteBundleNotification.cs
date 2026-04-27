@@ -37,8 +37,8 @@ namespace AngryLevelLoader.Notifications
             }
         }
 
-        AngryBundleContainer container;
-        public DeleteBundleNotification(AngryBundleContainer container)
+        BundleContainer container;
+        public DeleteBundleNotification(BundleContainer container)
         {
             this.container = container;
         }
@@ -77,10 +77,10 @@ namespace AngryLevelLoader.Notifications
                 _ = DeleteBundleTask();
             });
 
-            ui.bundleIcon.sprite = container.rootPanel.icon;
-            ui.bundleName.text = container.rootPanel.displayName;
+            ui.bundleIcon.sprite = container.Icon;
+            ui.bundleName.text = container.BundleName;
 
-            ui.body.text = $"Do you want to delete <color=aqua>{container.bundleData.bundleName}</color>?\n\nFile will be deleted permanently!\n\n(Level ranks will not be affected)";
+            ui.body.text = $"Do you want to delete <color=aqua>{container.BundleName}</color>?\n\nFile will be deleted permanently!\n\n(Level ranks will not be affected)";
             ui.gameObject.AddComponent<DeleteButtonComponent>().ui = ui;
         }
     }

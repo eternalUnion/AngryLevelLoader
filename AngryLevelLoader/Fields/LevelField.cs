@@ -21,7 +21,7 @@ namespace AngryLevelLoader.Fields
         private const string ASSET_PATH = "AngryLevelLoader/Fields/LevelField.prefab";
 
         private bool inited = false;
-        public AngryBundleContainer bundleContainer;
+        public BundleContainer bundleContainer;
         public RudeLevelData data;
 
         public float time = 0;
@@ -107,7 +107,7 @@ namespace AngryLevelLoader.Fields
         public delegate void onLevelButtonPressDelegate();
         public event onLevelButtonPressDelegate onLevelButtonPress;
 
-        public LevelField(ConfigPanel panel, AngryBundleContainer bundleContainer, RudeLevelData data) : base(panel, 600, 170)
+        public LevelField(ConfigPanel panel, BundleContainer bundleContainer, RudeLevelData data) : base(panel, 600, 170)
         {
             this.bundleContainer = bundleContainer;
             this.data = data;
@@ -269,7 +269,7 @@ namespace AngryLevelLoader.Fields
 
             currentUi.leaderboardsButton.onClick.AddListener(() =>
             {
-                NotificationPanel.Open(new LeaderboardNotification(bundleContainer.bundleData.bundleName, data.levelName, bundleContainer.bundleData.bundleGuid, data.uniqueIdentifier));
+                NotificationPanel.Open(new LeaderboardNotification(bundleContainer.BundleName, data.levelName, bundleContainer.bundleGuid, data.uniqueIdentifier));
             });
 
             currentUi.openSettingsButton.onClick.AddListener(() =>
@@ -294,8 +294,8 @@ namespace AngryLevelLoader.Fields
 				currentUi.resetSecretsButton.interactable = !data.isSecretLevel && data.secretCount != 0 && secrets != 0;
 				currentUi.resetChallengeButton.interactable = !data.isSecretLevel && data.levelChallengeEnabled && challenge;
 
-                string levelMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, AngryMapVarManager.LEVELS_DIRECTORY, data.uniqueIdentifier + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
-				string bundleMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, bundleContainer.bundleData.bundleGuid + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+                string levelMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleGuid, AngryMapVarManager.LEVELS_DIRECTORY, data.uniqueIdentifier + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+				string bundleMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleGuid, bundleContainer.bundleGuid + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
 
 				currentUi.resetLevelVarsButton.interactable = File.Exists(levelMapVarFilePath);
                 currentUi.resetBundleVarsButton.interactable = File.Exists(bundleMapVarFilePath);
@@ -341,7 +341,7 @@ namespace AngryLevelLoader.Fields
 				currentUi.resetLevelVarsButton.interactable = false;
 				currentUi.resetLevelVarsText.text = "Reset Level Variables";
 
-				string levelMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, AngryMapVarManager.LEVELS_DIRECTORY, data.uniqueIdentifier + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+				string levelMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleGuid, AngryMapVarManager.LEVELS_DIRECTORY, data.uniqueIdentifier + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
                 if (File.Exists(levelMapVarFilePath))
                     File.Delete(levelMapVarFilePath);
             };
@@ -351,7 +351,7 @@ namespace AngryLevelLoader.Fields
 				currentUi.resetBundleVarsButton.interactable = false;
 				currentUi.resetBundleVarsText.text = "Reset Bundle Variables";
 
-				string bundleMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleData.bundleGuid, bundleContainer.bundleData.bundleGuid + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
+				string bundleMapVarFilePath = Path.Combine(AngryMapVarManager.GetCurrentMapVarsDirectory(), AngryMapVarManager.BUNDLES_DIRECTORY, bundleContainer.bundleGuid, bundleContainer.bundleGuid + AngryMapVarManager.MAPVAR_FILE_EXTENSION);
 			    if (File.Exists(bundleMapVarFilePath))
                     File.Delete(bundleMapVarFilePath);
             };

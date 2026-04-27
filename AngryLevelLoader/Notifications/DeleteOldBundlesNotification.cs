@@ -49,14 +49,14 @@ namespace AngryLevelLoader.Notifications
         {
             try
             {
-                List<AngryBundleContainer> bundlesToDelete = Plugin.angryBundles.Values
-                    .Where(bundle => bundle.bundleData != null && bundle.bundleData.bundleVersion < 6)
+                List<BundleContainer> bundlesToDelete = Plugin.angryBundles.Values
+                    .Where(bundle => bundle.HasValidAngryFile && bundle.BundleVersion < 6)
                     .ToList();
 
                 int progress = 1;
-                foreach (AngryBundleContainer container in bundlesToDelete)
+                foreach (BundleContainer container in bundlesToDelete)
                 {
-                    string bundleName = container.bundleData.bundleName;
+                    string bundleName = container.BuildHash;
                     ui.deletionProgress.text = $"Deleting bundles... ({progress}/{bundlesToDelete.Count})";
 
                     try
@@ -95,9 +95,8 @@ namespace AngryLevelLoader.Notifications
                 Close();
             });
 
-            int numberOfBundlesToDelete = Plugin.angryBundles
-                .Select(bundle => bundle.Value.bundleData)
-                .Where(data => data != null && data.bundleVersion < 6)
+            int numberOfBundlesToDelete = Plugin.angryBundles.Values
+                .Where(bundle => bundle.HasValidAngryFile && bundle.BundleVersion < 6)
                 .Count();
 
             if (numberOfBundlesToDelete == 0)

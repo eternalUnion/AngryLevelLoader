@@ -14,22 +14,22 @@ using UnityEngine.Events;
 
 namespace AngryLevelLoader.Fields
 {
-	public class FolderButtonField : CustomConfigField, IEnumerable<AngryBundleContainer>
+	public class FolderButtonField : CustomConfigField, IEnumerable<BundleContainer>
 	{
-		private IEnumerator<AngryBundleContainer> FolderEnumerator(FolderButtonField folder)
+		private IEnumerator<BundleContainer> FolderEnumerator(FolderButtonField folder)
 		{
-			foreach (AngryBundleContainer bundle in folder.bundles)
+			foreach (BundleContainer bundle in folder.bundles)
 				yield return bundle;
 
 			foreach (FolderButtonField subfolder in folder.folders)
 			{
-				IEnumerator<AngryBundleContainer> subfolderEnumerator = FolderEnumerator(subfolder);
+				IEnumerator<BundleContainer> subfolderEnumerator = FolderEnumerator(subfolder);
 				while (subfolderEnumerator.MoveNext())
 					yield return subfolderEnumerator.Current;
 			}
 		}
 
-		public readonly List<AngryBundleContainer> bundles = new List<AngryBundleContainer>();
+		public readonly List<BundleContainer> bundles = new List<BundleContainer>();
 		public readonly List<FolderButtonField> folders = new List<FolderButtonField>();
 
 		private const string ASSET_PATH = "AngryLevelLoader/Fields/FolderButtonField.prefab";
@@ -43,7 +43,7 @@ namespace AngryLevelLoader.Fields
 
 		private static Texture2D blankIcon = null;
 		private Texture2D icon = null;
-		public void CreateIcon(IEnumerable<AngryBundleContainer> bundles)
+		public void CreateIcon(IEnumerable<BundleContainer> bundles)
 		{
 			if (blankIcon == null)
 			{
@@ -61,7 +61,7 @@ namespace AngryLevelLoader.Fields
 			List<Texture2D> icons = new List<Texture2D>();
 			foreach (var bundle in bundles)
 			{
-				string iconPath = Path.Combine(bundle.pathToTempFolder, "icon.png");
+				string iconPath = Path.Combine(Plugin.tempFolderPath, bundle.bundleGuid, "icon.png");
 				if (!File.Exists(iconPath))
 					continue;
 				Debug.Log(iconPath);
@@ -133,7 +133,7 @@ namespace AngryLevelLoader.Fields
 			if (currentContainer != null)
 				OnCreateUI(currentContainer);
 
-			CreateIcon(Enumerable.Empty<AngryBundleContainer>());
+			CreateIcon(Enumerable.Empty<BundleContainer>());
 		}
 
 		public override void OnCreateUI(RectTransform fieldUI)
@@ -172,7 +172,7 @@ namespace AngryLevelLoader.Fields
 				currentUi.folderButton.interactable = selfInteractable && hierarchyInteractable;
 		}
 
-		public IEnumerator<AngryBundleContainer> GetEnumerator()
+		public IEnumerator<BundleContainer> GetEnumerator()
 		{
 			return FolderEnumerator(this);
 		}

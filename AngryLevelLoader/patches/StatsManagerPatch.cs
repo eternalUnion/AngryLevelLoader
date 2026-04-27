@@ -192,8 +192,8 @@ namespace AngryLevelLoader.Patches
 					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
 					record.category = AngryLeaderboards.RecordCategory.ALL;
 					record.difficulty = AngryLeaderboards.DifficultyFromInteger(PrefsManager.Instance.GetInt("difficulty", -1));
-					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
-					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
+					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleGuid;
+					record.hash = AngrySceneManager.currentBundleContainer.BuildHash;
 					record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
 					record.time = (int)(__instance.seconds * 1000);
 					AngryLeaderboards.TryPostRecordTask(record).ContinueWith((t) =>
@@ -223,8 +223,8 @@ namespace AngryLevelLoader.Patches
 					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
 					record.category = ConfigManager.difficultyField.gamemodeListValueIndex == 1 ? AngryLeaderboards.RecordCategory.NOMO : AngryLeaderboards.RecordCategory.NOMOW;
 					record.difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
-					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleData.bundleGuid;
-					record.hash = AngrySceneManager.currentBundleContainer.bundleData.buildHash;
+					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleGuid;
+					record.hash = AngrySceneManager.currentBundleContainer.BuildHash;
 					record.levelId = AngrySceneManager.currentLevelData.uniqueIdentifier;
 					record.time = (int)(__instance.seconds * 1000);
 					AngryLeaderboards.TryPostRecordTask(record).ContinueWith((t) =>

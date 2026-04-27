@@ -106,7 +106,7 @@ namespace AngryLevelLoader.Managers
 
 					var bundle = Plugin.GetAngryBundleByGuid(bundleName);
 					if (bundle != null)
-						bundleName = bundle.bundleData.bundleName;
+						bundleName = bundle.BundleName;
 
 					if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
 						levelName = level.data.levelName;
@@ -148,7 +148,7 @@ namespace AngryLevelLoader.Managers
 
 				var bundle = Plugin.GetAngryBundleByGuid(bundleName);
 				if (bundle != null)
-					bundleName = bundle.bundleData.bundleName;
+					bundleName = bundle.BundleName;
 
 				if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
 					levelName = level.data.levelName;

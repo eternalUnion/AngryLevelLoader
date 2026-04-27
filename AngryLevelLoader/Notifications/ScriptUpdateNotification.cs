@@ -217,12 +217,12 @@ namespace AngryLevelLoader.Notifications
         private AngryScriptUpdateNotificationComponent ui;
 
         public List<string> scripts;
-        public AngryBundleContainer bundleContainer;
+        public BundleContainer bundleContainer;
         public LevelContainer levelContainer;
         public RudeLevelData levelData;
         public string levelName;
 
-        public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, AngryBundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
         {
             this.scripts = scripts;
             this.bundleContainer = bundleContainer;

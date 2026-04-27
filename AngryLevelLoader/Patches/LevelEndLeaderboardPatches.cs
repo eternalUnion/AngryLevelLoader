@@ -116,7 +116,7 @@ namespace AngryLevelLoader.Patches
 			Task<AngryLeaderboards.GetRecordsResult> getRecordsTask = AngryLeaderboards.GetRecordsTask(
 				currentCategory,
 				AngryLeaderboards.RecordDifficulty.ANY,
-				AngrySceneManager.currentBundleContainer.bundleData.bundleGuid,
+				AngrySceneManager.currentBundleContainer.bundleGuid,
 				AngrySceneManager.currentLevelData.uniqueIdentifier,
 				0,
 				10);

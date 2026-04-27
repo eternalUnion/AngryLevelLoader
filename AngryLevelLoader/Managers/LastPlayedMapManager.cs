@@ -75,14 +75,12 @@ namespace AngryLevelLoader.Managers
 			}
 		}
 
-		public static void UpdateLastPlayed(AngryBundleContainer bundle)
+		public static void UpdateLastPlayed(BundleContainer bundle)
 		{
-			string guid = bundle.bundleData.bundleGuid;
+			string guid = bundle.bundleGuid;
 			if (guid.Length != 32)
 				return;
 
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
-				bundle.rootPanel.siblingIndex = 0;
 			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
 			lastPlayed[guid] = secondsNow;
 
@@ -98,16 +96,17 @@ namespace AngryLevelLoader.Managers
 					writer.WriteLine(pair.Value.ToString());
 				}
 			}
+
+			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
+				Plugin.SortBundles();
 		}
 
-		public static void UpdateLastUpdate(AngryBundleContainer bundle)
+		public static void UpdateLastUpdate(BundleContainer bundle)
 		{
-			string guid = bundle.bundleData.bundleGuid;
+			string guid = bundle.bundleGuid;
 			if (guid.Length != 32)
 				return;
 
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
-				bundle.rootPanel.siblingIndex = 0;
 			long secondsNow = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
 			lastUpdate[guid] = secondsNow;
 
@@ -123,6 +122,9 @@ namespace AngryLevelLoader.Managers
 					writer.WriteLine(pair.Value.ToString());
 				}
 			}
+
+			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
+				Plugin.SortBundles();
 		}
 	}
 }

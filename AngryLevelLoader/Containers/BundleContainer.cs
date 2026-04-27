@@ -1,0 +1,772 @@
+﻿using PluginConfig.API.Decorators;
+using PluginConfig.API.Functionals;
+using PluginConfig.API;
+using RudeLevelScript;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEngine.SceneManagement;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.AddressableAssets.ResourceLocators;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using System.IO.Compression;
+using Newtonsoft.Json;
+using AngryLevelLoader.Fields;
+using PluginConfig.API.Fields;
+using AngryLevelLoader.Managers;
+using AngryLevelLoader.DataTypes;
+using PluginConfig;
+using AngryLevelLoader.Notifications;
+using System.Threading.Tasks;
+using UnityEngine.UI;
+using System.Text.RegularExpressions;
+
+namespace AngryLevelLoader.Containers
+{
+    /// <summary>
+    /// Represents a bundle in the level list of the main panel
+    /// </summary>
+    public class BundleContainer
+    {
+        public const int MIN_ANGRY_FILE_VERSION = 6;
+		public const int MAX_ANGRY_FILE_VERSION = 7;
+
+		// Addressables data
+
+		private IResourceLocator locator = null;
+		private Dictionary<string, AsyncOperationHandle<RudeLevelData>> dataDictionary = new Dictionary<string, AsyncOperationHandle<RudeLevelData>>();
+		private string pathToTempFolder;
+		internal string pathToAngryBundle;
+
+		// Properties for bundle status
+
+		/// <summary>
+		/// Indicates whether the bundle is loaded into the addressables or not.
+        /// On boot, bundles are partially loaded to increase performance. In that case,
+        /// this field returns false while LazyLoaded returns true. To fully load a
+        /// bundle, call <see cref="ReloadBundle(bool, bool)"/> with lazyLoad set to false.
+		/// </summary>
+		public bool Loaded => locator != null;
+
+        /// <summary>
+        /// Indicates whether only the essential data is loaded for UI only. Lazy loaded
+        /// bundles cannot be played without being fully loaded first.
+        /// </summary>
+        public bool LazyLoaded => bundleData != null;
+
+		/// <summary>
+		/// Bundles may be deleted, which invalidates this container until the file is added or downloaded again.
+		/// </summary>
+		public bool HasValidAngryFile => !string.IsNullOrEmpty(pathToAngryBundle) && File.Exists(pathToAngryBundle);
+
+        /// <summary>
+        /// Some older angry files are not supported because of game updates. Newer angry files also cannot be loaded
+        /// since the structure is unknown. This field always returns false if the bundle is not lazy loaded.
+        /// </summary>
+        public bool AngryFileSupported => (bundleData == null) ? false : bundleData.bundleVersion >= MIN_ANGRY_FILE_VERSION && bundleData.bundleVersion <= MAX_ANGRY_FILE_VERSION;
+
+		private bool _ignoreFileChange = false;
+		/// <summary>
+		/// If a bundle is updated while it is being actively played, the loaded bundle must be unloaded
+		/// before loading the new bundle. This field is set if the file was updated and bundle must
+		/// be reloaded.
+		/// </summary>
+		public bool FileChangeDetected { get; private set; } = false;
+
+		internal IEnumerable<RudeLevelData> GetAllLevelData()
+		{
+			foreach (var data in dataDictionary.Values)
+				yield return data.Result;
+		}
+
+		internal IEnumerable<string> GetAllScenePaths()
+		{
+			return GetAllLevelData().Select(data => data.scenePath);
+		}
+
+		// Bundle data
+
+		public readonly string bundleGuid;
+		private AngryBundleData bundleData;
+		internal Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
+
+        public bool TryGetLevelContainer(string levelId, out LevelContainer levelContainer)
+        {
+            return levels.TryGetValue(levelId, out levelContainer);
+        }
+
+		// Helper fields for the bundle data
+
+		/// <summary>
+		/// Angry version of the file. Returns 0 if the bundle is not lazy loaded.<br></br>
+		/// v0: (file not loaded)<br></br>
+		/// v1: Back to cybergrind update (legacy file format)<br></br>
+		/// v2: Back to cybergrind update (modern file format)<br></br>
+		/// v3: Violence update<br></br>
+		/// v4: Full arsenal update<br></br>
+		/// v5: Full arsenal patch update<br></br>
+		/// v6: Revamp update (supported)<br></br>
+		/// v7: Fraud update (supported)<br></br>
+		/// </summary>
+		public int BundleVersion => (bundleData == null) ? 0 : bundleData.bundleVersion;
+
+        public string BundleName => (bundleData == null) ? "<invalid>" : bundleData.bundleName;
+
+        public string BundleAuthor => (bundleData == null) ? "<invalid>" : bundleData.bundleAuthor;
+
+        public bool EpilepsyWarning => (bundleData == null) ? false : bundleData.epilepsyWarning;
+
+		/// <summary>
+		/// Build hash is used to distinguish different versions of the same angry file.
+		/// For example, local hash can be compared to the online catalog.
+		/// Returns empty string if the bundle is invalid.
+		/// </summary>
+		public string BuildHash => (bundleData == null) ? string.Empty : bundleData.buildHash;
+
+        // UI
+
+        internal bool SearchMatch { get; private set; } = true;
+
+        private static Regex richText = new Regex(@"<[^>]*>");
+		private string[] _searchKeywords = new string[0];
+        internal string[] SearchKeywords
+        {
+            get => _searchKeywords;
+            set
+            {
+                _searchKeywords = value;
+				SearchMatch = true;
+
+				rootPanel.displayName = BundleName;
+				rootPanel.displayName += $"\n<color=#909090>by {BundleAuthor}</color>";
+				rootPanel.hidden = false;
+
+				if (_searchKeywords.Length > 0)
+                {
+					string bundleName = richText.Replace(BundleName, string.Empty);
+					string authorName = richText.Replace(BundleAuthor, string.Empty);
+
+					WordHighlighter formattedName = new WordHighlighter(bundleName);
+					WordHighlighter formattedAuthor = new WordHighlighter(authorName);
+
+					bundleName = bundleName.ToLower();
+					authorName = authorName.ToLower();
+
+					foreach (string keyword in _searchKeywords)
+					{
+						bool matches = false;
+
+						int currentIndex = bundleName.IndexOf(keyword);
+						while (currentIndex != -1)
+						{
+							matches = true;
+
+							formattedName.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+							currentIndex = bundleName.IndexOf(keyword, currentIndex + keyword.Length);
+						}
+
+						currentIndex = authorName.IndexOf(keyword);
+						while (currentIndex != -1)
+						{
+							matches = true;
+
+							formattedAuthor.Highlight(currentIndex, currentIndex + keyword.Length - 1);
+							currentIndex = authorName.IndexOf(keyword, currentIndex + keyword.Length);
+						}
+
+						if (!matches)
+                        {
+                            SearchMatch = false;
+							rootPanel.hidden = true;
+							return;
+                        }
+					}
+
+					rootPanel.displayName = formattedName.GenerateFormattedText("<color=yellow><b>", "</b></color>");
+					rootPanel.displayName += "\n<color=#909090>by " + formattedAuthor.GenerateFormattedText("<color=yellow><b>", "</b></color>") + "</color>";
+				}
+            }
+        }
+
+        internal Sprite Icon => rootPanel.icon;
+
+        internal bool Hidden { get => rootPanel.hidden; set => rootPanel.hidden = value; }
+
+        internal int SiblingIndex { get => rootPanel.siblingIndex; set => rootPanel.siblingIndex = value; }
+
+        private ConfigPanelForBundles rootPanel;
+        private LoadingCircleField loadingCircle;
+        private ConfigHeader statusText;
+        private ConfigDivision sceneDiv;
+        private IntField finalRankScore;
+
+		internal void RecalculateFinalRank()
+		{
+            if (bundleData == null)
+                return;
+
+			int totalRankScore = 0;
+			int currentRankScore = 0;
+
+			foreach (var level in bundleData.levels)
+			{
+				if (level.isSecretLevel)
+					continue;
+
+				totalRankScore += 6;
+
+				if (levels.TryGetValue(level.uniqueIdentifier, out LevelContainer container))
+				{
+					currentRankScore += Math.Max(0, RankUtils.GetRankScore(container.finalRank.value[0]));
+				}
+			}
+
+			finalRankScore.value = totalRankScore <= 0 ? 0 : (int)(((float)currentRankScore / totalRankScore) * 6f);
+			UpdateFinalRankUI();
+		}
+
+        private void UpdateFinalRankUI()
+        {
+            char finalRank = RankUtils.GetRankChar(finalRankScore.value);
+            rootPanel.rankText = finalRank.ToString();
+            rootPanel.rankTextColor = RankUtils.GetRankColor(finalRank, Color.white);
+
+            if (finalRank == 'P')
+            {
+                rootPanel.fieldColor = new Color(171 / 255f, 108 / 255f, 2 / 255f);
+
+                rootPanel.fillBgCenter = true;
+                rootPanel.rankBgColor = new Color(241 / 255f, 168 / 255f, 8 / 255f);
+
+                rootPanel.rankTextColor = Color.white;
+            }
+            else
+            {
+                rootPanel.fieldColor = Color.black;
+
+                rootPanel.fillBgCenter = false;
+                rootPanel.rankBgColor = Color.white;
+            }
+        }
+
+		internal void UpdateAllUI()
+		{
+			foreach (RudeLevelData data in GetAllLevelData())
+			{
+				if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
+					container.UpdateUI();
+			}
+
+			RecalculateFinalRank();
+		}
+
+		// Faster ordering since not all fields are moved, only this one
+		internal void UpdateOrder()
+		{
+			int order = 0;
+			BundleContainer[] allBundles = Plugin.angryBundles.Values.OrderBy(b => b.rootPanel.siblingIndex).ToArray();
+
+			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(BundleName, allBundles[order].BundleName) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
+			{
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (string.Compare(BundleAuthor, allBundles[order].BundleAuthor) == -1)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
+			{
+				if (!LastPlayedMapManager.lastPlayed.TryGetValue(bundleGuid, out long lastTime))
+					lastTime = 0;
+
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (!LastPlayedMapManager.lastPlayed.TryGetValue(allBundles[order].bundleGuid, out long otherPlayime))
+						otherPlayime = 0;
+
+					if (lastTime > otherPlayime)
+						break;
+
+					order += 1;
+				}
+			}
+			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
+			{
+				if (!LastPlayedMapManager.lastUpdate.TryGetValue(bundleGuid, out long lastUpdate))
+					lastUpdate = 0;
+
+				while (order < allBundles.Length)
+				{
+					if (order == rootPanel.siblingIndex)
+					{
+						order += 1;
+						continue;
+					}
+
+					if (!LastPlayedMapManager.lastUpdate.TryGetValue(allBundles[order].bundleGuid, out long otherLastUpdate))
+						otherLastUpdate = 0;
+
+					if (lastUpdate > otherLastUpdate)
+						break;
+
+					order += 1;
+				}
+			}
+
+			if (order < 0)
+				order = 0;
+			else if (order >= allBundles.Length)
+				order = allBundles.Length - 1;
+
+			rootPanel.siblingIndex = order;
+		}
+
+        // Bundle load/unload/refresh
+
+		private async Task Unload()
+        {
+            // Release data handle
+            foreach (AsyncOperationHandle<RudeLevelData> data in dataDictionary.Values)
+            {
+                Addressables.Release(data);
+            }
+            dataDictionary.Clear();
+
+            // Unload the content catalog
+            if (locator != null)
+            {
+                Addressables.RemoveResourceLocator(locator);
+                await AssetManager.CleanBundleCache();
+			}
+
+            locator = null;
+			FileChangeDetected = false;
+		}
+
+		/// <summary>
+		/// Read .angry file and load the levels in memory
+		/// </summary>
+		/// <param name="forceReload">If set to false and a previously unzipped version exists, do not re-unzip the file</param>
+		/// <returns>Success</returns>
+		private async Task<bool> ReloadData(bool forceReload, bool lazyLoad)
+        {
+            // Open the angry zip archive
+            AngryBundleData latestData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
+            if (latestData == null)
+            {
+                statusText.text = "<color=red>Invalid angry file!</color>";
+                statusText.hidden = false;
+                return false;
+            }
+
+			await Unload();
+
+			bool unzip = true;
+            bool fileChanged = false;
+
+			pathToTempFolder = Path.Combine(Plugin.tempFolderPath, latestData.bundleGuid);
+            
+            rootPanel.displayName = string.IsNullOrEmpty(latestData.bundleName) ? Path.GetFileNameWithoutExtension(pathToAngryBundle) : latestData.bundleName;
+            rootPanel.headerText = $"--{rootPanel.displayName}--";
+            rootPanel.displayName += $"\n<color=#909090>by {latestData.bundleAuthor}</color>";
+
+            // If force reload is set to false, check if the build hashes match
+            // between unzipped bundle and the current angry file. Avoids unnecessary unzips
+            if (Directory.Exists(pathToTempFolder) && File.Exists(Path.Combine(pathToTempFolder, "data.json")) && File.Exists(Path.Combine(pathToTempFolder, "catalog.json")))
+            {
+                AngryBundleData previousData = JsonConvert.DeserializeObject<AngryBundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
+                if (previousData.buildHash == latestData.buildHash)
+                {
+                    if (!forceReload)
+                        unzip = false;
+                }
+                else
+                {
+                    fileChanged = true;
+                }
+            }
+            else
+            {
+                fileChanged = true;
+            }
+
+            if (unzip)
+            {
+                if (Directory.Exists(pathToTempFolder))
+                    Directory.Delete(pathToTempFolder, true);
+                Directory.CreateDirectory(pathToTempFolder);
+
+                using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read)))
+                    zip.ExtractToDirectory(pathToTempFolder);
+            }
+
+			if (fileChanged)
+				LastPlayedMapManager.UpdateLastUpdate(this);
+
+			bundleData = JsonConvert.DeserializeObject<AngryBundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
+			rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
+            rootPanel.forceHidden = !AngryFileSupported;
+			rootPanel.headerText = $"--{BundleName}--";
+            // This sets the bundle name on the main panel
+			SearchKeywords = SearchKeywords;
+
+			// If the bundle is made for an older version and the panel is open, go back to the levels panel
+			if (!AngryFileSupported
+				&& rootPanel.currentPanel != null
+				&& PluginConfiguratorController.activePanel == rootPanel.currentPanel.gameObject)
+			{
+				ConfigManager.config.rootPanel.OpenPanel();
+			}
+
+            // Cannot load unsupported bundles
+            if (!AngryFileSupported)
+                return false;
+
+			// We don't need to load the bunde assets if all we need is the bundle interface
+			if (lazyLoad)
+                return true;
+
+			// Load the catalog
+			var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
+            await addressableHandle;
+            locator = addressableHandle.Result;
+
+            // Load the level data
+            statusText.text = "";
+            statusText.hidden = true;
+            foreach (string path in bundleData.levelDataPaths)
+            {
+                AsyncOperationHandle<RudeLevelData> handle = Addressables.LoadAssetAsync<RudeLevelData>(path);
+                await handle;
+                RudeLevelData data = handle.Result;
+
+                if (data == null)
+                {
+                    handle.Release();
+                    continue;
+                }
+
+                dataDictionary[data.uniqueIdentifier] = handle;
+            }
+
+            if (bundleData.bundleVersion < 7)
+            {
+				statusText.hidden = false;
+				if (!string.IsNullOrEmpty(statusText.text))
+                    statusText.text += '\n';
+                
+                if (bundleData.bundleVersion == 6)
+                {
+					statusText.text += $"<color=yellow>Warning: </color>Bundle was made for the Revamp update of Ultrakill. Expect issues.";
+				}
+                else
+                {
+					statusText.text += $"<color=yellow>Warning: </color>Bundle was made for an older version of Ultrakill. Expect issues.";
+				}
+            }
+
+            return true;
+        }
+
+        private async Task<bool> ReloadBundleTask(bool forceReload, bool lazyLoad)
+        {
+            if (!File.Exists(pathToAngryBundle))
+            {
+                statusText.text = "<color=red>Could not find the file</color>";
+                return false;
+            }
+
+            AngryBundleData fileData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
+            if (fileData.bundleGuid != bundleData.bundleGuid)
+            {
+                statusText.text = "<color=red>Target file has a different guid</color>";
+                return false;
+            }
+            
+            bool inTempScene = false;
+            string previousPath = SceneManager.GetActiveScene().path;
+            string previousName = SceneManager.GetActiveScene().name;
+            string previousId = AngrySceneManager.isInCustomLevel ? AngrySceneManager.currentLevelData.uniqueIdentifier : "";
+            if (GetAllScenePaths().Contains(previousPath))
+            {
+                TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+                SceneHelper.LoadSceneAsync("AngryLevelLoader/Blank").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
+                await completionSource.Task;
+                
+                inTempScene = true;
+			}
+
+            // Disable all level interfaces
+            foreach (KeyValuePair<string, LevelContainer> pair in levels)
+                pair.Value.field.forceHidden = true;
+
+            // Reload data from file
+            if (!await ReloadData(forceReload, lazyLoad))
+                return false;
+
+            if (lazyLoad)
+            {
+                if (inTempScene)
+					SceneHelper.LoadScene("Main Menu", true);
+                
+				return true;
+            }
+            
+            int currentIndex = 0;
+            foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
+            {
+                if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
+                {
+                    container.UpdateData(data);
+                }
+                else
+                {
+                    container = new LevelContainer(sceneDiv, this, data);
+                    container.onLevelButtonPress += () =>
+                    {
+                        AngrySceneManager.LevelButtonPressed(this, container, data, data.scenePath);
+                    };
+
+                    levels[data.uniqueIdentifier] = container;
+                }
+
+				container.field.siblingIndex = currentIndex++;
+				container.field.forceHidden = false;
+			}
+
+            // Locked levels fix
+            foreach (var level in levels.Values)
+                level.UpdateUI();
+
+			// Update online field if there are any
+			if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
+			{
+				field.UpdateStatus();
+				OnlineLevelsUI.CheckLevelUpdateText();
+			}
+
+			UpdateAllUI();
+
+			if (inTempScene)
+            {
+                RudeLevelData lastLevelData = GetAllLevelData().Where(l => l.uniqueIdentifier == previousId).FirstOrDefault();
+
+				if (lastLevelData == null)
+				{
+					SceneHelper.LoadScene("Main Menu", true);
+				}
+                else
+                {
+                    SceneHelper.LoadScene(lastLevelData.scenePath, true);
+                }
+			}
+            
+            return true;
+        }
+
+        private Task updateTask = null;
+        public bool Updating
+        {
+            get => updateTask != null && !updateTask.IsCompleted;
+        }
+
+		/// <summary>
+		/// Reloads the angry file and adds the new scenes. This call has no effect if <see cref="Updating"/> is set.
+		/// </summary>
+		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
+		/// <param name="lazyLoad">If set to true, only the data required for the user interface will be loaded. Lazily loaded bundles cannot be played until fully loaded.</param>
+		public Task ReloadBundle(bool forceReload, bool lazyLoad)
+        {
+            if (Updating)
+                return updateTask;
+
+			loadingCircle.hidden = false;
+			sceneDiv.hidden = true;
+			sceneDiv.interactable = false;
+			statusText.hidden = true;
+			statusText.text = "";
+
+			updateTask = ReloadBundleTask(forceReload, lazyLoad).ContinueWith((task) => {
+				loadingCircle.hidden = true;
+				sceneDiv.hidden = false;
+				sceneDiv.interactable = true;
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+
+            return updateTask;
+		}
+
+        internal async Task DeleteBundle()
+        {
+            if (File.Exists(pathToAngryBundle))
+                File.Delete(pathToAngryBundle);
+
+            if (Directory.Exists(pathToTempFolder))
+                Directory.Delete(pathToTempFolder, true);
+
+            if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleData.bundleGuid, out var onlineField))
+            {
+                onlineField.UpdateStatus();
+            }
+
+            pathToAngryBundle = "";
+            pathToTempFolder = "";
+            bundleData = null;
+            rootPanel.forceHidden = true;
+
+            await Unload();
+		}
+
+        internal void OpenDeletePanel()
+        {
+            NotificationPanel.Open(new DeleteBundleNotification(this));
+        }
+
+        internal void FileChanged()
+        {
+            _ignoreFileChange = false;
+
+			if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData updatedData, out Exception e))
+            {
+                // Different guid, would break the container
+                if (updatedData.bundleGuid != bundleGuid)
+                {
+                    Plugin.logger.LogError($"File {Path.GetFileName(pathToAngryBundle)} was changed, but the new file's guid does not match its container! Unlinking");
+                    FileChangeDetected = false;
+                    pathToAngryBundle = "";
+                    return;
+				}
+
+                FileChangeDetected = updatedData.buildHash != bundleData.buildHash;
+                if (FileChangeDetected)
+					LastPlayedMapManager.UpdateLastUpdate(this);
+
+                CheckReloadPrompt();
+			}
+        }
+
+        internal void CheckReloadPrompt()
+        {
+			if (AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == this)
+			{
+				if (Plugin.currentPanel != null)
+				{
+					if (FileChangeDetected && !_ignoreFileChange)
+					{
+						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(true);
+						Plugin.currentPanel.reloadBundlePrompt.audio.Play();
+						Plugin.currentPanel.reloadBundlePrompt.text.text = $"File update detected\nPress <color=orange>{ConfigManager.reloadFileKeybind.value}</color> to reload\n(Can be binded in the settings)";
+						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
+						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick.AddListener(() =>
+						{
+							ReloadBundle(false, false);
+						});
+
+                        Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick = new Button.ButtonClickedEvent();
+						Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick.AddListener(() =>
+                        {
+                            _ignoreFileChange = true;
+							Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
+							Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(false);
+						});
+					}
+					else
+					{
+						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(false);
+					}
+				}
+			}
+		}
+
+        private bool _loadedAfterPanelOpen = false;
+        internal BundleContainer(string path, AngryBundleData data)
+        {
+            Plugin.logger.LogInfo($"Creating bundle container for {path}");
+            pathToAngryBundle = path;
+            bundleData = data;
+            bundleGuid = bundleData.bundleGuid;
+
+            rootPanel = new ConfigPanelForBundles(this, ConfigManager.bundleDivision, data.bundleName, data.bundleGuid);
+            rootPanel.forceHidden = true;
+            rootPanel.onPannelOpenEvent += (external) =>
+            {
+                if (locator == null && !_loadedAfterPanelOpen)
+                {
+                    _loadedAfterPanelOpen = true;
+
+                    if (Updating)
+                    {
+                        updateTask.ContinueWith((task) =>
+                        {
+                            ReloadBundle(false, false);
+                        }, TaskScheduler.FromCurrentSynchronizationContext());
+                    }
+                    else
+                    {
+                        ReloadBundle(false, false);
+                    }
+                }
+            };
+
+            finalRankScore = new IntField(rootPanel, "final bundle rank", rootPanel.guid + "_finalRankCache", -1, true, false);
+            finalRankScore.postValueChangeEvent += (val) =>
+            {
+                if (val < 0)
+                {
+                    if (!LazyLoaded)
+                        ReloadBundle(false, true);
+                    else
+                        RecalculateFinalRank();
+                }
+                else
+                {
+                    UpdateFinalRankUI();
+                }
+            };
+
+            ButtonArrayField reloadButtons = new ButtonArrayField(rootPanel, rootPanel.guid + "_reloadButtons", 2, new float[2] { 0.5f, 0.5f }, new string[] { "Reload File", "Force Reload File" });
+            reloadButtons.OnClickEventHandler(0).onClick += () => ReloadBundle(false, false);
+            reloadButtons.OnClickEventHandler(1).onClick += () => ReloadBundle(true, false);
+
+            new SpaceField(rootPanel, 5);
+
+            new ConfigHeader(rootPanel, "Levels");
+            statusText = new ConfigHeader(rootPanel, "", 16, TMPro.TextAlignmentOptions.Left);
+            statusText.hidden = true;
+            loadingCircle = new LoadingCircleField(rootPanel);
+            loadingCircle.hidden = true;
+            sceneDiv = new ConfigDivision(rootPanel, "sceneDiv_" + rootPanel.guid);
+        }
+    }
+}
