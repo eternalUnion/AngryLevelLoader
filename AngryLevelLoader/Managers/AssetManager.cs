@@ -7,13 +7,13 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace AngryLevelLoader.Managers
 {
-	public abstract class AsyncObject
+	internal abstract class AsyncObject
 	{
 		public abstract bool completed { get; }
 		public abstract void WaitForCompletion();
 	}
 
-	public class AsyncAddressableObject<T> : AsyncObject where T : UnityEngine.Object
+	internal class AsyncAddressableObject<T> : AsyncObject where T : UnityEngine.Object
 	{
 		private bool _completed = false;
 		public override bool completed => _completed;
@@ -43,7 +43,7 @@ namespace AngryLevelLoader.Managers
 		}
 	}
 
-	public static class AssetManager
+	internal static class AssetManager
 	{
 		private static AsyncOperationHandle<bool> cleanBundleCacheHandle;
 		public static AsyncOperationHandle<bool> CleanBundleCache()

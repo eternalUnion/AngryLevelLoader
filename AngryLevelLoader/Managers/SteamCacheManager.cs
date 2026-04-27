@@ -9,14 +9,14 @@ using static UnityEngine.GraphicsBuffer;
 
 namespace AngryLevelLoader.Managers
 {
-    public struct SteamUserCache
+	internal struct SteamUserCache
     {
         public ulong steamId;
         public string name;
         public Texture2D profilePicture;
     }
 
-    public static class SteamCacheManager
+	internal static class SteamCacheManager
     {
         private static Dictionary<ulong, SteamUserCache> steamUserCacheDict = new Dictionary<ulong, SteamUserCache>();
         private static Dictionary<ulong, Task<SteamUserCache>> requestDict = new Dictionary<ulong, Task<SteamUserCache>>();

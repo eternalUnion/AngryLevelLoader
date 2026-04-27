@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches.NoMo
 {
 	[HarmonyPatch(typeof(DifficultyTitle))]
-	public static class DifficultyTitlePatches
+	internal static class DifficultyTitlePatches
 	{
 		[HarmonyPatch(nameof(DifficultyTitle.Check))]
 		[HarmonyPostfix]

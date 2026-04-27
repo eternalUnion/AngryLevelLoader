@@ -5,7 +5,7 @@ using Logic;
 namespace AngryLevelLoader.Patches.MapVars
 {
     [HarmonyPatch(typeof(MapFloatSetter))]
-    public static class MapFloatSetterPatches
+	internal static class MapFloatSetterPatches
     {
         [HarmonyPatch(nameof(MapFloatSetter.SetVar))]
         [HarmonyPrefix]

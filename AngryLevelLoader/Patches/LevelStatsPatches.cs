@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(LevelStats))]
-	public static class LevelStatsPatches
+	internal static class LevelStatsPatches
 	{
 		[HarmonyPatch(nameof(LevelStats.Start))]
 		[HarmonyPostfix]

@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(FinalRank), nameof(FinalRank.Start))]
-    class FinalRank_Start_Patch
+	internal class FinalRank_Start_Patch
     {
         [HarmonyPrefix]
         static bool Prefix(FinalRank __instance)
@@ -63,7 +63,7 @@ namespace AngryLevelLoader.Patches
     }
 
     [HarmonyPatch(typeof(FinalRank), nameof(FinalRank.CountSecrets))]
-    class FinalRank_CountSecrets_Patch
+	internal class FinalRank_CountSecrets_Patch
     {
         static bool Prefix(FinalRank __instance)
         {
@@ -95,7 +95,7 @@ namespace AngryLevelLoader.Patches
     }
 
     [HarmonyPatch(typeof(FinalRank), nameof(FinalRank.LevelChange))]
-    class FinalRank_LevelChange_Patch
+	internal class FinalRank_LevelChange_Patch
     {
         [HarmonyPrefix]
         static bool Prefix(FinalRank __instance)

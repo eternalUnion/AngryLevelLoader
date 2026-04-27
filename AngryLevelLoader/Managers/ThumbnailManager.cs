@@ -11,7 +11,7 @@ using static AngryLevelLoader.Managers.OnlineLevelsUI;
 
 namespace AngryLevelLoader.Managers
 {
-	class CachedTexture
+	internal class CachedTexture
 	{
 		public Texture2D texture;
 		public string hash;

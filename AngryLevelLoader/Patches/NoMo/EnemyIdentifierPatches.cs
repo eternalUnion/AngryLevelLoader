@@ -8,7 +8,7 @@ using UnityEngine;
 namespace AngryLevelLoader.Patches.NoMo
 {
     [HarmonyPatch(typeof(EnemyIdentifier))]
-    public static class EnemyIdentifierPatches
+	internal static class EnemyIdentifierPatches
     {
 		private class ForceDisable : MonoBehaviour
 		{

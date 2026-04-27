@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(SceneHelper))]
-	public static class SceneHelperPatches
+	internal static class SceneHelperPatches
 	{
 		[HarmonyPatch(nameof(SceneHelper.LoadScene))]
 		[HarmonyPrefix]

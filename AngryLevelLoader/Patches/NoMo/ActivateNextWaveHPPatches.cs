@@ -9,7 +9,7 @@ using static UnityEngine.GraphicsBuffer;
 namespace AngryLevelLoader.Patches.NoMo
 {
 	[HarmonyPatch(typeof(ActivateNextWaveHP))]
-	public static class ActivateNextWaveHPPatches
+	internal static class ActivateNextWaveHPPatches
 	{
 		[HarmonyPatch(nameof(ActivateNextWaveHP.Update))]
 		[HarmonyPrefix]

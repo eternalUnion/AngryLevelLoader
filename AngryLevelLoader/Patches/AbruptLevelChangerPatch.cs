@@ -6,7 +6,7 @@ namespace AngryLevelLoader.Patches
 {
     //Support custom level ids when using the AbruptLevelChanger component
     [HarmonyPatch]
-    public static class AbrutptLevelChangerPatch
+	internal static class AbrutptLevelChangerPatch
     {
         [HarmonyPatch(typeof(AbruptLevelChanger), nameof(AbruptLevelChanger.AbruptChangeLevel)), HarmonyPrefix]
         public static bool OnAbruptChangeLevel(AbruptLevelChanger __instance, string __0)

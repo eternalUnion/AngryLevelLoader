@@ -10,7 +10,7 @@ namespace AngryLevelLoader.Patches
 	// Gotta be very careful here
 
 	[HarmonyPatch(typeof(GameProgressSaver))]
-	public class GameProgressSaverPatches
+	internal class GameProgressSaverPatches
 	{
 		[HarmonyPatch(nameof(GameProgressSaver.GetRankData), new Type[] { typeof(string), typeof(int), typeof(bool) }, new ArgumentType[] { ArgumentType.Out, ArgumentType.Normal, ArgumentType.Normal })]
 		[HarmonyPriority(Priority.HigherThanNormal)]

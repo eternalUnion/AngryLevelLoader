@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace AngryLevelLoader.Patches.NoMo
 {
     [HarmonyPatch(typeof(DisabledEnemiesChecker))]
-    public static class DisabledEnemiesCheckerPatches
+	internal static class DisabledEnemiesCheckerPatches
     {
         [HarmonyPatch(nameof(DisabledEnemiesChecker.Update))]
         [HarmonyPrefix]

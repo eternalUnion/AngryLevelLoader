@@ -11,7 +11,7 @@ using AngryLevelLoader.Managers;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(MenuEsc))]
-	public class MenuEscPatches
+	internal class MenuEscPatches
 	{
 		[HarmonyPatch(nameof(MenuEsc.Update))]
 		[HarmonyPrefix]

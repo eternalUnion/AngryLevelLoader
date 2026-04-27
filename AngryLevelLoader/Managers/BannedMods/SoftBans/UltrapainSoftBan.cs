@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class UltrapainSoftBan : SoftBan
+	internal class UltrapainSoftBan : SoftBan
 	{
 		public override string ModGuid => "com.eternalUnion.ultraPain";
 

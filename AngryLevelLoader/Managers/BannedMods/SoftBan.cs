@@ -6,11 +6,11 @@ using System.Text;
 namespace AngryLevelLoader.Managers.BannedMods
 {
 	[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-	public class SoftBanClassAttribute : Attribute
+	internal class SoftBanClassAttribute : Attribute
 	{
 	}
 
-	public struct SoftBanCheckResult
+	internal struct SoftBanCheckResult
 	{
 		public bool banned;
 		public string message;
@@ -28,7 +28,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 		}
 	}
 
-	public abstract class SoftBan
+	internal abstract class SoftBan
 	{
 		public abstract string ModGuid { get; }
 

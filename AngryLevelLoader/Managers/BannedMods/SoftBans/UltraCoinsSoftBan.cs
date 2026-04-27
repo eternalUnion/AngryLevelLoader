@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class UltraCoinsSoftBan : SoftBan
+	internal class UltraCoinsSoftBan : SoftBan
 	{
 		private static bool currentlyBanned = false;
 

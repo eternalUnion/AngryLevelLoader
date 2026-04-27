@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(OptionsManager))]
-	public static class OptionsManagerPatches
+	internal static class OptionsManagerPatches
 	{
 		[HarmonyPatch(nameof(OptionsManager.UnPause))]
 		[HarmonyPostfix]

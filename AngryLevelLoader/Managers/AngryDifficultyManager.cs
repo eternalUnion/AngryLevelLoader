@@ -21,12 +21,12 @@ namespace AngryLevelLoader.Managers
 			this.difficulty = difficulty;
 		}
 
-		public virtual void SetDifficulty()
+		internal virtual void SetDifficulty()
 		{
 			PrefsManager.Instance.SetInt("difficulty", difficulty);
 		}
 
-		public virtual void UnsetDifficulty()
+		internal virtual void UnsetDifficulty()
 		{
 		}
 
@@ -74,7 +74,7 @@ namespace AngryLevelLoader.Managers
 				Ultrapain.Plugin.realUltrapainDifficulty = true;
 			}
 
-			public override void SetDifficulty()
+			internal override void SetDifficulty()
 			{
 				if (IsSupported)
 				{
@@ -94,7 +94,7 @@ namespace AngryLevelLoader.Managers
 				Ultrapain.Plugin.realUltrapainDifficulty = false;
 			}
 
-			public override void UnsetDifficulty()
+			internal override void UnsetDifficulty()
 			{
 				if (IsSupported)
 				{
@@ -159,7 +159,7 @@ namespace AngryLevelLoader.Managers
 				PrefsManager.Instance.SetInt("difficulty", 19);
 			}
 
-			public override void SetDifficulty()
+			internal override void SetDifficulty()
 			{
 				if (IsSupported)
 				{
@@ -214,7 +214,7 @@ namespace AngryLevelLoader.Managers
 				PrefsManager.Instance.SetInt("difficulty", 19);
 			}
 
-			public override void SetDifficulty()
+			internal override void SetDifficulty()
 			{
 				if (IsSupported)
 				{
@@ -243,6 +243,27 @@ namespace AngryLevelLoader.Managers
 		/// Difficulty selected from Angry panel. May be overwritten by gamemode.
 		/// </summary>
 		public static AngryDifficulty SelectedDifficulty { get; internal set; } = VIOLENT;
+
+		/// <summary>
+		/// Set the config value for the difficulty used by angry. This method will have no effect if a custom level
+		/// is being played (can be checked by <see cref="AngrySceneManager.isInCustomLevel"/>). This method will have no
+		/// effect if difficulty parameter is not in <see cref="Difficulties"/>.
+		/// </summary>
+		/// <param name="difficulty">One of the difficulties inside <see cref="Difficulties"/></param>
+		/// <returns>True if difficulty was changed. False if a custom level is being played or parameter is invalid.</returns>
+		public static bool SetDifficulty(AngryDifficulty difficulty)
+		{
+			if (AngrySceneManager.isInCustomLevel)
+				return false;
+
+			int difficultyIndex = Difficulties.IndexOf(difficulty);
+			if (difficultyIndex == -1)
+				return false;
+
+			ConfigManager.difficultyField.difficultyListValueIndex = difficultyIndex;
+			ConfigManager.difficultyField.postDifficultyChange.Invoke(difficulty.name, difficultyIndex);
+			return true;
+		}
 
 		/// <summary>
 		/// List of supported difficulties. Can include modded difficulties.
@@ -296,7 +317,7 @@ namespace AngryLevelLoader.Managers
 		}
 
 		// After clicking a difficulty button in the act menu, change the difficulty accordingly
-		public static void SetDifficultyFromPrefs()
+		internal static void SetDifficultyFromPrefs()
 		{
 			int difficulty = PrefsManager.Instance.GetInt("difficulty", 3);
 			switch (difficulty)

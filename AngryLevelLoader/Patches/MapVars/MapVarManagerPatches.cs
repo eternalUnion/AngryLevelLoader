@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace AngryLevelLoader.Patches.MapVars
 {
     [HarmonyPatch(typeof(MapVarManager))]
-    public static class MapVarManagerPatches
+	internal static class MapVarManagerPatches
     {
         //Add the AngryMapVarManager to the MapVarManager on Start.
         [HarmonyPatch(nameof(MapVarManager.Start))]

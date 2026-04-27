@@ -4,7 +4,7 @@ using RudeLevelScript;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(FinalPit), nameof(FinalPit.SendInfo))]
-	public static class FinalPit_SendInfo_Patch
+	internal static class FinalPit_SendInfo_Patch
 	{
 		public static FinalRoomTarget lastTarget = null;
 

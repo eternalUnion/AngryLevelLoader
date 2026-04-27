@@ -18,7 +18,7 @@ using TMPro;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(LevelEndLeaderboard))]
-	public static class LevelEndLeaderboardPatches
+	internal static class LevelEndLeaderboardPatches
 	{
 		public static AngryLeaderboards.RecordCategory currentCategory = AngryLeaderboards.RecordCategory.ALL;
 

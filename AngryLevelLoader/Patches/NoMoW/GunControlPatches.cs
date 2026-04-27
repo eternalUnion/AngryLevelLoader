@@ -8,7 +8,7 @@ using UnityEngine;
 namespace AngryLevelLoader.Patches.NoMoW
 {
 	[HarmonyPatch(typeof(GunControl))]
-	public static class GunControlPatches
+	internal static class GunControlPatches
 	{
 		[HarmonyPatch(nameof(GunControl.ForceWeapon))]
 		[HarmonyPrefix]

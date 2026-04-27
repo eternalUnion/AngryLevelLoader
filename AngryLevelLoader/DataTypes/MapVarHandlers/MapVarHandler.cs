@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AngryLevelLoader.DataTypes.MapVarHandlers
 {
-    public class MapVarHandler
+	internal class MapVarHandler
     {
         protected VarStore currentStore;
         protected VarStore stashedStore;

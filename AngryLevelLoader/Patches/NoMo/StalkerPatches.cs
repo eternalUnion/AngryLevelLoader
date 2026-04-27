@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches.NoMo
 {
 	[HarmonyPatch(typeof(Stalker))]
-	public static class StalkerPatches
+	internal static class StalkerPatches
 	{
 		[HarmonyPatch(nameof(Stalker.SandExplode))]
 		[HarmonyPrefix]

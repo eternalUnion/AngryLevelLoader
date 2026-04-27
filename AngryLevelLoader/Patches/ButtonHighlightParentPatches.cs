@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(ButtonHighlightParent))]
-    class ButtonHighlightParentPatches
+	internal class ButtonHighlightParentPatches
     {
         /*
          * A simple patch which prevents ButtonHighlightParent.Start() from getting called

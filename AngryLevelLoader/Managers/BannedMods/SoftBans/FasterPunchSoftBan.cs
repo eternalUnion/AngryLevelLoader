@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class FasterPunchSoftBan : SoftBan
+	internal class FasterPunchSoftBan : SoftBan
 	{
 		private static bool currentlyBanned = false;
 

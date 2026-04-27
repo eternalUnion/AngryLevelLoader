@@ -7,7 +7,7 @@ using static AngryLevelLoader.Managers.LegacyPatches.LegacyPatchManager;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {
-	public static class V7LegacyPlayerPatches
+	internal static class V7LegacyPlayerPatches
 	{
 		private static LazyAddressableAsset<GameObject> PLAYER_PREFAB = new LazyAddressableAsset<GameObject>("Assets/Prefabs/Player/Player.prefab");
 

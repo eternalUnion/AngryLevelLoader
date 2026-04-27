@@ -12,7 +12,7 @@ namespace AngryLevelLoader.Patches
 	// To prevent error if the shader is not attached
 
 	[HarmonyPatch(typeof(MeshCombineManager))]
-	public static class MeshCombineManagerPatches
+	internal static class MeshCombineManagerPatches
 	{
 		static Shader atlasedShader;
 		static Shader vertexlitShader;

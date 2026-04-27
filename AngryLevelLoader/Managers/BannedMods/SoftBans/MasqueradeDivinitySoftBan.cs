@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class MasqueradeDivinitySoftBan : SoftBan
+	internal class MasqueradeDivinitySoftBan : SoftBan
 	{
 		public override string ModGuid => "maranara_project_prophet";
 

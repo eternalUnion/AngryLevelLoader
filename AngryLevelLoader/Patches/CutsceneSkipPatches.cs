@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(CutsceneSkip))]
-    public class CutsceneSkipPatches
+	internal class CutsceneSkipPatches
     {
         [HarmonyPatch(nameof(CutsceneSkip.Start))]
         [HarmonyPrefix]

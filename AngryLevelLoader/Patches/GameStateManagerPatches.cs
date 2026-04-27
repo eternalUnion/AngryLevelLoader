@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(LeaderboardController))]
-    class GameStateManagerPatches
+	internal class GameStateManagerPatches
     {
         /**
          * This patch prevents scores never being posted because of GameStateManager.CanSubmitScores

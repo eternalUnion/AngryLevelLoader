@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches.NoMo
 {
 	[HarmonyPatch(typeof(StatueActivator))]
-	public static class StatueActivatorPatches
+	internal static class StatueActivatorPatches
 	{
 		[HarmonyPatch(nameof(StatueActivator.Start))]
 		[HarmonyPrefix]

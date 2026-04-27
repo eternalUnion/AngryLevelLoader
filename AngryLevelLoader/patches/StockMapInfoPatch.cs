@@ -15,7 +15,7 @@ namespace AngryLevelLoader.Patches
 	 */
 
 	[HarmonyPatch(typeof(StockMapInfo), nameof(StockMapInfo.Awake))]
-	public static class StockMapInfoPatch
+	internal static class StockMapInfoPatch
 	{
 		[HarmonyPostfix]
 		public static void Postfix()

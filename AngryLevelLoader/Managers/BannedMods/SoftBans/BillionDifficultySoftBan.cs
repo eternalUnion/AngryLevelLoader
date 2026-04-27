@@ -9,7 +9,7 @@ using System.Text;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class BillionDifficultySoftBan : SoftBan
+	internal class BillionDifficultySoftBan : SoftBan
 	{
 		public override string ModGuid => "billy.billiondifficulty";
 

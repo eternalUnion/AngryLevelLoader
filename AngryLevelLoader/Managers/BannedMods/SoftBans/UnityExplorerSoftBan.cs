@@ -11,7 +11,7 @@ using UnityExplorer.UI;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class UnityExplorerSoftBan : SoftBan
+	internal class UnityExplorerSoftBan : SoftBan
 	{
 		private static bool currentlyBanned = false;
 

@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
     [HarmonyPatch(typeof(ChallengeManager))]
-    public static class ChallengeManagerPatch
+	internal static class ChallengeManagerPatch
     {
         [HarmonyPatch(nameof(ChallengeManager.OnEnable))]
         [HarmonyPrefix]

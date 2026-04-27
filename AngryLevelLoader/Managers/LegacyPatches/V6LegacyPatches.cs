@@ -11,7 +11,7 @@ using static AngryLevelLoader.Managers.LegacyPatches.LegacyPatchManager;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {
-	public static class V6LegacyScriptPatches
+	internal static class V6LegacyScriptPatches
 	{
 		public static void Patch(Harmony harmony)
 		{
@@ -24,7 +24,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		}
 	}
 
-	public static class V6LegacyEnemyPatches
+	internal static class V6LegacyEnemyPatches
 	{
 		private static LazyAddressableAsset<GameObject> MINDFLAYER_BEAM = new LazyAddressableAsset<GameObject>("Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Mindflayer Beam.prefab");
 

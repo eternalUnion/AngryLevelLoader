@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
-	public class WipFixHardBan : SoftBan
+	internal class WipFixHardBan : SoftBan
 	{
 		public override string ModGuid => "maranara_whipfix";
 

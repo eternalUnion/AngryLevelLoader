@@ -16,7 +16,7 @@ using UnityEngine.UI;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.Awake))]
-	class StatsManager_Awake_Patch
+	internal class StatsManager_Awake_Patch
 	{
 		public static bool Prefix(StatsManager __instance)
 		{
@@ -52,7 +52,7 @@ namespace AngryLevelLoader.Patches
 	}
 
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.SecretFound))]
-	class StatsManager_SecretFound_Patch
+	internal class StatsManager_SecretFound_Patch
 	{
 		// Handle secret found trigger for custom levels
 		[HarmonyPrefix]
@@ -79,7 +79,7 @@ namespace AngryLevelLoader.Patches
 	}
 
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.SendInfo))]
-	class StatsManager_SendInfo_Patch
+	internal class StatsManager_SendInfo_Patch
 	{
 		static string RemoveFormatting(string str)
 		{

@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(DiscordController))]
-	public static class DiscordControllerPatches
+	internal static class DiscordControllerPatches
 	{
 		[HarmonyPatch(nameof(DiscordController.FetchSceneActivity))]
 		[HarmonyPrefix]

@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	//[SoftBanClass]
-	//public class UltraFunGunsSoftBan : SoftBan
+	//internal class UltraFunGunsSoftBan : SoftBan
 	//{
 	//	private static bool currentlyBanned = false;
 
@@ -56,7 +56,7 @@ namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 	//		SoftBanCheckResult result = new SoftBanCheckResult();
 
 	//		var loadout = UltraFunGuns.Data.Loadout.Data;
-			
+
 	//		foreach (var slot in loadout.slots)
 	//		{
 	//			foreach (var node in slot.slotNodes)

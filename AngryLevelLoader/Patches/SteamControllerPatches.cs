@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(SteamController))]
-	public static class SteamControllerPatches
+	internal static class SteamControllerPatches
 	{
 		[HarmonyPatch(nameof(SteamController.FetchSceneActivity))]
 		[HarmonyPrefix]

@@ -11,7 +11,7 @@ using UnityEngine;
 namespace AngryLevelLoader.Patches.NoMo
 {
     [HarmonyPatch(typeof(ActivateArena))]
-    public static class ActivateArenaPatches
+	internal static class ActivateArenaPatches
     {
         [HarmonyPatch(nameof(ActivateArena.Activate))]
         [HarmonyPrefix]

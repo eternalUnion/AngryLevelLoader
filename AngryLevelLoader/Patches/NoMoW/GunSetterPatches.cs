@@ -7,7 +7,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches.NoMoW
 {
 	[HarmonyPatch(typeof(GunSetter))]
-	public static class GunSetterPatches
+	internal static class GunSetterPatches
 	{
 		[HarmonyPatch(nameof(GunSetter.ResetWeapons))]
 		[HarmonyPrefix]

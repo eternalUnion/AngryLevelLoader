@@ -7,7 +7,7 @@ using System.IO;
 
 namespace AngryLevelLoader.DataTypes.MapVarHandlers
 {
-    public class PersistentMapVarHandler : MapVarHandler
+	internal class PersistentMapVarHandler : MapVarHandler
     {
         public string FilePath;
 

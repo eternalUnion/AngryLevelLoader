@@ -6,7 +6,7 @@ using System.Text;
 namespace AngryLevelLoader.Patches
 {
 	[HarmonyPatch(typeof(Bonus))]
-	class BonusPatches
+	internal class BonusPatches
 	{
 		internal static Bonus lastCaller = null;
 

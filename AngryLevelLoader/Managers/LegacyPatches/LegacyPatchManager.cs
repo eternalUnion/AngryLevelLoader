@@ -50,14 +50,14 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		}
 	}
 
-	public enum LegacyPatchState
+	internal enum LegacyPatchState
 	{
 		None,
 		V6,
 		V7,
 	}
 
-	public class LegacyPatchManager
+	internal class LegacyPatchManager
 	{
 		public const BindingFlags INSTANCE = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 		public const BindingFlags STATIC = BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
