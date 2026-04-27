@@ -11,7 +11,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Notifications
 {
-    public class DeleteBundleNotification : NotificationPanel.Notification
+	internal class DeleteBundleNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH = "AngryLevelLoader/Notifications/BundleDeleteNotification.prefab";
 

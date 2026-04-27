@@ -11,7 +11,7 @@ using UnityEngine.AddressableAssets;
 
 namespace AngryLevelLoader.Notifications
 {
-	public class ResetUserMapVarNotification : NotificationPanel.Notification
+	internal class ResetUserMapVarNotification : NotificationPanel.Notification
 	{
 		public const string ASSET_PATH = "AngryLevelLoader/Notifications/ResetUserMapVarNotification.prefab";
 

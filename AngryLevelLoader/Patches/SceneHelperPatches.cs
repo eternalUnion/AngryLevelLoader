@@ -117,7 +117,7 @@ namespace AngryLevelLoader.Patches
         {
             if (AngrySceneManager.isInCustomLevel)
             {
-				__result = AngrySceneManager.currentLevelContainer.finalRank.value != "-";
+				__result = AngrySceneManager.currentLevelContainer.FinalRank != '-';
             }
         }
     }

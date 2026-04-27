@@ -366,7 +366,7 @@ namespace AngryLevelLoader.Fields
                 }
 			});
             currentUi.install.gameObject.AddComponent<DisableWhenHidden>();
-            UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.install,
+            AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.install,
                 (e) =>
                 {
                     if (InstallActive)
@@ -408,7 +408,7 @@ namespace AngryLevelLoader.Fields
             });
             currentUi.upvoteButton.gameObject.AddComponent<DisableWhenHidden>();
             currentUi.upvoteButton.gameObject.SetActive(false);
-			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.upvoteButton,
+			AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.upvoteButton,
                 (e) => currentUi.upvoteButton.gameObject.SetActive(!OnlineBundle.Locked),
                 (e) => currentUi.upvoteButton.gameObject.SetActive(false)
                 );
@@ -444,7 +444,7 @@ namespace AngryLevelLoader.Fields
 			});
 			currentUi.downvoteButton.gameObject.AddComponent<DisableWhenHidden>();
 			currentUi.downvoteButton.gameObject.SetActive(false);
-			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.downvoteButton,
+			AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.downvoteButton,
 				(e) => currentUi.downvoteButton.gameObject.SetActive(!OnlineBundle.Locked),
 				(e) => currentUi.downvoteButton.gameObject.SetActive(false)
 				);
@@ -459,7 +459,7 @@ namespace AngryLevelLoader.Fields
             });
             currentUi.changelog.gameObject.AddComponent<DisableWhenHidden>();
             currentUi.changelog.gameObject.SetActive(false);
-            UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.changelog,
+            AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.changelog,
                 (e) =>
                 {
                     if (!Downloading)
@@ -492,7 +492,7 @@ namespace AngryLevelLoader.Fields
                 }
             });
             currentUi.update.gameObject.AddComponent<DisableWhenHidden>();
-			UIUtils.AddMouseEvents(currentUi.gameObject, currentUi.update,
+			AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.update,
 				(e) =>
 				{
 					if (UpdateActive)
@@ -663,7 +663,7 @@ namespace AngryLevelLoader.Fields
                 req.Dispose();
             }
 
-            string combinedFilePath = Path.Combine(tempDownloadDir, IOUtils.GetUniqueFileName(tempDownloadDir, "combined_file"));
+            string combinedFilePath = Path.Combine(tempDownloadDir, AngryIOUtils.GetUniqueFileName(tempDownloadDir, "combined_file"));
             using (FileStream str = File.Open(combinedFilePath, FileMode.OpenOrCreate, FileAccess.Write))
 			{
 				str.Position = 0;
@@ -705,7 +705,7 @@ namespace AngryLevelLoader.Fields
 			string destinationFolder = Plugin.levelsPath;
 			if (!Directory.Exists(destinationFolder))
 				Directory.CreateDirectory(destinationFolder);
-			string destinationFile = Path.Combine(destinationFolder, IOUtils.GetUniqueFileName(destinationFolder, IOUtils.GetPathSafeName(bundle.Name) + ".angry"));
+			string destinationFile = Path.Combine(destinationFolder, AngryIOUtils.GetUniqueFileName(destinationFolder, AngryIOUtils.GetPathSafeName(bundle.Name) + ".angry"));
 			if (Bundle != null && !string.IsNullOrEmpty(Bundle.pathToAngryBundle) && File.Exists(Bundle.pathToAngryBundle))
 				destinationFile = Bundle.pathToAngryBundle;
 
@@ -731,7 +731,7 @@ namespace AngryLevelLoader.Fields
                 File.Move(combinedFilePath, destinationFile);
             }
 
-			if (Bundle == null || !IOUtils.PathEquals(Bundle.pathToAngryBundle, destinationFile))
+			if (Bundle == null || !AngryIOUtils.PathEquals(Bundle.pathToAngryBundle, destinationFile))
             {
                 // Plugin.ProcessPath(destinationFile);
                 Plugin.ScanForLevels();

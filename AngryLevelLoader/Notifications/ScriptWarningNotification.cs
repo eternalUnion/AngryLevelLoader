@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Notifications
 {
-    public class ScriptWarningNotification : NotificationPanel.Notification
+	internal class ScriptWarningNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH = "AngryLevelLoader/Notifications/ScriptWarningNotification.prefab";
 

@@ -1,4 +1,5 @@
-﻿using AngryLevelLoader.Managers;
+﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using HarmonyLib;
 using RudeLevelScripts.Essentials;
@@ -41,9 +42,11 @@ namespace AngryLevelLoader.Patches
 
 			__instance.prevSecrets.Clear();
 			__instance.newSecrets.Clear();
-			string secretsStr = AngrySceneManager.currentLevelContainer.secrets.value;
-			for (int i = 0; i < secretsStr.Length; i++)
-				if (secretsStr[i] == 'T')
+
+			LevelContainer currentLevel = AngrySceneManager.currentLevelContainer;
+
+			for (int i = 0; i < currentLevel.SecretCount; i++)
+				if (currentLevel.SecretDiscovered(i))
 					__instance.prevSecrets.Add(i);
 		}
 	}
@@ -67,12 +70,7 @@ namespace AngryLevelLoader.Patches
 			if (BonusPatches.lastCaller.GetComponent<IgnoreSecret>() != null)
 				return false;
 
-			string currentSecrets = AngrySceneManager.currentLevelContainer.secrets.value;
-			StringBuilder sb = new StringBuilder(currentSecrets);
-			sb[__0] = 'T';
-
-			AngrySceneManager.currentLevelContainer.secrets.value = sb.ToString();
-			AngrySceneManager.currentLevelContainer.UpdateUI();
+			AngrySceneManager.currentLevelContainer.SetSecretDiscovered(__0, true);
 
 			__instance.newSecrets.Add(__0);
 
@@ -134,10 +132,10 @@ namespace AngryLevelLoader.Patches
 						newChild.GetComponent<Image>().color = new Color(0, 0, 0, 0);
 					}
 
-					string secretStr = AngrySceneManager.currentLevelContainer.secrets.value;
+					LevelContainer currentLevel = AngrySceneManager.currentLevelContainer;
 					for (int i = 0; i < secrets.Count; i++)
 					{
-						if (secretStr[i] == 'T')
+						if (currentLevel.SecretDiscovered(i))
 							secrets[i].GetComponent<Image>().color = Color.white;
 						else
 							secrets[i].GetComponent<Image>().color = Color.black;
@@ -242,9 +240,9 @@ namespace AngryLevelLoader.Patches
 			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
 			if (secretLevel && isPlayingWithoutGamemode)
 			{
-				char prevRank = AngrySceneManager.currentLevelContainer.finalRank.value[0];
+				char prevRank = AngrySceneManager.currentLevelContainer.FinalRank;
 				if (prevRank != 'P')
-					AngrySceneManager.currentLevelContainer.finalRank.value = AssistController.instance.cheatsEnabled ? " " : "P";
+					AngrySceneManager.currentLevelContainer.FinalRank = AssistController.Instance.cheatsEnabled ? ' ' : 'P';
 
 				return;
 			}
@@ -255,44 +253,45 @@ namespace AngryLevelLoader.Patches
 			if (currentRank == '-')
 				currentRank = ' ';
 
-			int previousRankScore = RankUtils.GetRankScore(AngrySceneManager.currentLevelContainer.finalRank.value[0]);
-			int currentRankScore = RankUtils.GetRankScore(currentRank);
+			int previousRankScore = AngryRankUtils.GetRankScore(AngrySceneManager.currentLevelContainer.FinalRank);
+			int currentRankScore = AngryRankUtils.GetRankScore(currentRank);
 
-			bool usedCheats = AssistController.instance.cheatsEnabled;
-			bool challengeCompletedThisSeason = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
-			bool challengeCompletedBefore = AngrySceneManager.currentLevelContainer.challenge.value;
-            bool playerBestWithoutCheats = !usedCheats && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < AngrySceneManager.currentLevelContainer.time.value));
+			bool usedCheats = AssistController.Instance.cheatsEnabled;
+			bool challengeCompletedThisSeason = ChallengeManager.Instance.challengeDone && !ChallengeManager.Instance.challengeFailed;
+			bool challengeCompletedBefore = AngrySceneManager.currentLevelContainer.ChallengeDone;
+            bool playerBestWithoutCheats = !usedCheats && (currentRankScore > previousRankScore || (currentRankScore == previousRankScore && __instance.seconds < AngrySceneManager.currentLevelContainer.Time));
 			bool firstTimeWithCheats = previousRankScore == -1 && usedCheats;
 
 			if (!usedCheats)
 			{
                 if (!challengeCompletedBefore && AngrySceneManager.currentLevelData.levelChallengeEnabled)
 				{
-                    AngrySceneManager.currentLevelContainer.challenge.value = challengeCompletedThisSeason;
-                    AngrySceneManager.currentLevelContainer.UpdateUI();
+                    AngrySceneManager.currentLevelContainer.ChallengeDone = challengeCompletedThisSeason;
                 }
             }
 
 			if ((playerBestWithoutCheats || firstTimeWithCheats) && isPlayingWithoutGamemode)
 			{
-				AngrySceneManager.currentLevelContainer.time.value = __instance.seconds;
-				AngrySceneManager.currentLevelContainer.timeRank.value = RemoveFormatting(__instance.fr.timeRank.text);
-				AngrySceneManager.currentLevelContainer.kills.value = __instance.kills;
-				AngrySceneManager.currentLevelContainer.killsRank.value = RemoveFormatting(__instance.fr.killsRank.text);
-				AngrySceneManager.currentLevelContainer.style.value = __instance.stylePoints;
-				AngrySceneManager.currentLevelContainer.styleRank.value = RemoveFormatting(__instance.fr.styleRank.text);
+				string timeRank = RemoveFormatting(__instance.fr.timeRank.text);
+				string killsRank = RemoveFormatting(__instance.fr.killsRank.text);
+				string styleRank = RemoveFormatting(__instance.fr.styleRank.text);
+
+				AngrySceneManager.currentLevelContainer.Time = __instance.seconds;
+				AngrySceneManager.currentLevelContainer.TimeRank = (timeRank.Length == 0) ? '-' : timeRank[0];
+				AngrySceneManager.currentLevelContainer.Kills = __instance.kills;
+				AngrySceneManager.currentLevelContainer.KillsRank = (killsRank.Length == 0) ? '-' : killsRank[0];
+				AngrySceneManager.currentLevelContainer.Style = __instance.stylePoints;
+				AngrySceneManager.currentLevelContainer.StyleRank = (styleRank.Length == 0) ? '-' : styleRank[0];
 
 				if (usedCheats)
 				{
-					AngrySceneManager.currentLevelContainer.finalRank.value = " ";
+					AngrySceneManager.currentLevelContainer.FinalRank = ' ';
 				}
 				else
 				{
-					AngrySceneManager.currentLevelContainer.finalRank.value = RemoveFormatting(__instance.fr.totalRank.text);
+					string finalRank = RemoveFormatting(__instance.fr.totalRank.text);
+					AngrySceneManager.currentLevelContainer.FinalRank = (finalRank.Length == 0) ? '-' : finalRank[0];
 				}
-
-				AngrySceneManager.currentBundleContainer.RecalculateFinalRank();
-				AngrySceneManager.currentLevelContainer.UpdateUI();
 			}
 
 			// Set challenge text

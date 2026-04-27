@@ -70,14 +70,13 @@ namespace AngryLevelLoader.Patches
             if (!AngrySceneManager.isInCustomLevel)
                 return true;
 
-            AngrySceneManager.currentLevelContainer.AssureSecretsSize();
             if (__instance.secretsCheckProgress >= AngrySceneManager.currentLevelData.secretCount)
             {
                 __instance.Invoke("Appear", __instance.timeBetween);
                 return false;
             }
 
-            if (AngrySceneManager.currentLevelContainer.secrets.value[__instance.secretsCheckProgress] != 'T')
+            if (!AngrySceneManager.currentLevelContainer.SecretDiscovered(__instance.secretsCheckProgress))
             {
                 __instance.secretsInfo[__instance.secretsCheckProgress].color = Color.black;
                 __instance.secretsCheckProgress += 1;
@@ -124,7 +123,7 @@ namespace AngryLevelLoader.Patches
             }
 
             //Load the level
-            AngrySceneManager.LoadLevel(level.container, level, level.data, level.data.scenePath, showBlocker: false);
+            AngrySceneManager.LoadLevel(level, showBlocker: false);
             return false;
         }
     }

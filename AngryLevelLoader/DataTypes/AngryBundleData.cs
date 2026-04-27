@@ -6,7 +6,11 @@ using System.Text;
 
 namespace AngryLevelLoader.DataTypes
 {
-    public class AngryBundleData
+	/// <summary>
+	/// Metadata for an angry bundle. This object is stored inside data.json, which is
+	/// located inside the angry file.
+	/// </summary>
+	public class AngryBundleData
     {
         // V2-V6
         public string bundleName { get; set; }

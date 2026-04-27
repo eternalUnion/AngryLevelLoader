@@ -168,7 +168,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 		public static async Task<AngryResult<Resp, Stat>> MakeRequestWithAdminToken<Resp, Stat>(string url, AngryResult<Resp, Stat> result, Stat invalidTokenStatus, Stat missingKeyStatus, CancellationToken cancellationToken = default, string method = "GET", string body = null, string contentType = null, bool tokenRequested = false) where Resp : AngryResponse where Stat : Enum
 		{
-			if (string.IsNullOrEmpty(CryptographyUtils.AdminPrivateKey))
+			if (string.IsNullOrEmpty(AngryCryptographyUtils.AdminPrivateKey))
 			{
 				result.status = missingKeyStatus;
 				result.completed = true;
@@ -179,7 +179,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 			if (!invalidToken || tokenRequested)
 			{
-				string encryptedToken = Convert.ToBase64String(CryptographyUtils.Encrypt(AngryUser.token, CryptographyUtils.AdminPrivateKey));
+				string encryptedToken = Convert.ToBase64String(AngryCryptographyUtils.Encrypt(AngryUser.token, AngryCryptographyUtils.AdminPrivateKey));
 				string urlWithToken = (url.EndsWith("?") ? url + $"steamId={AngryUser.steamId}&token={encryptedToken}" : url + $"&steamId={AngryUser.steamId}&token={encryptedToken}");
 				UnityWebRequest req = new UnityWebRequest(urlWithToken, method);
 				req.downloadHandler = new DownloadHandlerBuffer();

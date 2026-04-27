@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Fields
 {
-    public class ConfigPanelForBundles : ConfigPanel
+    internal class ConfigPanelForBundles : ConfigPanel
     {
         private class HideOnDisable : MonoBehaviour
         {
@@ -125,7 +125,7 @@ namespace AngryLevelLoader.Fields
                 rankBg.fillCenter = _fillBgCenter;
 
                 deleteButton = Addressables.InstantiateAsync(ASSET_PATH_DELETE_BUTTON, currentMenu.transform).WaitForCompletion().GetComponent<Button>();
-                UIUtils.AddMouseEvents(currentMenu.gameObject, deleteButton,
+                AngryUIUtils.AddMouseEvents(currentMenu.gameObject, deleteButton,
                     (e) => deleteButton.gameObject.SetActive(true),
                     (e) => deleteButton.gameObject.SetActive(false));
                 deleteButton.gameObject.SetActive(false);

@@ -19,7 +19,7 @@ namespace AngryLevelLoader.Notifications
         }
     }
 
-    class DeleteOldBundlesNotification : NotificationPanel.Notification
+    internal class DeleteOldBundlesNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH = "AngryLevelLoader/Notifications/DeleteOldBundlesNotification.prefab";
 

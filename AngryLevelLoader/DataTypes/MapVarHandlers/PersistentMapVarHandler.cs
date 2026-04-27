@@ -230,7 +230,7 @@ namespace AngryLevelLoader.DataTypes.MapVarHandlers
         //Saves current persistent mapvars to their respective files.
         public void Save()
         {
-            IOUtils.TryCreateDirectory(GetFolder());
+            AngryIOUtils.TryCreateDirectory(GetFolder());
             UpdateWriteVarStore(GetFilePath(), currentStore);
         }
 

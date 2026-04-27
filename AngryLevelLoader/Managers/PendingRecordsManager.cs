@@ -109,7 +109,7 @@ namespace AngryLevelLoader.Managers
 						bundleName = bundle.BundleName;
 
 					if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
-						levelName = level.data.levelName;
+						levelName = level.LevelName;
 					ConfigManager.pendingRecordsInfo.text += $"Bundle: <color=grey>{bundleName}</color>\nLevel: <color=grey>{levelName}</color>\nCategory: <color=grey>{record.category}</color>\nDifficulty: <color=grey>{record.difficulty}</color>\nTime: <color=grey>{record.time}</color>\n\n\n";
 				}
 			}
@@ -151,7 +151,7 @@ namespace AngryLevelLoader.Managers
 					bundleName = bundle.BundleName;
 
 				if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer level))
-					levelName = level.data.levelName;
+					levelName = level.LevelName;
 
 				if (!record.TryParseRecordInfo(out PostRecordInfo parsedRecord))
 				{

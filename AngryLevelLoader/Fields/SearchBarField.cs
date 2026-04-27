@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Fields
 {
-	public class SearchBarField : CustomConfigField
+	internal class SearchBarField : CustomConfigField
 	{
 		private class SelectOnEnabled : MonoBehaviour
 		{

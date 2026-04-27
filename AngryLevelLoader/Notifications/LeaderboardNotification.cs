@@ -17,7 +17,7 @@ using UnityEngine.TextCore.Text;
 
 namespace AngryLevelLoader.Notifications
 {
-    public class LeaderboardNotification : NotificationPanel.Notification
+	internal class LeaderboardNotification : NotificationPanel.Notification
 	{
 		public readonly string bundleName;
 		public readonly string levelName;

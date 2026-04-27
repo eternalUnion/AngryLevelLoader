@@ -5,7 +5,7 @@ using System.Text;
 
 namespace AngryLevelLoader
 {
-	public class ManifestReader
+	internal class ManifestReader
 	{
 		public static byte[] GetBytes(string resourceName)
 		{

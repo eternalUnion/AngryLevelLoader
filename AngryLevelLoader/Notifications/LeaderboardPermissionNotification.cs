@@ -9,7 +9,7 @@ using UnityEngine.AddressableAssets;
 
 namespace AngryLevelLoader.Notifications
 {
-	public class LeaderboardPermissionNotification : NotificationPanel.Notification
+	internal class LeaderboardPermissionNotification : NotificationPanel.Notification
 	{
 		private const string ASSET_PATH = "AngryLevelLoader/Notifications/LeaderboardPermissionNotification.prefab";
 

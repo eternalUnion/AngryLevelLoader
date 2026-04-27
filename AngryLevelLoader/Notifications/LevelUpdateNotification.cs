@@ -11,7 +11,7 @@ using AngryLevelLoader.DataTypes;
 
 namespace AngryLevelLoader.Notifications
 {
-    public class LevelUpdateNotification : NotificationPanel.Notification
+	internal class LevelUpdateNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH = "AngryLevelLoader/Notifications/LevelUpdateNotification.prefab";
 

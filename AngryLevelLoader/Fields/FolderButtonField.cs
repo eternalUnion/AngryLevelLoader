@@ -14,7 +14,7 @@ using UnityEngine.Events;
 
 namespace AngryLevelLoader.Fields
 {
-	public class FolderButtonField : CustomConfigField, IEnumerable<BundleContainer>
+	internal class FolderButtonField : CustomConfigField, IEnumerable<BundleContainer>
 	{
 		private IEnumerator<BundleContainer> FolderEnumerator(FolderButtonField folder)
 		{
@@ -64,7 +64,6 @@ namespace AngryLevelLoader.Fields
 				string iconPath = Path.Combine(Plugin.tempFolderPath, bundle.bundleGuid, "icon.png");
 				if (!File.Exists(iconPath))
 					continue;
-				Debug.Log(iconPath);
 
 				Texture2D smallIcon = new Texture2D(1, 1);
 				smallIcon.LoadImage(File.ReadAllBytes(iconPath));

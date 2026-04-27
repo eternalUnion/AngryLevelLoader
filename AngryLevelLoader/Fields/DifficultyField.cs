@@ -11,7 +11,7 @@ using UnityEngine.AddressableAssets;
 
 namespace AngryLevelLoader.Fields
 {
-	public class DifficultyField : CustomConfigField
+	internal class DifficultyField : CustomConfigField
 	{
 		public const string ASSET_PATH = "AngryLevelLoader/Fields/DifficultyField.prefab";
 

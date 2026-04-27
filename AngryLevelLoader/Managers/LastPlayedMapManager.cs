@@ -85,7 +85,7 @@ namespace AngryLevelLoader.Managers
 			lastPlayed[guid] = secondsNow;
 
 			string path = AngryPaths.LastPlayedMapPath;
-			IOUtils.TryCreateDirectoryForFile(path);
+			AngryIOUtils.TryCreateDirectoryForFile(path);
 			using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
 			{
 				writer.BaseStream.Seek(0, SeekOrigin.Begin);
@@ -111,7 +111,7 @@ namespace AngryLevelLoader.Managers
 			lastUpdate[guid] = secondsNow;
 
 			string path = AngryPaths.LastUpdateMapPath;
-			IOUtils.TryCreateDirectoryForFile(path);
+			AngryIOUtils.TryCreateDirectoryForFile(path);
 			using (StreamWriter writer = new StreamWriter(File.Open(path, FileMode.OpenOrCreate, FileAccess.Write)))
 			{
 				writer.BaseStream.Seek(0, SeekOrigin.Begin);

@@ -13,7 +13,7 @@ using UnityEngine.Networking;
 
 namespace AngryLevelLoader
 {
-    public static class PluginUpdateHandler
+    internal static class PluginUpdateHandler
     {
         public static async Task CheckPluginUpdate(bool userRequested = true)
         {
@@ -84,7 +84,7 @@ namespace AngryLevelLoader
                         else
                         {
                             Plugin.logger.LogInfo($"{unpackedLevel} => {destinationDir}");
-                            IOUtils.DirectoryCopy(unpackedLevel, destinationDir, true, true);
+                            AngryIOUtils.DirectoryCopy(unpackedLevel, destinationDir, true, true);
                         }
                     }
                     Directory.Delete(oldUnpackedFolder, true);
@@ -100,9 +100,9 @@ namespace AngryLevelLoader
                 string newOnlineCachePath = AngryPaths.OnlineCacheFolderPath;
                 if (!Directory.Exists(newOnlineCachePath))
                 {
-                    IOUtils.TryCreateDirectoryForFile(newOnlineCachePath);
+                    AngryIOUtils.TryCreateDirectoryForFile(newOnlineCachePath);
 
-                    IOUtils.DirectoryCopy(oldOnlineCachePath, newOnlineCachePath, true, true);
+                    AngryIOUtils.DirectoryCopy(oldOnlineCachePath, newOnlineCachePath, true, true);
                 }
                 else
                 {
@@ -119,7 +119,7 @@ namespace AngryLevelLoader
                 string newLastPlayedMapPath = AngryPaths.LastPlayedMapPath;
                 if (!File.Exists(newLastPlayedMapPath))
                 {
-                    IOUtils.TryCreateDirectoryForFile(newLastPlayedMapPath);
+                    AngryIOUtils.TryCreateDirectoryForFile(newLastPlayedMapPath);
 
                     File.Move(oldLastPlayedMapPath, newLastPlayedMapPath);
                 }

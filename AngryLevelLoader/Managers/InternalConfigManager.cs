@@ -38,7 +38,7 @@ namespace AngryLevelLoader.Managers
 			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true, true, false);
 			updateLastVersion = new StringField(internalConfig.rootPanel, "updateLastVersion", "updateLastVersion", "", true, true, false);
 			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
-			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(IOUtils.AppData, "AngryLevelLoader"), false, true, false);
+			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(AngryIOUtils.AppData, "AngryLevelLoader"), false, true, false);
 
 			// Might be corrupted
 			Regex badDataPath = new Regex(@"^[^:]+:\\Users\\User\\AppData\\Roaming");

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AngryLevelLoader.Extensions
 {
-    public static class VarStoreExtensions
+    internal static class VarStoreExtensions
     {
         //Adds distinct values from the source store to the target store.
         public static void AppendDistinct(this VarStore target, VarStore source)

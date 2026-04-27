@@ -12,7 +12,7 @@ using AngryLevelLoader;
  */
 
 // https://gist.github.com/JakubNei/90bf21be3fdc4829e631
-public class CrossThreadInvoker : ISynchronizeInvoke
+internal class CrossThreadInvoker : ISynchronizeInvoke
 {
 	private static CrossThreadInvoker instance;
 	public static CrossThreadInvoker Instance => instance;

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -42,12 +43,11 @@ namespace AngryLevelLoader.Managers
                 {
                     if (container.GetAllScenePaths().Contains(currentScene))
                     {
-                        _isInCustomLevel = true;
-                        _currentLevelData = container.GetAllLevelData().Where(data => data.scenePath == currentScene).First();
+						_isInCustomLevel = true;
+                        _currentLevelData = container.GetAllRudeLevelData().Where(data => data.scenePath == currentScene).First();
                         _currentBundleContainer = container;
-                        _currentLevelContainer = container.levels[container.GetAllLevelData().Where(data => data.scenePath == currentScene).First().uniqueIdentifier];
-                        _currentLevelContainer.discovered.value = true;
-                        _currentLevelContainer.UpdateUI();
+                        _currentBundleContainer.TryGetLevelContainer(_currentLevelData.uniqueIdentifier, out _currentLevelContainer);
+                        _currentLevelContainer.LevelDiscovered = true;
                         SceneHelper.CurrentScene = _currentLevelData.uniqueIdentifier;
 						ConfigManager.config.presetButtonInteractable = false;
 						ConfigManager.difficultyField.interactable = false;
@@ -111,11 +111,11 @@ namespace AngryLevelLoader.Managers
 
         #endregion
 
-        public static void LevelButtonPressed(BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public static void LevelButtonPressed(LevelContainer levelContainer)
         {
             void ContinueLoadLevel()
             {
-                List<string> requiredScripts = ScriptManager.GetRequiredScriptsFromBundle(bundleContainer);
+                List<string> requiredScripts = ScriptManager.GetRequiredScriptsFromBundle(levelContainer.bundleContainer);
 
                 List<string> scriptsToDownload = new List<string>();
                 foreach (string script in requiredScripts)
@@ -126,7 +126,7 @@ namespace AngryLevelLoader.Managers
                         ScriptInfo info = OnlineScriptsManager.ScriptCatalog == null ? null : OnlineScriptsManager.ScriptCatalog.Scripts.Where(s => s.FileName == script).FirstOrDefault();
                         if (info != null)
                         {
-                            string hash = CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
+                            string hash = AngryCryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(Plugin.workingDir, "Scripts", script)));
                             if (hash != info.Hash)
                             {
                                 if (ConfigManager.scriptUpdateIgnoreCustom.value)
@@ -148,15 +148,15 @@ namespace AngryLevelLoader.Managers
 
                 if (scriptsToDownload.Count != 0)
                 {
-                    NotificationPanel.Open(new ScriptUpdateNotification(scriptsToDownload, requiredScripts, bundleContainer, levelContainer, levelData, levelName));
+                    NotificationPanel.Open(new ScriptUpdateNotification(scriptsToDownload, requiredScripts, levelContainer));
                 }
                 else
                 {
-                    LoadLevelWithScripts(requiredScripts, bundleContainer, levelContainer, levelData, levelName);
+                    LoadLevelWithScripts(requiredScripts, levelContainer);
                 }
             }
 
-            if (bundleContainer.EpilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
+            if (levelContainer.bundleContainer.EpilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
             {
                 EpilepsyWarningNotification notification = new EpilepsyWarningNotification(ContinueLoadLevel, "Play", "Play and do not ask again");
                 NotificationPanel.Open(notification);
@@ -167,7 +167,7 @@ namespace AngryLevelLoader.Managers
             }
         }
 
-        public static void LoadLevelWithScripts(List<string> scripts, BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public static void LoadLevelWithScripts(List<string> scripts, LevelContainer levelContainer)
         {
             Stack<ScriptWarningNotification> notifications = new Stack<ScriptWarningNotification>();
 			ConfigManager.scriptCertificateIgnore = ConfigManager.scriptCertificateIgnoreField.value.Split('\n').ToList();
@@ -192,7 +192,7 @@ namespace AngryLevelLoader.Managers
 
                         if (notifications.Count == 0)
                         {
-                            LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+                            LoadLevel(levelContainer);
                         }
                     });
                 }
@@ -223,7 +223,7 @@ namespace AngryLevelLoader.Managers
 
                         if (notifications.Count == 0)
                         {
-                            LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+                            LoadLevel(levelContainer);
                         }
                     },
                     "Don't Ask Again For This Script",
@@ -239,7 +239,7 @@ namespace AngryLevelLoader.Managers
 
                         if (notifications.Count == 0)
                         {
-                            LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+                            LoadLevel(levelContainer);
                         }
                     });
                 }
@@ -252,7 +252,7 @@ namespace AngryLevelLoader.Managers
             }
 
             if (notifications.Count == 0)
-                LoadLevel(bundleContainer, levelContainer, levelData, levelName);
+                LoadLevel(levelContainer);
         }
 
         #region DifficultyHandle
@@ -290,18 +290,44 @@ namespace AngryLevelLoader.Managers
         }
         #endregion
 
-        public static void LoadLevel(BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelPath, bool showBlocker = true)
+        public static async Task<bool> LoadLevel(LevelContainer levelContainer, bool showBlocker = true)
         {
+            BundleContainer bundleContainer = levelContainer.bundleContainer;
+            if (!bundleContainer.Loaded)
+            {
+                // Must load bundle into addressables
+                while (bundleContainer.Updating)
+                    await Task.Yield();
+                Task loadTask = bundleContainer.ReloadBundle(false, false);
+                await loadTask;
+
+                if (!bundleContainer.Loaded)
+                {
+                    Plugin.logger.LogError($"Tried to load level {levelContainer.LevelName}, but the bundle could not be loaded into memory!");
+                    if (loadTask.Exception != null)
+                        Plugin.logger.LogError(loadTask.Exception);
+
+                    return false;
+                }
+            }
+
+            if (!bundleContainer.TryGetRudeLevelData(levelContainer.levelId, out RudeLevelData rudeLevelData))
+            {
+                Plugin.logger.LogError($"Tried to load level {levelContainer.LevelName}, but the rude level data could not be found!");
+                return false;
+            }
+
             _isInCustomLevel = true;
-            _currentBundleContainer = bundleContainer;
+            _currentBundleContainer = levelContainer.bundleContainer;
             _currentLevelContainer = levelContainer;
-            _currentLevelData = levelData;
-            _currentLevel = levelPath;
+            _currentLevelData = rudeLevelData;
+            _currentLevel = rudeLevelData.scenePath;
 			ConfigManager.config.presetButtonInteractable = false;
 
             foreach (AngryDifficulty difficulty in AngryDifficultyManager.Difficulties)
                 difficulty.UnsetDifficulty();
 
+            // No gamemode
             if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
             {
 				AngryDifficultyManager.SelectedDifficulty.SetDifficulty();
@@ -312,7 +338,7 @@ namespace AngryLevelLoader.Managers
                 AngryDifficultyManager.HARMLESS.SetDifficulty();
 			}
 
-			int levelVersion = bundleContainer.BundleVersion;
+			int levelVersion = levelContainer.bundleContainer.BundleVersion;
             if (levelVersion == 6)
             {
                 LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.V6);
@@ -326,27 +352,29 @@ namespace AngryLevelLoader.Managers
                 LegacyPatchManager.SetLegacyPatchState(LegacyPatchState.None);
             }
 
-
             //Clear the map vars before loading the level.
             AngryMapVarManager.Instance.ResetStores();
-			LastPlayedMapManager.UpdateLastPlayed(bundleContainer);
-			SceneHelper.LoadScene(levelPath, noBlocker: !showBlocker);
+			LastPlayedMapManager.UpdateLastPlayed(levelContainer.bundleContainer);
+			
+            Coroutine handler = SceneHelper.LoadSceneAsync(rudeLevelData.scenePath, noBlocker: !showBlocker);
+            TaskCompletionSource<bool> sceneLoadCompletion = new TaskCompletionSource<bool>();
+            handler.ContinueWith(SceneHelper.Instance, () => sceneLoadCompletion.SetResult(true));
+            await sceneLoadCompletion.Task;
+
+            return true;
         }
 
         public static void PostSceneLoad()
         {
             Physics.gravity = Plugin.defaultGravity;
-
 			SceneHelperPatches.forceDisableIsInCustomLevel = false;
-			currentLevelContainer.AssureSecretsSize();
 
-            string secretString = currentLevelContainer.secrets.value;
             foreach (Bonus bonus in Resources.FindObjectsOfTypeAll<Bonus>().Where(bonus => bonus.gameObject.scene.path == currentLevelData.scenePath && bonus.GetComponent<IgnoreSecret>() == null))
             {
                 if (bonus.gameObject.scene.path != currentLevelData.scenePath)
                     continue;
 
-                if (bonus.secretNumber >= 0 && bonus.secretNumber < secretString.Length && secretString[bonus.secretNumber] == 'T')
+                if (currentLevelContainer.SecretDiscovered(bonus.secretNumber))
                 {
                     bonus.beenFound = true;
                     bonus.BeenFound();
@@ -360,9 +388,9 @@ namespace AngryLevelLoader.Managers
 
             foreach (BundleContainer container in Plugin.angryBundles.Values)
             {
-                foreach (LevelContainer levelContainer in container.levels.Values)
+                foreach (LevelContainer levelContainer in container.GetAllLevelContainers())
                 {
-                    if (levelContainer.data.uniqueIdentifier == id)
+                    if (levelContainer.levelId == id)
                     {
                         level = levelContainer;
                         return true;

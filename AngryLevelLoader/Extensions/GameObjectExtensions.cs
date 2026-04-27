@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace AngryLevelLoader.Extensions
 {
-	public static class GameObjectExtensions
+	internal static class GameObjectExtensions
 	{
 		public static T GetComponentInParent<T>(this GameObject go, bool includeInactive) where T : Component
 		{

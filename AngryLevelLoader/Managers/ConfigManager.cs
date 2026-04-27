@@ -443,7 +443,7 @@ namespace AngryLevelLoader.Managers
 				}
 
 				string newLevelsFolder = Path.Combine(newPath, "Levels");
-				IOUtils.TryCreateDirectory(newLevelsFolder);
+				AngryIOUtils.TryCreateDirectory(newLevelsFolder);
 				foreach (string levelFile in Directory.GetFiles(Plugin.levelsPath))
 				{
 					string destinationLevelFile = Path.Combine(newLevelsFolder, Path.GetFileName(levelFile));
@@ -461,27 +461,27 @@ namespace AngryLevelLoader.Managers
 				Plugin.levelsPath = newLevelsFolder;
 
 				string newLevelsUnpackedFolder = Path.Combine(newPath, "LevelsUnpacked");
-				IOUtils.TryCreateDirectory(newLevelsUnpackedFolder);
+				AngryIOUtils.TryCreateDirectory(newLevelsUnpackedFolder);
 				foreach (string unpackedLevelFolder in Directory.GetDirectories(Plugin.tempFolderPath))
 				{
 					string dest = Path.Combine(newLevelsUnpackedFolder, Path.GetFileName(unpackedLevelFolder));
 					if (Directory.Exists(dest))
 						Directory.Delete(dest, true);
 
-					IOUtils.DirectoryCopy(unpackedLevelFolder, dest, true, true);
+					AngryIOUtils.DirectoryCopy(unpackedLevelFolder, dest, true, true);
 				}
 				Directory.Delete(Plugin.tempFolderPath, true);
 				Plugin.tempFolderPath = newLevelsUnpackedFolder;
 
 				string newMapVarsFolder = Path.Combine(newPath, "MapVars");
-				IOUtils.TryCreateDirectory(newMapVarsFolder);
+				AngryIOUtils.TryCreateDirectory(newMapVarsFolder);
 				foreach (string mapVarPresetFolder in Directory.GetDirectories(Path.Combine(Plugin.dataPath, "MapVars")))
 				{
 					string dest = Path.Combine(newMapVarsFolder, Path.GetFileName(mapVarPresetFolder));
 					if (Directory.Exists(dest))
 						Directory.Delete(dest, true);
 
-					IOUtils.DirectoryCopy(mapVarPresetFolder, dest, true, true);
+					AngryIOUtils.DirectoryCopy(mapVarPresetFolder, dest, true, true);
 				}
 				if (Directory.Exists(Path.Combine(Plugin.dataPath, "MapVars")))
 					Directory.Delete(Path.Combine(Plugin.dataPath, "MapVars"), true);

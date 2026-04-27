@@ -97,8 +97,8 @@ namespace AngryLevelLoader
 
 
 		#region Folder subsystem
-		public static Dictionary<string, FolderButtonField> pathToFolderMap = new Dictionary<string, FolderButtonField>();
-		public static Stack<FolderButtonField> folderStack = new Stack<FolderButtonField>();
+		internal static Dictionary<string, FolderButtonField> pathToFolderMap = new Dictionary<string, FolderButtonField>();
+		internal static Stack<FolderButtonField> folderStack = new Stack<FolderButtonField>();
 
 		private static FolderButtonField GetFolder(string folder)
 		{
@@ -234,7 +234,7 @@ namespace AngryLevelLoader
                 if (angryBundles.TryGetValue(data.bundleGuid, out BundleContainer bundle))
                 {
 					// Duplicate file check
-					if (bundle.HasValidAngryFile && !IOUtils.PathEquals(path, bundle.pathToAngryBundle))
+					if (bundle.HasValidAngryFile && !AngryIOUtils.PathEquals(path, bundle.pathToAngryBundle))
 					{
 						logger.LogError($"Duplicate angry files. Original: {Path.GetFileName(bundle.pathToAngryBundle)}. Duplicate: {Path.GetFileName(path)}");
 
@@ -348,7 +348,7 @@ namespace AngryLevelLoader
 				folder.bundles.Clear();
 			}
 
-			foreach (IOUtils.SubFileInfo file in IOUtils.GetAllFilesRecursive(levelsPath))
+			foreach (AngryIOUtils.SubFileInfo file in AngryIOUtils.GetAllFilesRecursive(levelsPath))
 			{
 				if (!file.filePath.EndsWith(".angry"))
 					continue;
@@ -614,7 +614,7 @@ namespace AngryLevelLoader
 				string fullPath = e.FullPath;
 				foreach (var bundle in angryBundles.Values)
 				{
-					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					if (AngryIOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
 					{
 						logger.LogWarning($"Bundle {fullPath} was updated, container notified");
 						bundle.FileChanged();
@@ -629,7 +629,7 @@ namespace AngryLevelLoader
 				string fullPath = e.FullPath;
 				foreach (var bundle in angryBundles.Values)
 				{
-					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					if (AngryIOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
 					{
 						logger.LogWarning($"Bundle {fullPath} was renamed, path updated");
 						bundle.pathToAngryBundle = fullPath;
@@ -644,7 +644,7 @@ namespace AngryLevelLoader
 				string fullPath = e.FullPath;
 				foreach (var bundle in angryBundles.Values)
 				{
-					if (IOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					if (AngryIOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
 					{
 						logger.LogWarning($"Bundle {fullPath} was deleted, unlinked");
 						bundle.pathToAngryBundle = "";
@@ -704,7 +704,7 @@ namespace AngryLevelLoader
 						{
 							InternalConfigManager.instantLoadLevel.value = true;
 							InternalConfigManager.instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleGuid;
-							InternalConfigManager.instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.data.uniqueIdentifier;
+							InternalConfigManager.instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.levelId;
 						}
 
 						PluginConfiguratorController.FlushAllConfigs();
@@ -774,7 +774,7 @@ namespace AngryLevelLoader
 				var handler = bundle.ReloadBundle(false, false);
 				yield return new WaitUntil(() => handler.IsCompleted);
 
-				if (!bundle.levels.TryGetValue(InternalConfigManager.instantLoadLevelId.value, out LevelContainer level))
+				if (!bundle.TryGetLevelContainer(InternalConfigManager.instantLoadLevelId.value, out LevelContainer level))
 				{
 					logger.LogInfo("Level not found");
 					yield break;
@@ -841,7 +841,7 @@ namespace AngryLevelLoader
 				}
 				yield return null;
 
-				AngrySceneManager.LevelButtonPressed(bundle, level, level.data, level.data.scenePath);
+				AngrySceneManager.LevelButtonPressed(level);
 			}
 
 			SceneManager.sceneLoaded += (scene, mode) =>
@@ -918,7 +918,7 @@ namespace AngryLevelLoader
 
 			try
 			{
-				IOUtils.TryCreateDirectory(dataPath);
+				AngryIOUtils.TryCreateDirectory(dataPath);
 			}
 			catch (IOException ex)
 			{
@@ -929,7 +929,7 @@ namespace AngryLevelLoader
 
 				try
 				{
-					IOUtils.TryCreateDirectory(dataPath);
+					AngryIOUtils.TryCreateDirectory(dataPath);
 				}
 				catch (IOException innerEx)
 				{
@@ -942,11 +942,11 @@ namespace AngryLevelLoader
 			}
 
 			levelsPath = Path.Combine(dataPath, "Levels");
-            IOUtils.TryCreateDirectory(levelsPath);
+            AngryIOUtils.TryCreateDirectory(levelsPath);
             tempFolderPath = Path.Combine(dataPath, "LevelsUnpacked");
-            IOUtils.TryCreateDirectory(tempFolderPath);
+            AngryIOUtils.TryCreateDirectory(tempFolderPath);
 			mapVarsFolderPath = Path.Combine(dataPath, "MapVars");
-			IOUtils.TryCreateDirectory(mapVarsFolderPath);
+			AngryIOUtils.TryCreateDirectory(mapVarsFolderPath);
 
 			AngryPaths.TryCreateAllPaths();
 
@@ -1203,14 +1203,14 @@ namespace AngryLevelLoader
 		public static char GetLevelRank(string levelId)
         {
 			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
-				return level.finalRank.value[0];
+				return level.FinalRank;
 			return INCOMPLETE_LEVEL_CHAR;
 		}
 	
         public static bool GetLevelChallenge(string levelId)
 		{
 			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
-				return level.challenge.value;
+				return level.ChallengeDone;
 			return false;
 		}
 
@@ -1220,12 +1220,7 @@ namespace AngryLevelLoader
 				return false;
 
 			if (AngrySceneManager.TryFindLevel(levelId, out LevelContainer level))
-			{
-				level.AssureSecretsSize();
-				if (secretIndex >= level.field.data.secretCount)
-					return false;
-				return level.secrets.value[secretIndex] == 'T';
-			}
+				return level.SecretDiscovered(secretIndex);
 
 			return false;
 		}

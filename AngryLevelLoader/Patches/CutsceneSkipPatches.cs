@@ -16,7 +16,7 @@ namespace AngryLevelLoader.Patches
             if (!AngrySceneManager.isInCustomLevel)
                 return true;
 
-            bool playedLevelBefore = AngrySceneManager.currentLevelContainer.finalRank.value != "-";
+            bool playedLevelBefore = AngrySceneManager.currentLevelContainer.FinalRank != '-';
             return playedLevelBefore;
         }
     }

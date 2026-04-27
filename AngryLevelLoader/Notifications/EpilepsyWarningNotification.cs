@@ -11,7 +11,7 @@ using UnityEngine.AddressableAssets;
 
 namespace AngryLevelLoader.Notifications
 {
-	public class EpilepsyWarningNotification : NotificationPanel.Notification
+	internal class EpilepsyWarningNotification : NotificationPanel.Notification
 	{
 		private const string ASSET_PATH = "AngryLevelLoader/Notifications/EpilepsyWarningNotification.prefab";
 

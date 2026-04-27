@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Fields
 {
-    public class LoadingCircleField : CustomConfigField
+	internal class LoadingCircleField : CustomConfigField
     {
         public static Sprite loadingIcon;
         private static bool _spriteInit = false;

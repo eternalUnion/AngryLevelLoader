@@ -12,20 +12,20 @@ namespace AngryLevelLoader.Notifications
 {
 
 #pragma warning disable IDE1006
-    public class PluginVersion
+	internal class PluginVersion
     {
         public string version { get; set; }
         public string updateText { get; set; }
     }
 
-    public class PluginInfoJson
+	internal class PluginInfoJson
     {
         public string latestVersion { get; set; }
         public List<PluginVersion> updates;
     }
 #pragma warning restore IDE1006
 
-    public class PluginUpdateNotification : NotificationPanel.Notification
+	internal class PluginUpdateNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH = "AngryLevelLoader/Notifications/PluginUpdateNotification.prefab";
 

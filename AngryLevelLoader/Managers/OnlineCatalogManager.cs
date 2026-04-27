@@ -53,7 +53,7 @@ namespace AngryLevelLoader.Managers
 		{
 			string newCatalogHash = "";
 			string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
-			IOUtils.TryCreateDirectoryForFile(cachedCatalogPath);
+			AngryIOUtils.TryCreateDirectoryForFile(cachedCatalogPath);
 
 			UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "V2/LevelCatalogHash.txt"));
 			catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -73,7 +73,7 @@ namespace AngryLevelLoader.Managers
 			if (File.Exists(cachedCatalogPath))
 			{
 				string cachedCatalog = File.ReadAllText(cachedCatalogPath);
-				string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+				string catalogHash = AngryCryptographyUtils.GetMD5String(cachedCatalog);
 
 				try
 				{
@@ -100,7 +100,7 @@ namespace AngryLevelLoader.Managers
 		private static async Task<LevelCatalog> DownloadCatalog(string newHash)
 		{
 			string catalogPath = AngryPaths.LevelCatalogCachePath;
-			IOUtils.TryCreateDirectoryForFile(catalogPath);
+			AngryIOUtils.TryCreateDirectoryForFile(catalogPath);
 
 			UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "V2/LevelCatalog.json"));
 			catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
@@ -114,7 +114,7 @@ namespace AngryLevelLoader.Managers
 			else
 			{
 				string cachedCatalog = File.ReadAllText(catalogPath);
-				string catalogHash = CryptographyUtils.GetMD5String(cachedCatalog);
+				string catalogHash = AngryCryptographyUtils.GetMD5String(cachedCatalog);
 
                 LevelCatalog catalog = null;
 

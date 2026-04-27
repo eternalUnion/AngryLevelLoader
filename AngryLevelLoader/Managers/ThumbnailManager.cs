@@ -79,12 +79,12 @@ namespace AngryLevelLoader.Managers
 			}
 
 			string imageCacheDir = AngryPaths.ThumbnailCacheFolderPath;
-			IOUtils.TryCreateDirectory(imageCacheDir);
+			AngryIOUtils.TryCreateDirectory(imageCacheDir);
 			string imageCachePath = Path.Combine(imageCacheDir, $"{guid}.png");
 
 			if (File.Exists(imageCachePath))
 			{
-				string fileHash = CryptographyUtils.GetMD5String(File.ReadAllBytes(imageCachePath));
+				string fileHash = AngryCryptographyUtils.GetMD5String(File.ReadAllBytes(imageCachePath));
 				if (fileHash == hash)
 				{
 					Texture2D fileTexture = await CachedTexture.GetTextureFromFile(imageCachePath);
@@ -147,7 +147,7 @@ namespace AngryLevelLoader.Managers
 			if (cache.texture != null)
 				return cache.texture;
 
-			string levelMd5 = CryptographyUtils.GetMD5String(levelId);
+			string levelMd5 = AngryCryptographyUtils.GetMD5String(levelId);
 
 			UnityWebRequest thumbnailReq = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, $"Levels/{bundleGuid}/LevelThumbnails/{levelMd5}.png"));
 			thumbnailReq.downloadHandler = new DownloadHandlerTexture();

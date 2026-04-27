@@ -34,12 +34,12 @@ namespace AngryLevelLoader.Managers
             if (!File.Exists(scriptPath + ".cert"))
                 return LoadScriptResult.NoCertificate;
 
-            if (!CryptographyUtils.VerifyFileCertificate(scriptPath, scriptPath + ".cert"))
+            if (!AngryCryptographyUtils.VerifyFileCertificate(scriptPath, scriptPath + ".cert"))
                 return LoadScriptResult.InvalidCertificate;
 
             byte[] script = File.ReadAllBytes(scriptPath);
 			Assembly a = Assembly.Load(script);
-            loadedScriptsDict[scriptName] = CryptographyUtils.GetMD5String(script);
+            loadedScriptsDict[scriptName] = AngryCryptographyUtils.GetMD5String(script);
             return LoadScriptResult.Loaded;
         }
 
@@ -48,7 +48,7 @@ namespace AngryLevelLoader.Managers
             string scriptPath = Path.Combine(ScriptsPath, scriptName);
 			byte[] script = File.ReadAllBytes(scriptPath);
 			Assembly a = Assembly.Load(script);
-			loadedScriptsDict[scriptName] = CryptographyUtils.GetMD5String(script);
+			loadedScriptsDict[scriptName] = AngryCryptographyUtils.GetMD5String(script);
 		}
 
         public static bool ScriptLoaded(string scriptName)
@@ -66,13 +66,13 @@ namespace AngryLevelLoader.Managers
             if (!loadedScriptsDict.TryGetValue(scriptName, out string hash) || !File.Exists(Path.Combine(ScriptsPath, scriptName)))
                 return false;
 
-            return hash != CryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(ScriptsPath, scriptName)));
+            return hash != AngryCryptographyUtils.GetMD5String(File.ReadAllBytes(Path.Combine(ScriptsPath, scriptName)));
         }
 
         public static List<string> GetRequiredScriptsFromBundle(BundleContainer bundleContainer)
         {
             List<string> requiredScripts = new List<string>();
-            foreach (var data in bundleContainer.GetAllLevelData())
+            foreach (var data in bundleContainer.GetAllRudeLevelData())
             {
                 if (data.requiredDllNames == null)
                     continue;

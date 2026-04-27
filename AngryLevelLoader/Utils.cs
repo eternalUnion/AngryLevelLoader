@@ -18,7 +18,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader
 {
-	public static class RankUtils
+	public static class AngryRankUtils
 	{
 		public static int GetRankScore(char rank)
 		{
@@ -93,7 +93,7 @@ namespace AngryLevelLoader
 		}
 	}
 
-	public static class IOUtils
+	public static class AngryIOUtils
 	{
 		/// <summary>
 		/// Returns a unique file name in the given folder by appending `_num` to file name if the file already exists
@@ -164,7 +164,7 @@ namespace AngryLevelLoader
 					Plugin.logger.LogWarning($"Bad username for AppData (got '{_AppData}', expected user '{Environment.UserName}'), falling back to local AppData");
 
 					_AppData = Path.Combine(Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)).FullName, "Roaming");
-					if (badAppData.IsMatch(_AppData))
+					if (badAppData.IsMatch(_AppData) && Environment.UserName != "User")
 					{
 						Plugin.logger.LogWarning($"Bad username for local AppData (got '{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}', expected user '{Environment.UserName}'), falling back to absolute path");
 
@@ -281,7 +281,7 @@ namespace AngryLevelLoader
 		}
 	}
 
-	public static class UIUtils
+	internal static class AngryUIUtils
 	{
         public static void AddMouseEvents(GameObject field, Button btn, Action<BaseEventData> mouseOnEvent, Action<BaseEventData> mouseOffEvent)
         {
@@ -301,7 +301,7 @@ namespace AngryLevelLoader
         }
     }
 
-	public static class CryptographyUtils
+	public static class AngryCryptographyUtils
 	{
 		public static string AdminPrivateKey => Environment.GetEnvironmentVariable("ANGRY_ADMIN_KEY");
 
@@ -426,7 +426,7 @@ namespace AngryLevelLoader
 	// running task is returned instead of creating a new task. This is useful for tasks
 	// concerned with IO operations.
 
-	public class CachedTask
+	internal class CachedTask
 	{
 		private Func<Task> task;
 
@@ -452,7 +452,7 @@ namespace AngryLevelLoader
 		}
 	}
 
-	public class CachedTask<T>
+	internal class CachedTask<T>
 	{
 		private Func<Task<T>> task;
 
@@ -521,24 +521,9 @@ namespace AngryLevelLoader
 			asyncOp.Completed += obj => { tcs.SetResult(null); };
 			return ((Task)tcs.Task).GetAwaiter();
 		}
-
-		public static async Task TEST_InstantReturn()
-		{
-			var task = new UnityWebRequest(@"file://C:\Users\ROG\Downloads\CarcassEnemy.dll.cert");
-			task.downloadHandler = new DownloadHandlerBuffer();
-			var handle = task.SendWebRequest();
-
-			Plugin.logger.LogInfo("First await start");
-			await handle;
-			Plugin.logger.LogInfo("First await end");
-
-			Plugin.logger.LogInfo("Second await start");
-			await handle;
-			Plugin.logger.LogInfo("Second await end");
-		}
 	}
 
-	public class WordHighlighter
+	internal class WordHighlighter
 	{
 		public string rawText { get; private set; }
 

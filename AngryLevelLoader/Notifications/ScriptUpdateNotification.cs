@@ -18,7 +18,7 @@ using UnityEngine.UI;
 
 namespace AngryLevelLoader.Notifications
 {
-    public class ScriptUpdateNotification : NotificationPanel.Notification
+	internal class ScriptUpdateNotification : NotificationPanel.Notification
     {
         private const string ASSET_PATH_PANEL = "AngryLevelLoader/Notifications/ScriptUpdateNotification.prefab";
         private const string ASSET_PATH_SCRIPT_INFO = "AngryLevelLoader/Notifications/ScriptUpdatePrefabs/ScriptUpdateInfo.prefab";
@@ -219,16 +219,12 @@ namespace AngryLevelLoader.Notifications
         public List<string> scripts;
         public BundleContainer bundleContainer;
         public LevelContainer levelContainer;
-        public RudeLevelData levelData;
-        public string levelName;
 
-        public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, BundleContainer bundleContainer, LevelContainer levelContainer, RudeLevelData levelData, string levelName)
+        public ScriptUpdateNotification(IEnumerable<string> scriptsToDownload, List<string> scripts, LevelContainer levelContainer)
         {
             this.scripts = scripts;
-            this.bundleContainer = bundleContainer;
+            this.bundleContainer = levelContainer.bundleContainer;
             this.levelContainer = levelContainer;
-            this.levelData = levelData;
-            this.levelName = levelName;
 
             if (scriptsToDownload != null)
             {
@@ -318,13 +314,8 @@ namespace AngryLevelLoader.Notifications
             ui.continueButton.onClick.AddListener(() =>
             {
                 Close();
-                AngrySceneManager.LoadLevelWithScripts(scripts, bundleContainer, levelContainer, levelData, levelName);
+                AngrySceneManager.LoadLevelWithScripts(scripts, levelContainer);
             });
 		}
-
-        public static void Test()
-        {
-            NotificationPanel.Open(new ScriptUpdateNotification(new List<string>() { "eternalUnion.PhysicsExtensions.dll", "playerStats.dll" }, null, null, null, null, ""));
-        }
     }
 }

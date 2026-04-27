@@ -76,7 +76,7 @@ namespace AngryLevelLoader.Managers
 			if (File.Exists(cachedCatalogPath))
 			{
 				string catalog = File.ReadAllText(cachedCatalogPath);
-				string hash = CryptographyUtils.GetMD5String(catalog);
+				string hash = AngryCryptographyUtils.GetMD5String(catalog);
 				if (hash == newHash)
 				{
 					Plugin.logger.LogInfo("Cached script catalog up to date");
@@ -117,7 +117,7 @@ namespace AngryLevelLoader.Managers
 				}
 
 				File.WriteAllText(cachedCatalogPath, updatedCatalogRequest.downloadHandler.text);
-				string currentHash = CryptographyUtils.GetMD5String(updatedCatalogRequest.downloadHandler.text);
+				string currentHash = AngryCryptographyUtils.GetMD5String(updatedCatalogRequest.downloadHandler.text);
 
 				if (currentHash != newHash)
 				{

@@ -31,7 +31,7 @@ namespace AngryLevelLoader.Patches
             if (AngrySceneManager.TryFindLevel(levelName, out LevelContainer result))
             {
                 //Prevent the AbruptLevelChanger from loading the level and load angry level
-                AngrySceneManager.LoadLevel(result.container, result, result.data, result.data.scenePath);
+                AngrySceneManager.LoadLevel(result);
                 return false;
             }
             else

@@ -75,23 +75,48 @@ namespace AngryLevelLoader.Containers
 		/// </summary>
 		public bool FileChangeDetected { get; private set; } = false;
 
-		internal IEnumerable<RudeLevelData> GetAllLevelData()
+		internal bool TryGetRudeLevelData(string levelId, out RudeLevelData rudeLevelData)
 		{
-			foreach (var data in dataDictionary.Values)
-				yield return data.Result;
+			if (dataDictionary.TryGetValue(levelId, out var handler))
+			{
+				rudeLevelData = handler.Result;
+				return true;
+			}
+
+			rudeLevelData = null;
+			return false;
+		}
+
+		internal IEnumerable<RudeLevelData> GetAllRudeLevelData()
+		{
+			return dataDictionary.Values.Select(handler => handler.Result);
 		}
 
 		internal IEnumerable<string> GetAllScenePaths()
 		{
-			return GetAllLevelData().Select(data => data.scenePath);
+			return GetAllRudeLevelData().Select(data => data.scenePath);
 		}
 
 		// Bundle data
 
 		public readonly string bundleGuid;
 		private AngryBundleData bundleData;
-		internal Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
+		private Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
+		/// <summary>
+		/// Get all loaded level containers loaded by the bundle.
+		/// The levels are not loaded until the bundle is fully loaded,
+		/// unless <see cref="LazyUILoadingSupported"/> is set in which
+		/// case lazy loading is sufficient.
+		/// </summary>
+		public IEnumerable<LevelContainer> GetAllLevelContainers()
+		{
+			return levels.Values;
+		}
+
+		/// <summary>
+		/// Attempt to get a level container from its unique identifier.
+		/// </summary>
         public bool TryGetLevelContainer(string levelId, out LevelContainer levelContainer)
         {
             return levels.TryGetValue(levelId, out levelContainer);
@@ -202,61 +227,76 @@ namespace AngryLevelLoader.Containers
         private ConfigDivision sceneDiv;
         private IntField finalRankScore;
 
-		internal void RecalculateFinalRank()
+		internal bool RecalculateFinalRank()
 		{
-            if (bundleData == null)
-                return;
-
 			int totalRankScore = 0;
 			int currentRankScore = 0;
 
-			foreach (var level in bundleData.levels)
+			if (LazyUILoadingSupported)
 			{
-				if (level.isSecretLevel)
-					continue;
+				if (!LazyLoaded)
+					return false;
 
-				totalRankScore += 6;
-
-				if (levels.TryGetValue(level.uniqueIdentifier, out LevelContainer container))
+				foreach (var level in bundleData.levels)
 				{
-					currentRankScore += Math.Max(0, RankUtils.GetRankScore(container.finalRank.value[0]));
+					if (level.isSecretLevel)
+						continue;
+
+					totalRankScore += 6;
+
+					if (levels.TryGetValue(level.uniqueIdentifier, out LevelContainer container))
+					{
+						currentRankScore += Math.Max(0, AngryRankUtils.GetRankScore(container.FinalRank));
+					}
 				}
 			}
+			else
+			{
+				if (!Loaded)
+					return false;
 
+				foreach (var level in GetAllRudeLevelData())
+				{
+					if (level.isSecretLevel)
+						continue;
+
+					totalRankScore += 6;
+
+					if (levels.TryGetValue(level.uniqueIdentifier, out LevelContainer container))
+					{
+						currentRankScore += Math.Max(0, AngryRankUtils.GetRankScore(container.FinalRank));
+					}
+				}
+			}
+			
 			finalRankScore.value = totalRankScore <= 0 ? 0 : (int)(((float)currentRankScore / totalRankScore) * 6f);
-			UpdateFinalRankUI();
+			return true;
 		}
-
-        private void UpdateFinalRankUI()
-        {
-            char finalRank = RankUtils.GetRankChar(finalRankScore.value);
-            rootPanel.rankText = finalRank.ToString();
-            rootPanel.rankTextColor = RankUtils.GetRankColor(finalRank, Color.white);
-
-            if (finalRank == 'P')
-            {
-                rootPanel.fieldColor = new Color(171 / 255f, 108 / 255f, 2 / 255f);
-
-                rootPanel.fillBgCenter = true;
-                rootPanel.rankBgColor = new Color(241 / 255f, 168 / 255f, 8 / 255f);
-
-                rootPanel.rankTextColor = Color.white;
-            }
-            else
-            {
-                rootPanel.fieldColor = Color.black;
-
-                rootPanel.fillBgCenter = false;
-                rootPanel.rankBgColor = Color.white;
-            }
-        }
 
 		internal void UpdateAllUI()
 		{
-			foreach (RudeLevelData data in GetAllLevelData())
+			foreach ((string levelId, LevelContainer levelContainer) in levels)
 			{
-				if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
-					container.UpdateUI();
+                bool locked = false;
+                foreach (string requiredLevelId in levelContainer.LevelData.requiredCompletedLevelIdsForUnlock)
+                {
+					if (levels.TryGetValue(requiredLevelId, out LevelContainer requiredLevel))
+					{
+						if (requiredLevel.FinalRank == '-')
+						{
+							locked = true;
+							break;
+						}
+					}
+					else
+					{
+						Plugin.logger.LogWarning($"Could not find level unlock requirement id for {levelId}, requested id was {requiredLevelId}");
+						locked = true;
+						break;
+					}
+				}
+
+                levelContainer.Locked = locked;
 			}
 
 			RecalculateFinalRank();
@@ -374,6 +414,12 @@ namespace AngryLevelLoader.Containers
             locator = null;
 			FileChangeDetected = false;
 		}
+
+		/// <summary>
+		/// If this property is set, current angry file supports loading level containers
+		/// without fully loading the bundle.
+		/// </summary>
+		public bool LazyUILoadingSupported => BundleVersion > 7;
 
 		/// <summary>
 		/// Read .angry file and load the levels in memory
@@ -528,47 +574,15 @@ namespace AngryLevelLoader.Containers
                 inTempScene = true;
 			}
 
-            // Disable all level interfaces
-            foreach (KeyValuePair<string, LevelContainer> pair in levels)
-                pair.Value.field.forceHidden = true;
+			// Reload data from file
+			bool reloadDataSuccess = await ReloadData(forceReload, lazyLoad);
 
-            // Reload data from file
-            if (!await ReloadData(forceReload, lazyLoad))
-                return false;
-
-            if (lazyLoad)
-            {
-                if (inTempScene)
-					SceneHelper.LoadScene("Main Menu", true);
-                
-				return true;
-            }
-            
-            int currentIndex = 0;
-            foreach (RudeLevelData data in GetAllLevelData().OrderBy(d => d.prefferedLevelOrder))
-            {
-                if (levels.TryGetValue(data.uniqueIdentifier, out LevelContainer container))
-                {
-                    container.UpdateData(data);
-                }
-                else
-                {
-                    container = new LevelContainer(sceneDiv, this, data);
-                    container.onLevelButtonPress += () =>
-                    {
-                        AngrySceneManager.LevelButtonPressed(this, container, data, data.scenePath);
-                    };
-
-                    levels[data.uniqueIdentifier] = container;
-                }
-
-				container.field.siblingIndex = currentIndex++;
-				container.field.forceHidden = false;
-			}
-
-            // Locked levels fix
-            foreach (var level in levels.Values)
-                level.UpdateUI();
+			// Disable all level interfaces
+			foreach (KeyValuePair<string, LevelContainer> pair in levels)
+                pair.Value.ForceHidden = true;
+			
+			if (!reloadDataSuccess)
+				return false;
 
 			// Update online field if there are any
 			if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
@@ -577,11 +591,82 @@ namespace AngryLevelLoader.Containers
 				OnlineLevelsUI.CheckLevelUpdateText();
 			}
 
-			UpdateAllUI();
+			// Modern bundles support loading the UI without fully loading the bundle into addressables
+			if (LazyUILoadingSupported)
+			{
+				sceneDiv.hidden = true;
+
+				// Create levels from metadata
+				int currentIndex = 0;
+				foreach (AngryLevelData levelData in bundleData.levels.OrderBy(d => d.prefferedLevelOrder))
+				{
+					if (levels.TryGetValue(levelData.uniqueIdentifier, out LevelContainer container))
+					{
+						container.UpdateData(levelData);
+					}
+					else
+					{
+						levels[levelData.uniqueIdentifier] = container = new LevelContainer(sceneDiv, this, levelData);
+					}
+
+					if (lazyLoad || !dataDictionary.TryGetValue(levelData.uniqueIdentifier, out var rudeLevelData))
+					{
+						container.LoadPreviewImageFromUrl($"file://{Path.Combine(pathToTempFolder, "LevelThumbnails", AngryCryptographyUtils.GetMD5String(levelData.uniqueIdentifier))}.png");
+					}
+					else
+					{
+						container.PreviewImage = rudeLevelData.Result.levelPreviewImage;
+					}
+
+					container.SiblingIndex = currentIndex++;
+					container.ForceHidden = false;
+				}
+
+				sceneDiv.hidden = false;
+
+				UpdateAllUI();
+			}
+
+			// If only loading UI elements are required, return early
+			if (lazyLoad)
+            {
+                if (inTempScene)
+					SceneHelper.LoadScene("Main Menu", true);
+                
+				return true;
+            }
+
+			// If lazy UI loading is not supported (in older bundles), load data from rude level data object
+			if (!LazyUILoadingSupported)
+			{
+				sceneDiv.hidden = true;
+
+				// Create levels from metadata
+				int currentIndex = 0;
+				foreach (RudeLevelData levelData in GetAllRudeLevelData().OrderBy(d => d.prefferedLevelOrder))
+				{
+					if (levels.TryGetValue(levelData.uniqueIdentifier, out LevelContainer container))
+					{
+						container.UpdateData(AngryLevelData.FromRudeLevelData(levelData));
+					}
+					else
+					{
+						levels[levelData.uniqueIdentifier] = container = new LevelContainer(sceneDiv, this, AngryLevelData.FromRudeLevelData(levelData));
+					}
+
+					container.PreviewImage = levelData.levelPreviewImage;
+					container.SiblingIndex = currentIndex++;
+					container.ForceHidden = false;
+				}
+
+				sceneDiv.hidden = false;
+
+				UpdateAllUI();
+			}
 
 			if (inTempScene)
             {
-                RudeLevelData lastLevelData = GetAllLevelData().Where(l => l.uniqueIdentifier == previousId).FirstOrDefault();
+                RudeLevelData lastLevelData = GetAllRudeLevelData().Where(l => l.uniqueIdentifier == previousId).FirstOrDefault();
 
 				if (lastLevelData == null)
 				{
@@ -596,35 +681,33 @@ namespace AngryLevelLoader.Containers
             return true;
         }
 
-        private Task updateTask = null;
+        private Task<bool> updateTask = null;
+		/// <summary>
+		/// Returns true if the bundle is currently being reloaded.
+		/// Bundle cannot be reloaded while this property is set.
+		/// </summary>
         public bool Updating
         {
             get => updateTask != null && !updateTask.IsCompleted;
         }
 
 		/// <summary>
-		/// Reloads the angry file and adds the new scenes. This call has no effect if <see cref="Updating"/> is set.
+		/// Reloads the angry file and adds the new scenes. This method has no effect if <see cref="Updating"/> is set.
 		/// </summary>
 		/// <param name="forceReload">If set to false, previously unzipped files can be used instead of deleting and re-unzipping</param>
 		/// <param name="lazyLoad">If set to true, only the data required for the user interface will be loaded. Lazily loaded bundles cannot be played until fully loaded.</param>
-		public Task ReloadBundle(bool forceReload, bool lazyLoad)
+		/// <returns>True if the bundle was successfully reloaded. False if an error occured while reloading the bundle.</returns>
+		public Task<bool> ReloadBundle(bool forceReload, bool lazyLoad)
         {
             if (Updating)
                 return updateTask;
 
-			loadingCircle.hidden = false;
-			sceneDiv.hidden = true;
-			sceneDiv.interactable = false;
 			statusText.hidden = true;
 			statusText.text = "";
 
-			updateTask = ReloadBundleTask(forceReload, lazyLoad).ContinueWith((task) => {
-				loadingCircle.hidden = true;
-				sceneDiv.hidden = false;
-				sceneDiv.interactable = true;
-			}, TaskScheduler.FromCurrentSynchronizationContext());
-
-            return updateTask;
+			updateTask = ReloadBundleTask(forceReload, lazyLoad);
+            
+			return updateTask;
 		}
 
         internal async Task DeleteBundle()
@@ -709,7 +792,6 @@ namespace AngryLevelLoader.Containers
 			}
 		}
 
-        private bool _loadedAfterPanelOpen = false;
         internal BundleContainer(string path, AngryBundleData data)
         {
             Plugin.logger.LogInfo($"Creating bundle container for {path}");
@@ -719,43 +801,39 @@ namespace AngryLevelLoader.Containers
 
             rootPanel = new ConfigPanelForBundles(this, ConfigManager.bundleDivision, data.bundleName, data.bundleGuid);
             rootPanel.forceHidden = true;
-            rootPanel.onPannelOpenEvent += (external) =>
-            {
-                if (locator == null && !_loadedAfterPanelOpen)
-                {
-                    _loadedAfterPanelOpen = true;
-
-                    if (Updating)
-                    {
-                        updateTask.ContinueWith((task) =>
-                        {
-                            ReloadBundle(false, false);
-                        }, TaskScheduler.FromCurrentSynchronizationContext());
-                    }
-                    else
-                    {
-                        ReloadBundle(false, false);
-                    }
-                }
-            };
-
-            finalRankScore = new IntField(rootPanel, "final bundle rank", rootPanel.guid + "_finalRankCache", -1, true, false);
+			rootPanel.onPannelOpenEvent += (e) =>
+			{
+				if (!LazyUILoadingSupported && !Loaded)
+					ReloadBundle(false, false);
+			};
+            
+            finalRankScore = new IntField(rootPanel, "final bundle rank", rootPanel.guid + "_finalRankCache", 0, true, false);
             finalRankScore.postValueChangeEvent += (val) =>
             {
-                if (val < 0)
-                {
-                    if (!LazyLoaded)
-                        ReloadBundle(false, true);
-                    else
-                        RecalculateFinalRank();
-                }
-                else
-                {
-                    UpdateFinalRankUI();
-                }
-            };
+				char finalRank = AngryRankUtils.GetRankChar(val);
+				rootPanel.rankText = finalRank.ToString();
+				rootPanel.rankTextColor = AngryRankUtils.GetRankColor(finalRank, Color.white);
 
-            ButtonArrayField reloadButtons = new ButtonArrayField(rootPanel, rootPanel.guid + "_reloadButtons", 2, new float[2] { 0.5f, 0.5f }, new string[] { "Reload File", "Force Reload File" });
+				if (finalRank == 'P')
+				{
+					rootPanel.fieldColor = new Color(171 / 255f, 108 / 255f, 2 / 255f);
+
+					rootPanel.fillBgCenter = true;
+					rootPanel.rankBgColor = new Color(241 / 255f, 168 / 255f, 8 / 255f);
+
+					rootPanel.rankTextColor = Color.white;
+				}
+				else
+				{
+					rootPanel.fieldColor = Color.black;
+
+					rootPanel.fillBgCenter = false;
+					rootPanel.rankBgColor = Color.white;
+				}
+			};
+			finalRankScore.TriggerPostValueChangeEvent();
+
+			ButtonArrayField reloadButtons = new ButtonArrayField(rootPanel, rootPanel.guid + "_reloadButtons", 2, new float[2] { 0.5f, 0.5f }, new string[] { "Reload File", "Force Reload File" });
             reloadButtons.OnClickEventHandler(0).onClick += () => ReloadBundle(false, false);
             reloadButtons.OnClickEventHandler(1).onClick += () => ReloadBundle(true, false);
 
