@@ -22,6 +22,7 @@ using AngryLevelLoader.Notifications;
 using System.Threading.Tasks;
 using UnityEngine.UI;
 using System.Text.RegularExpressions;
+using AngryLevelLoader.UserInterface;
 
 namespace AngryLevelLoader.Containers
 {
@@ -67,7 +68,7 @@ namespace AngryLevelLoader.Containers
         /// </summary>
         public bool AngryFileSupported => (bundleData == null) ? false : bundleData.bundleVersion >= MIN_ANGRY_FILE_VERSION && bundleData.bundleVersion <= MAX_ANGRY_FILE_VERSION;
 
-		private bool _ignoreFileChange = false;
+		internal bool IgnoreFileChange { get; set; } = false;
 		/// <summary>
 		/// If a bundle is updated while it is being actively played, the loaded bundle must be unloaded
 		/// before loading the new bundle. This field is set if the file was updated and bundle must
@@ -738,7 +739,7 @@ namespace AngryLevelLoader.Containers
 
         internal void FileChanged()
         {
-            _ignoreFileChange = false;
+            IgnoreFileChange = false;
 
 			if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData updatedData, out Exception e))
             {
@@ -753,44 +754,13 @@ namespace AngryLevelLoader.Containers
 
                 FileChangeDetected = updatedData.buildHash != bundleData.buildHash;
                 if (FileChangeDetected)
-					LastPlayedMapManager.UpdateLastUpdate(this);
-
-                CheckReloadPrompt();
-			}
-        }
-
-        internal void CheckReloadPrompt()
-        {
-			if (AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == this)
-			{
-				if (Plugin.currentPanel != null)
 				{
-					if (FileChangeDetected && !_ignoreFileChange)
-					{
-						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(true);
-						Plugin.currentPanel.reloadBundlePrompt.audio.Play();
-						Plugin.currentPanel.reloadBundlePrompt.text.text = $"File update detected\nPress <color=orange>{ConfigManager.reloadFileKeybind.value}</color> to reload\n(Can be binded in the settings)";
-						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
-						Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick.AddListener(() =>
-						{
-							ReloadBundle(false, false);
-						});
-
-                        Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick = new Button.ButtonClickedEvent();
-						Plugin.currentPanel.reloadBundlePrompt.ignoreButton.onClick.AddListener(() =>
-                        {
-                            _ignoreFileChange = true;
-							Plugin.currentPanel.reloadBundlePrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
-							Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(false);
-						});
-					}
-					else
-					{
-						Plugin.currentPanel.reloadBundlePrompt.gameObject.SetActive(false);
-					}
+					LastPlayedMapManager.UpdateLastUpdate(this);
+					if (AngrySceneManager.isInCustomLevel && AngrySceneManager.currentBundleContainer == this)
+						AngryUI.ShowReloadBundlePrompt();
 				}
 			}
-		}
+        }
 
         internal BundleContainer(string path, AngryBundleData data)
         {

@@ -7,6 +7,7 @@ using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
+using AngryLevelLoader.UserInterface;
 using AngryUiComponents;
 using BepInEx;
 using BepInEx.Bootstrap;
@@ -515,125 +516,6 @@ namespace AngryLevelLoader
 			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
 		}
 
-		// Create the shortcut in chapters menu
-		internal const string CUSTOM_LEVEL_BUTTON_ASSET_PATH = "AngryLevelLoader/UI/CustomLevels.prefab";
-		internal static AngryCustomLevelButtonComponent currentCustomLevelButton;
-		internal static RectTransform bossRushButton;
-		internal static void CreateCustomLevelButtonOnMainMenu()
-		{
-			instance.StartCoroutine(CreateCustomLevelButtonOnMainMenuAsync());
-		}
-
-		private static IEnumerator CreateCustomLevelButtonOnMainMenuAsync()
-		{
-			yield return null;
-
-            GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
-			if (canvasObj == null)
-			{
-				logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
-				yield break;
-			}
-
-			Transform chapters = canvasObj.transform.Find("Chapter Select/Chapters");
-			if (chapters != null)
-			{
-				Transform chapterSelect = canvasObj.transform.Find("Chapter Select");
-
-                GameObject customLevelButtonObj = Addressables.InstantiateAsync(CUSTOM_LEVEL_BUTTON_ASSET_PATH, chapters).WaitForCompletion();
-				Transform bossRush = chapters.Find("Boss Rush Button");
-				if (bossRush != null)
-					bossRushButton = bossRush.gameObject.GetComponent<RectTransform>();
-				currentCustomLevelButton = customLevelButtonObj.GetComponent<AngryCustomLevelButtonComponent>();
-
-				currentCustomLevelButton.button.onClick = new Button.ButtonClickedEvent();
-				currentCustomLevelButton.button.onClick.AddListener(() =>
-				{
-                    // Find the options menu
-                    Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
-					if (optionsMenu == null)
-					{
-						logger.LogError("Angry tried to find the options menu but failed!");
-						return;
-					}
-
-                    // Disable act selection panel
-                    chapterSelect.gameObject.SetActive(false);
-
-					// Open options menu
-                    optionsMenu.gameObject.SetActive(true);
-
-					// Open plugin config panel
-					Transform pluginConfigButton = optionsMenu.transform.Find("Navigation Rail/PluginConfiguratorButton(Clone)");
-					if (pluginConfigButton == null)
-						pluginConfigButton = optionsMenu.transform.Find("Navigation Rail/PluginConfiguratorButton");
-
-					if (pluginConfigButton == null)
-					{
-						logger.LogError("Angry tried to find the plugin configurator button but failed!");
-						return;
-					}
-
-					// Two buttons may be highlighted at the same time if the menu is not opened before
-					Transform panel = optionsMenu.Find("Navigation Rail");
-					if (panel != null && panel.gameObject.TryGetComponent(out ButtonHighlightParent highlightManager))
-					{
-						if (highlightManager.buttons == null || highlightManager.buttons.Length == 0)
-						{
-							highlightManager.Start();
-							highlightManager.targetOnStart = null;
-						}
-					}
-
-					// Click the plugin config button and open the main panel of angry
-					pluginConfigButton.gameObject.GetComponent<Button>().onClick.Invoke();
-					if (PluginConfiguratorController.activePanel != null)
-						PluginConfiguratorController.activePanel.SetActive(false);
-					PluginConfiguratorController.mainPanel.gameObject.SetActive(false);
-					ConfigManager.config.rootPanel.OpenPanelInternally(false);
-					ConfigManager.config.rootPanel.currentPanel.rect.normalizedPosition = new Vector2(0, 1);
-
-					// Set the difficulty based on the previously selected act
-					AngryDifficultyManager.SetDifficultyFromPrefs();
-				});
-				ConfigManager.customLevelButtonPosition.TriggerPostValueChangeEvent();
-				ConfigManager.customLevelButtonFrameColor.TriggerPostValueChangeEvent();
-				ConfigManager.customLevelButtonTextColor.TriggerPostValueChangeEvent();
-			}
-			else
-			{
-				logger.LogWarning("Angry tried to find chapter select menu, but root canvas was not found!");
-			}
-		}
-
-		// Create the angry canvas
-		private const string ANGRY_UI_PANEL_ASSET_PATH = "AngryLevelLoader/UI/AngryUIPanel.prefab";
-		public static AngryUIPanelComponent currentPanel;
-		private static void CreateAngryUI()
-		{
-			instance.StartCoroutine(CreateAngryUIAsync());
-		}
-
-		private static IEnumerator CreateAngryUIAsync()
-		{
-			yield return null;
-
-			if (currentPanel != null)
-				yield break;
-
-			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
-			if (canvasObj == null)
-			{
-				logger.LogWarning("Angry tried to create main menu buttons, but root canvas was not found!");
-                yield break;
-			}
-
-			GameObject panelObj = Addressables.InstantiateAsync(ANGRY_UI_PANEL_ASSET_PATH, canvasObj.transform).WaitForCompletion();
-			currentPanel = panelObj.GetComponent<AngryUIPanelComponent>();
-
-			currentPanel.reloadBundlePrompt.MakeTransparent(true);
-		}
-
 		internal static FileSystemWatcher levelsWatcher;
 		internal static FileSystemWatcher scriptsWatcher;
 		private static void InitializeFileWatcher()
@@ -725,69 +607,7 @@ namespace AngryLevelLoader
 					return;
 				logger.LogMessage($"Detected script change {Path.GetFileName(fullPath)}");
 
-				IEnumerator ShowScriptPrompt()
-				{
-					yield return new WaitUntil(() => currentPanel != null && AngrySceneManager.isInCustomLevel);
-
-					currentPanel.reloadScriptPrompt.gameObject.SetActive(true);
-					currentPanel.reloadScriptPrompt.audio.Play();
-					currentPanel.reloadScriptPrompt.text.text = $"Script update detected\nPress <color=orange>{ConfigManager.reloadScriptKeybind.value}</color> to reload\n(Can be binded in the settings)";
-					currentPanel.reloadScriptPrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
-					currentPanel.reloadScriptPrompt.reloadButton.onClick.AddListener(() =>
-					{
-						// Save state
-						if (AngrySceneManager.isInCustomLevel)
-						{
-							InternalConfigManager.instantLoadLevel.value = true;
-							InternalConfigManager.instantLoadLevelGuid.value = AngrySceneManager.currentBundleContainer.bundleGuid;
-							InternalConfigManager.instantLoadLevelId.value = AngrySceneManager.currentLevelContainer.levelId;
-						}
-
-						PluginConfiguratorController.FlushAllConfigs();
-
-						// Restart the game
-						ProcessStartInfo procInfo = new ProcessStartInfo()
-						{
-							FileName = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ULTRAKILL.exe"),
-							WorkingDirectory = Directory.GetParent(Application.dataPath).FullName,
-							UseShellExecute = false,
-							RedirectStandardError = true,
-							RedirectStandardOutput = true,
-						};
-
-						string[] variablesToRemove = new string[]
-						{
-							"DOORSTOP_DISABLE",
-							"DOORSTOP_DLL_SEARCH_DIRS",
-							"DOORSTOP_INITIALIZED",
-							"DOORSTOP_INVOKE_DLL_PATH",
-							"DOORSTOP_MANAGED_FOLDER_DIR",
-							"DOORSTOP_MONO_LIB_PATH",
-							"DOORSTOP_PROCESS_PATH"
-						};
-
-						foreach (string variable in variablesToRemove)
-						{
-							if (procInfo.EnvironmentVariables.ContainsKey(variable))
-								procInfo.EnvironmentVariables.Remove(variable);
-							if (procInfo.Environment.ContainsKey(variable))
-								procInfo.Environment.Remove(variable);
-						}
-
-						Process.Start(procInfo);
-						Application.Quit();
-					});
-
-					currentPanel.reloadScriptPrompt.ignoreButton.onClick = new Button.ButtonClickedEvent();
-					currentPanel.reloadScriptPrompt.ignoreButton.onClick.AddListener(() =>
-					{
-						currentPanel.reloadScriptPrompt.reloadButton.onClick = new Button.ButtonClickedEvent();
-						currentPanel.reloadScriptPrompt.gameObject.SetActive(false);
-					});
-				}
-
-				instance.StopCoroutine(nameof(ShowScriptPrompt));
-				instance.StartCoroutine(ShowScriptPrompt());
+				AngryUI.UpdatedScript = Path.GetFileName(fullPath);
 			}
 			scriptsWatcher.Changed += OnScriptChange;
 
@@ -1023,18 +843,8 @@ namespace AngryLevelLoader
 					Logger.LogInfo("Running post scene load event");
 					AngrySceneManager.PostSceneLoad();
 
-					Logger.LogInfo("Creating UI panel");
-					CreateAngryUI();
-
-					Logger.LogInfo("Checking bundle file status");
-					AngrySceneManager.currentBundleContainer.CheckReloadPrompt();
-
 					//Make sure mapvars are ready to go
 					MapVarManager.Instance.ReloadMapVars();
-				}
-				else if (SceneHelper.CurrentScene == "Main Menu")
-				{
-					CreateCustomLevelButtonOnMainMenu();
 				}
 			};
 
@@ -1114,6 +924,9 @@ namespace AngryLevelLoader
 				AngryUser.hasLeaderboardPermissions = perms.response.hasLeaderboardModificationPermission;
 
 			}, TaskScheduler.FromCurrentSynchronizationContext());
+
+			AngryCustomLevelButton.Init();
+			AngryUI.Init();
 
 			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
@@ -1220,8 +1033,7 @@ namespace AngryLevelLoader
 
 			if (keyCode == ConfigManager.reloadScriptKeybind.value)
 			{
-				if (currentPanel != null && currentPanel.reloadScriptPrompt != null && currentPanel.reloadScriptPrompt.reloadButton != null)
-					currentPanel.reloadScriptPrompt.reloadButton.onClick?.Invoke();
+				AngryUI.ReloadScript();
 			}
 		}
 	

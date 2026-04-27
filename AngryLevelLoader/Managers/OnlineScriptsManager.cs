@@ -52,7 +52,7 @@ namespace AngryLevelLoader.Managers
 		private static async Task<ScriptCatalog> DownloadTask()
 		{
 			string newHash = "";
-			UnityWebRequest hashReq = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevels, "ScriptCatalogHash.txt"));
+			UnityWebRequest hashReq = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, "ScriptCatalogHash.txt"));
 			
 			try
 			{
@@ -94,7 +94,7 @@ namespace AngryLevelLoader.Managers
 				}
 			}
 
-			UnityWebRequest updatedCatalogRequest = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevels, "ScriptCatalog.json"));
+			UnityWebRequest updatedCatalogRequest = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, "ScriptCatalog.json"));
 			try
 			{
 				updatedCatalogRequest.downloadHandler = new DownloadHandlerBuffer();

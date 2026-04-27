@@ -100,7 +100,7 @@ namespace AngryLevelLoader.Managers
 			if (File.Exists(imageCachePath))
 				File.Delete(imageCachePath);
 
-			string url = GetGithubURL(Repo.AngryLevels, $"Levels/{guid}/thumbnail.png");
+			string url = AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, $"Levels/{guid}/thumbnail.png");
 
 			UnityWebRequest thumbnailReq = new UnityWebRequest(url);
 			thumbnailReq.downloadHandler = new DownloadHandlerFile(imageCachePath);
@@ -149,7 +149,7 @@ namespace AngryLevelLoader.Managers
 
 			string levelMd5 = AngryCryptographyUtils.GetMD5String(levelId);
 
-			UnityWebRequest thumbnailReq = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, $"Levels/{bundleGuid}/LevelThumbnails/{levelMd5}.png"));
+			UnityWebRequest thumbnailReq = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, $"Levels/{bundleGuid}/LevelThumbnails/{levelMd5}.png"));
 			thumbnailReq.downloadHandler = new DownloadHandlerTexture();
 			await thumbnailReq.SendWebRequest();
 

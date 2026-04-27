@@ -20,7 +20,34 @@ namespace AngryLevelLoader
             get => ConfigManager.useLocalServer.value ? SERVER_ROOT_LOCAL : SERVER_ROOT_GLOBAL;
         }
 
-        internal static void TryCreateAllPaths()
+		internal enum Repo
+		{
+			AngryLevelLoader,
+			AngryLevels
+		}
+
+		internal static string GetGithubURL(Repo repo, string path)
+		{
+			string branch = "release";
+			if (ConfigManager.useDevelopmentBranch.value)
+				branch = "dev";
+
+			string repoName = "AngryLevels";
+			switch (repo)
+			{
+				case Repo.AngryLevels:
+					repoName = "AngryLevels";
+					break;
+
+				case Repo.AngryLevelLoader:
+					repoName = "AngryLevelLoader";
+					break;
+			}
+
+			return $"https://raw.githubusercontent.com/eternalUnion/{repoName}/{branch}/{path}";
+		}
+
+		internal static void TryCreateAllPaths()
         {
             AngryIOUtils.TryCreateDirectory(ConfigFolderPath);
             AngryIOUtils.TryCreateDirectory(OnlineCacheFolderPath);

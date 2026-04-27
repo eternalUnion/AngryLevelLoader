@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using UnityEngine.Networking;
 
 namespace AngryLevelLoader.Managers
 {
@@ -78,13 +79,13 @@ namespace AngryLevelLoader.Managers
             return File.Exists(Path.Combine(Plugin.workingDir, "Scripts", scriptName));
         }
 
-        /// <summary>
-        /// Returns true if an outdated version of the script is loaded into the application domain.
-        /// This situation can occur if the script is updated while it was already loaded.
-        /// In such situations, game restart is required to reload the newer script.
-        /// </summary>
-        /// <param name="scriptName"></param>
-        public static bool ScriptChanged(string scriptName)
+		/// <summary>
+		/// Returns true if an outdated version of the script is loaded into the application domain.
+		/// This situation can occur if the script is updated while it was already loaded.
+		/// In such situations, game restart is required to reload the newer script.
+		/// </summary>
+		/// <param name="scriptName">Full name of the script, including the .dll extension.</param>
+		public static bool ScriptChanged(string scriptName)
         {
             if (!loadedScriptsDict.TryGetValue(scriptName, out string hash) || !File.Exists(Path.Combine(AngryPaths.ScriptsPath, scriptName)))
                 return false;
@@ -110,5 +111,30 @@ namespace AngryLevelLoader.Managers
 
             return requiredScripts;
         }
+
+		/// <summary>
+		/// Get the web url for the given online script.
+		/// The script can be downloaded using <see cref="UnityWebRequest"/>.
+		/// The script must be saved to <see cref="AngryPaths.ScriptsPath"/> with the same file name.
+		/// User consent must be taken before downloading the script.
+        /// Angry does not provide public api for downloading custom scripts.
+		/// </summary>
+		/// <param name="scriptName">Full name of the script, including the .dll extension.</param>
+		public static string GetUrlForOnlineScript(string scriptName)
+        {
+			return AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, $"Scripts/{scriptName}");
+		}
+
+		/// <summary>
+		/// Get the web url for the certificate of the given online script.
+		/// The script certificate can be downloaded using <see cref="UnityWebRequest"/>.
+		/// The script must be saved to <see cref="AngryPaths.ScriptsPath"/> with the same file name and .dll.cert extension.
+		/// User consent must be taken before downloading the script.
+		/// </summary>
+		/// <param name="scriptName">Full name of the script, including the .dll extension.</param>
+		public static string GetUrlForOnlineScriptCertificate(string scriptName)
+        {
+            return AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, $"Scripts/{scriptName}.cert");
+		}
     }
 }

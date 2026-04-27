@@ -136,8 +136,8 @@ namespace AngryLevelLoader.Notifications
 
                 try
                 {
-                    currentDllRequest = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevels, $"Scripts/{scriptName}"));
-                    currentCertRequest = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevels, $"Scripts/{scriptName}.cert"));
+                    currentDllRequest = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, $"Scripts/{scriptName}"));
+                    currentCertRequest = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, $"Scripts/{scriptName}.cert"));
 
                     string tempPath = Path.Combine(Plugin.workingDir, "TempDownloads");
                     if (!Directory.Exists(tempPath))

@@ -55,7 +55,7 @@ namespace AngryLevelLoader.Managers
 			string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
 			AngryIOUtils.TryCreateDirectoryForFile(cachedCatalogPath);
 
-			UnityWebRequest catalogVersionRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "V2/LevelCatalogHash.txt"));
+			UnityWebRequest catalogVersionRequest = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, "V2/LevelCatalogHash.txt"));
 			catalogVersionRequest.downloadHandler = new DownloadHandlerBuffer();
 			await catalogVersionRequest.SendWebRequest();
 
@@ -102,7 +102,7 @@ namespace AngryLevelLoader.Managers
 			string catalogPath = AngryPaths.LevelCatalogCachePath;
 			AngryIOUtils.TryCreateDirectoryForFile(catalogPath);
 
-			UnityWebRequest catalogRequest = new UnityWebRequest(GetGithubURL(Repo.AngryLevels, "V2/LevelCatalog.json"));
+			UnityWebRequest catalogRequest = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevels, "V2/LevelCatalog.json"));
 			catalogRequest.downloadHandler = new DownloadHandlerFile(catalogPath);
 			await catalogRequest.SendWebRequest();
 
@@ -162,33 +162,6 @@ namespace AngryLevelLoader.Managers
         internal static ConfigPanel onlineLevelsPanel;
 		internal static ConfigDivision onlineLevelContainer;
 		internal static LoadingCircleField loadingCircle;
-
-		internal enum Repo
-        {
-            AngryLevelLoader,
-            AngryLevels
-        }
-
-        internal static string GetGithubURL(Repo repo, string path)
-        {
-            string branch = "release";
-            if (ConfigManager.useDevelopmentBranch.value)
-                branch = "dev";
-
-            string repoName = "AngryLevels";
-            switch (repo)
-            {
-                case Repo.AngryLevels:
-                    repoName = "AngryLevels";
-                    break;
-
-                case Repo.AngryLevelLoader:
-                    repoName = "AngryLevelLoader";
-                    break;
-            }
-
-            return $"https://raw.githubusercontent.com/eternalUnion/{repoName}/{branch}/{path}";
-        }
 
         // Filters
         public enum SortFilter

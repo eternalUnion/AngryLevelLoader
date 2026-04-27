@@ -279,76 +279,10 @@ namespace AngryLevelLoader.Managers
 			new ConfigHeader(settingsPanel, "User Interface") { textColor = new Color(1f, 0.504717f, 0.9454f) };
 
 			customLevelButtonPosition = new EnumField<CustomLevelButtonPosition>(settingsPanel, "Custom level button position", "s_customLevelButtonPosition", CustomLevelButtonPosition.Bottom);
-			customLevelButtonPosition.postValueChangeEvent += (pos) =>
-			{
-				if (Plugin.currentCustomLevelButton == null)
-					return;
-
-				Plugin.currentCustomLevelButton.gameObject.SetActive(true);
-				switch (pos)
-				{
-					case CustomLevelButtonPosition.Disabled:
-						Plugin.currentCustomLevelButton.gameObject.SetActive(false);
-						break;
-
-					case CustomLevelButtonPosition.Bottom:
-						Plugin.currentCustomLevelButton.transform.localPosition = new Vector3(Plugin.currentCustomLevelButton.transform.localPosition.x, -303, Plugin.currentCustomLevelButton.transform.localPosition.z);
-						break;
-
-					case CustomLevelButtonPosition.Top:
-						Plugin.currentCustomLevelButton.transform.localPosition = new Vector3(Plugin.currentCustomLevelButton.transform.localPosition.x, 192, Plugin.currentCustomLevelButton.transform.localPosition.z);
-						break;
-				}
-
-				if (Plugin.bossRushButton != null)
-				{
-					if (pos == CustomLevelButtonPosition.Bottom)
-					{
-						Plugin.currentCustomLevelButton.rect.sizeDelta = new Vector2((380f - 5) / 2, 50);
-						Plugin.currentCustomLevelButton.transform.localPosition = new Vector3((380f + 5) / -4, Plugin.currentCustomLevelButton.transform.localPosition.y, Plugin.currentCustomLevelButton.transform.localPosition.z);
-
-						Plugin.bossRushButton.sizeDelta = new Vector2((380f - 5) / 2, 50);
-						Plugin.bossRushButton.transform.localPosition = new Vector3((380f + 5) / 4, -303, 0);
-					}
-					else
-					{
-						Plugin.currentCustomLevelButton.rect.sizeDelta = new Vector2(380, 50);
-						Plugin.currentCustomLevelButton.transform.localPosition = new Vector3(0, Plugin.currentCustomLevelButton.transform.localPosition.y, Plugin.currentCustomLevelButton.transform.localPosition.z);
-
-						Plugin.bossRushButton.sizeDelta = new Vector2(380, 50);
-						Plugin.bossRushButton.transform.localPosition = new Vector3(0, -303, 0);
-					}
-				}
-			};
 
 			ConfigPanel customLevelButtonPanel = new ConfigPanel(settingsPanel, "Custom level button colors", "customLevelButtonPanel");
-
 			customLevelButtonFrameColor = new ColorField(customLevelButtonPanel, "Custom level button frame color", "s_customLevelButtonFrameColor", Color.white);
-			customLevelButtonFrameColor.postValueChangeEvent += (clr) =>
-			{
-				if (Plugin.currentCustomLevelButton == null)
-					return;
-
-				ColorBlock block = new ColorBlock();
-				block.colorMultiplier = 1f;
-				block.fadeDuration = 0.1f;
-				block.normalColor = clr;
-				block.selectedColor = clr * 0.8f;
-				block.highlightedColor = clr * 0.8f;
-				block.pressedColor = clr * 0.5f;
-				block.disabledColor = Color.gray;
-
-				Plugin.currentCustomLevelButton.button.colors = block;
-			};
-
 			customLevelButtonTextColor = new ColorField(customLevelButtonPanel, "Custom level button text color", "s_customLevelButtonTextColor", Color.white);
-			customLevelButtonTextColor.postValueChangeEvent += (clr) =>
-			{
-				if (Plugin.currentCustomLevelButton == null)
-					return;
-
-				Plugin.currentCustomLevelButton.text.color = clr;
-			};
 
 			new ConfigHeader(settingsPanel, "Leaderboards") { textColor = new Color(1f, 0.692924f, 0.291f) };
 			

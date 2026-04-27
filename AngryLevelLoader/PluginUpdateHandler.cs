@@ -17,7 +17,7 @@ namespace AngryLevelLoader
     {
         public static async Task CheckPluginUpdate(bool userRequested = true)
         {
-            UnityWebRequest infoReq = new UnityWebRequest(OnlineLevelsUI.GetGithubURL(OnlineLevelsUI.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
+            UnityWebRequest infoReq = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
             infoReq.downloadHandler = new DownloadHandlerBuffer();
             await infoReq.SendWebRequest();
 
