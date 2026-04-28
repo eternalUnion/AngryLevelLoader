@@ -7,16 +7,14 @@ using static AngryLevelLoader.Managers.LegacyPatches.LegacyPatchManager;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {
+	[LegacyPatch(LegacyPatchState.V7)]
 	internal static class V7LegacyPlayerPatches
 	{
 		private static LazyAddressableAsset<GameObject> PLAYER_PREFAB = new LazyAddressableAsset<GameObject>("Assets/Prefabs/Player/Player.prefab");
 
-		public static void Patch(Harmony harmony)
-		{
-			harmony.Patch(typeof(NewMovement).GetMethod(nameof(NewMovement.Start), INSTANCE), prefix: new HarmonyMethod(typeof(V7LegacyPlayerPatches).GetMethod(nameof(PatchPlayer), STATIC)));
-		}
-
-		public static void PatchPlayer(NewMovement __instance)
+		[HarmonyPatch(typeof(NewMovement), nameof(NewMovement.Start))]
+		[HarmonyPrefix]
+		private static void PatchPlayer(NewMovement __instance)
 		{
 			if (__instance.windStateParticle == null)
 			{

@@ -11,19 +11,18 @@ using static AngryLevelLoader.Managers.LegacyPatches.LegacyPatchManager;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {
+	[LegacyPatch(LegacyPatchState.V6)]
 	internal static class V6LegacyScriptPatches
 	{
-		public static void Patch(Harmony harmony)
-		{
-			harmony.Patch(typeof(MovingPlatform).GetMethod(nameof(MovingPlatform.Start), INSTANCE), prefix: new HarmonyMethod(typeof(V6LegacyScriptPatches).GetMethod(nameof(PatchMovingPlatform), STATIC)));
-		}
-
+		[HarmonyPatch(typeof(MovingPlatform), nameof(MovingPlatform.Start))]
+		[HarmonyPrefix]
 		private static void PatchMovingPlatform(MovingPlatform __instance)
 		{
 			__instance.moveOnEnable = true;
 		}
 	}
 
+	[LegacyPatch(LegacyPatchState.V6)]
 	internal static class V6LegacyEnemyPatches
 	{
 		private static LazyAddressableAsset<GameObject> MINDFLAYER_BEAM = new LazyAddressableAsset<GameObject>("Assets/Prefabs/Attacks and Projectiles/Hitscan Beams/Mindflayer Beam.prefab");
@@ -43,14 +42,6 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			MaliciousFace mf = maliciousFace.GetComponentInChildren<MaliciousFace>(true);
 			return mf.shockwave;
 		});
-
-		public static void Patch(Harmony harmony)
-		{
-			harmony.Patch(typeof(EnemyIdentifier).GetMethod(nameof(EnemyIdentifier.Awake), INSTANCE), prefix: new HarmonyMethod(typeof(V6LegacyEnemyPatches).GetMethod(nameof(PatchPreAwakeEnemyIdentifier), STATIC))/*, postfix: new HarmonyMethod(typeof(V6LegacyEnemyPatches).GetMethod(nameof(PatchPostEnemyIdentifier), STATIC))*/);
-			
-			harmony.Patch(typeof(Turret).GetMethod(nameof(Turret.Start), INSTANCE), prefix: new HarmonyMethod(typeof(V6LegacyEnemyPatches).GetMethod(nameof(PatchTurretStart), STATIC)));
-			harmony.Patch(typeof(Mindflayer).GetMethod(nameof(Mindflayer.Start), INSTANCE), prefix: new HarmonyMethod(typeof(V6LegacyEnemyPatches).GetMethod(nameof(PatchMindflayerStart), STATIC)));
-		}
 
 		private static Enemy MachineToEnemy(Machine machine, EnemyIdentifier eid)
 		{
@@ -142,6 +133,8 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			return enemy;
 		}
 
+		[HarmonyPatch(typeof(EnemyIdentifier), nameof(EnemyIdentifier.Awake))]
+		[HarmonyPrefix]
 		private static bool PatchPreAwakeEnemyIdentifier(EnemyIdentifier __instance)
 		{
 			Enemy enemy;
@@ -457,11 +450,15 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			return false;
 		}
 
+		[HarmonyPatch(typeof(Turret), nameof(Turret.Start))]
+		[HarmonyPrefix]
 		private static void PatchTurretStart(Turret __instance)
 		{
 			__instance.barrelTip = __instance.transform.Find("TurretBot/Armature/Root/Pelvis/Spine_01/Spine_02/Torso/Neck/Head_Main/Barrel/Barrel_end");
 		}
 
+		[HarmonyPatch(typeof(Mindflayer), nameof(Mindflayer.Start))]
+		[HarmonyPrefix]
 		private static void PatchMindflayerStart(Mindflayer __instance)
 		{
 			// Small hack

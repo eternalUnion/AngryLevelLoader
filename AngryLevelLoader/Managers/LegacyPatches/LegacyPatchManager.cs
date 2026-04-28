@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Train;
@@ -57,13 +58,37 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		V7,
 	}
 
-	internal class LegacyPatchManager
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+	internal class LegacyPatchAttribute : Attribute
 	{
-		public const BindingFlags INSTANCE = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
-		public const BindingFlags STATIC = BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
+		public readonly LegacyPatchState targetVersion;
 
-		public static LegacyPatchState patchState { get; private set; } = LegacyPatchState.None;
-		public static Harmony legacyHarmony = new Harmony($"{Plugin.PLUGIN_GUID}_legacyPatches");
+		public LegacyPatchAttribute(LegacyPatchState targetVersion)
+		{
+			this.targetVersion = targetVersion;
+		}
+	}
+
+	internal static class LegacyPatchManager
+	{
+		internal static Dictionary<LegacyPatchState, List<Type>> patches = new Dictionary<LegacyPatchState, List<Type>>();
+
+		static LegacyPatchManager()
+		{
+			foreach (LegacyPatchState patchState in Enum.GetValues(typeof(LegacyPatchState)))
+				patches[patchState] = new List<Type>();
+
+			foreach (Type patchType in Assembly.GetCallingAssembly().GetTypes().Where(t => t.GetCustomAttribute(typeof(LegacyPatchAttribute)) != null))
+			{
+				foreach (LegacyPatchState patchVersion in patchType.GetCustomAttributes<LegacyPatchAttribute>().Select(attr => attr.targetVersion).Distinct())
+				{
+					patches[patchVersion].Add(patchType);
+				}
+			}
+		}
+
+		private static LegacyPatchState patchState = LegacyPatchState.None;
+		private static Harmony legacyHarmony = new Harmony($"{Plugin.PLUGIN_GUID}_legacyPatches");
 
 		internal static void Init()
 		{
@@ -96,7 +121,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			};
 		}
 
-		public static void SetLegacyPatchState(LegacyPatchState state)
+		internal static void SetLegacyPatchState(LegacyPatchState state)
 		{
 			if (patchState == state)
 				return;
@@ -104,16 +129,12 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			patchState = state;
 			legacyHarmony.UnpatchSelf();
 
-			if (state == LegacyPatchState.V6)
+			if (patches.TryGetValue(state, out List<Type> patchClasses))
 			{
-				// Apply all Revamp patches
-				V6LegacyScriptPatches.Patch(legacyHarmony);
-				V6LegacyEnemyPatches.Patch(legacyHarmony);
-			}
-			else if (state == LegacyPatchState.V7)
-			{
-				// Apply some patches that fixes compability issues from 17b2 to 17d2
-				V7LegacyPlayerPatches.Patch(legacyHarmony);
+				foreach (Type patchClass in patchClasses)
+				{
+					legacyHarmony.PatchAll(patchClass);
+				}
 			}
 		}
 	}
