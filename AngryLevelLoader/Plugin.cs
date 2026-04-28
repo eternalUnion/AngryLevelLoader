@@ -37,7 +37,7 @@ using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 
 namespace AngryLevelLoader
 {
-    public class SpaceField : CustomConfigField
+    internal class SpaceField : CustomConfigField
     {
         public SpaceField(ConfigPanel parentPanel, float space) : base(parentPanel, 60, space)
         {
@@ -82,9 +82,11 @@ namespace AngryLevelLoader
 		public static string angryCatalogPath;
 
         internal static Plugin instance;
+		internal static Harmony harmony;
 		internal static ManualLogSource logger;
 
-		#region Loaded bundles
+
+		#region Bundle data
 		private static Dictionary<string, BundleContainer> angryBundles = new Dictionary<string, BundleContainer>();
 
 		/// <summary>
@@ -132,140 +134,10 @@ namespace AngryLevelLoader
 		#endregion
 
 
-
-		#region Folder subsystem
-		internal static Dictionary<string, FolderButtonField> pathToFolderMap = new Dictionary<string, FolderButtonField>();
-		internal static Stack<FolderButtonField> folderStack = new Stack<FolderButtonField>();
-
-		private static FolderButtonField GetFolder(string folder)
-		{
-			if (!pathToFolderMap.TryGetValue(folder, out FolderButtonField folderField))
-			{
-				folderField = new FolderButtonField(ConfigManager.folderDivision);
-				folderField.folderName = Path.GetFileName(folder);
-				folderField.onPressed.AddListener(() =>
-				{
-					DisplayFolder(folderField);
-					folderStack.Push(folderField);
-				});
-
-				pathToFolderMap[folder] = folderField;
-
-				string currentPath = folder;
-				FolderButtonField currentFolder = folderField;
-				while (currentPath != "/")
-				{
-					string parentPath = Path.GetDirectoryName(currentPath).Replace('\\', '/');
-					bool parentFolderExisted = true;
-
-					if (!pathToFolderMap.TryGetValue(parentPath, out FolderButtonField parentFolder))
-					{
-						parentFolderExisted = false;
-
-						parentFolder = new FolderButtonField(ConfigManager.folderDivision);
-						parentFolder.folderName = Path.GetFileName(parentPath);
-						parentFolder.onPressed.AddListener(() =>
-						{
-							DisplayFolder(parentFolder);
-							folderStack.Push(parentFolder);
-						});
-
-						pathToFolderMap[parentPath] = parentFolder;
-					}
-
-					parentFolder.folders.Add(currentFolder);
-					if (parentFolderExisted)
-						break;
-
-					currentFolder = parentFolder;
-					currentPath = parentPath;
-				}
-			}
-
-			return folderField;
-		}
-
-		internal static void DisplayFolder(FolderButtonField folderField)
-		{
-			if (folderField == null)
-				folderField = pathToFolderMap["/"];
-
-			foreach (var bundle in angryBundles.Values)
-				bundle.Hidden = true;
-			foreach (var folder in pathToFolderMap.Values)
-				folder.hidden = true;
-
-			foreach (var bundle in folderField.bundles)
-				if (bundle.LazyLoaded)
-					bundle.Hidden = false;
-
-			foreach (var folder in folderField.folders)
-			{
-				if (folder.Any())
-					folder.hidden = false;
-			}
-
-			if (folderField == pathToFolderMap["/"])
-				ConfigManager.levelBundlesHeader.text = "Level Bundles";
-			else
-				ConfigManager.levelBundlesHeader.text = $"Level Bundles <color=grey>{pathToFolderMap.Where(e => e.Value == folderField).FirstOrDefault().Key}</color>";
-		}
-		#endregion
-
-
-
-		#region Search subsystem
-		private static string[] currentSearchKeywords = new string[0];
-		private static char[] whitespaceSeparator = new char[] { ' ' };
-
-		private static void UpdateBundleSearch(string newVal)
-		{
-			string[] newKeywords = newVal.Split(whitespaceSeparator, StringSplitOptions.RemoveEmptyEntries).Select(keyword => keyword.ToLower()).ToArray();
-			if (newKeywords.Length == currentSearchKeywords.Length && newKeywords.SequenceEqual(currentSearchKeywords))
-				return;
-
-			currentSearchKeywords = newKeywords;
-
-			// If not searching anything, open the current folder
-			if (currentSearchKeywords.Length == 0)
-			{
-				ConfigManager.folderDivision.hidden = false;
-				ConfigManager.searchInfo.hidden = true;
-
-				foreach (BundleContainer bundle in angryBundles.Values)
-					bundle.SearchKeywords = new string[0];
-
-				DisplayFolder(folderStack.Peek());
-				return;
-			}
-
-			ConfigManager.folderDivision.hidden = true;
-			ConfigManager.searchInfo.hidden = false;
-			int filterCount = 0, totalCount = 0;
-			foreach (BundleContainer bundle in angryBundles.Values)
-			{
-				bundle.SearchKeywords = currentSearchKeywords;
-
-				if (!bundle.HasValidAngryFile)
-					continue;
-
-				totalCount += 1;
-				if (bundle.SearchMatch)
-					filterCount += 1;
-			}
-
-			ConfigManager.levelBundlesHeader.text = "Level Bundles";
-			ConfigManager.searchInfo.text = $"Showing {filterCount} of {totalCount} bundles";
-		}
-		#endregion
-
-
-
+		#region Angry file loader
 		private static int numOfOldBundles = 0;
 		private static void ProcessPath(string path, string folder)
 		{
-			FolderButtonField folderField = GetFolder(folder);
-
 			if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
 			{
                 if (angryBundles.TryGetValue(data.bundleGuid, out BundleContainer bundle))
@@ -282,7 +154,7 @@ namespace AngryLevelLoader
 						return;
 					}
 
-					folderField.bundles.Add(bundle);
+					AngryBundleList.AddBundle(bundle, folder);
 
 					if (data.bundleVersion < 6)
 					{
@@ -309,14 +181,14 @@ namespace AngryLevelLoader
 					return;
                 }
 
-                BundleContainer newBundle = new BundleContainer(path, data);
-				angryBundles[data.bundleGuid] = newBundle;
-				folderField.bundles.Add(newBundle);
-				newBundle.UpdateOrder();
+                bundle = new BundleContainer(path, data);
+				angryBundles[data.bundleGuid] = bundle;
+				AngryBundleList.AddBundle(bundle, folder);
+				bundle.UpdateOrder();
 
                 try
                 {
-					newBundle.ReloadBundle(false, true);
+					bundle.ReloadBundle(false, true);
 				}
                 catch (Exception e)
                 {
@@ -353,11 +225,6 @@ namespace AngryLevelLoader
             }
         }
 
-		private static string[] validImageExts = new string[]
-		{
-			".jpg", ".jpeg", ".png"
-		};
-
 		/// <summary>
 		/// Read all files in the levels directory and create bundle containers for them.
 		/// Bundles are only partially loaded (see <see cref="BundleContainer.LazyLoaded"/>)
@@ -376,17 +243,7 @@ namespace AngryLevelLoader
 				return;
             }
 
-			if (!pathToFolderMap.TryGetValue("/", out FolderButtonField rootFolder))
-			{
-				rootFolder = new FolderButtonField(ConfigManager.config.rootPanel);
-				rootFolder.hidden = true;
-				pathToFolderMap["/"] = rootFolder;
-			}
-
-			foreach (FolderButtonField folder in pathToFolderMap.Values)
-			{
-				folder.bundles.Clear();
-			}
+			AngryBundleList.ResetFolders();
 
 			foreach (AngryIOUtils.SubFileInfo file in AngryIOUtils.GetAllFilesRecursive(levelsPath))
 			{
@@ -395,24 +252,7 @@ namespace AngryLevelLoader
 				ProcessPath(file.filePath, file.subFolder);
 			}
 
-			foreach (KeyValuePair<string, FolderButtonField> folder in pathToFolderMap)
-			{
-				if (folder.Value == rootFolder)
-					continue;
-
-				string realPath = Path.Combine(levelsPath, folder.Key.Substring(1));
-				if (Directory.Exists(realPath))
-				{
-					string pathToIcon = Directory.GetFiles(realPath).Where(path => validImageExts.Contains(Path.GetExtension(path))).FirstOrDefault();
-					if (!string.IsNullOrEmpty(pathToIcon))
-					{
-						folder.Value.CreateIcon(pathToIcon);
-						continue;
-					}
-				}
-
-				folder.Value.CreateIcon(folder.Value);
-			}
+			AngryBundleList.UpdateFolderIcons();
 
 			if (numOfOldBundles != 0)
 			{
@@ -421,59 +261,14 @@ namespace AngryLevelLoader
 				ConfigManager.errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s). These files can be deleted at the bottom of the settings page.</color>";
 			}
 
-			DisplayFolder(rootFolder);
-			folderStack.Clear();
-			folderStack.Push(rootFolder);
-
+			AngryBundleList.OpenFolder("/");
 			OnlineLevelsUI.UpdateUI();
 		}
+		#endregion
 
-		internal static void SortBundles()
-		{
-			int i = 0;
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
-			{
-				foreach (var bundle in angryBundles.Values.OrderBy(b => b.BundleName))
-					bundle.SiblingIndex = i++;
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
-			{
-				foreach (var bundle in angryBundles.Values.OrderBy(b => b.BundleAuthor))
-					bundle.SiblingIndex = i++;
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
-			{
-				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (LastPlayedMapManager.lastPlayed.TryGetValue(b.bundleGuid, out long time))
-						return time;
-					return 0;
-				}))
-				{
-					bundle.SiblingIndex = i++;
-				}
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
-			{
-				foreach (var bundle in angryBundles.Values.OrderByDescending((b) => {
-					if (LastPlayedMapManager.lastUpdate.TryGetValue(b.bundleGuid, out long time))
-						return time;
-					return 0;
-				}))
-				{
-					bundle.SiblingIndex = i++;
-				}
-			}
-		}
 
-		internal static void UpdateAllUI()
-		{
-			foreach (BundleContainer angryBundle in  angryBundles.Values)
-			{
-				angryBundle.UpdateAllUI();
-			}
-		}
-
-        private static bool LoadEssentialScripts()
+		#region Startup logic
+		private static bool LoadEssentialScripts()
         {
 			bool loaded = true;
 
@@ -502,7 +297,32 @@ namespace AngryLevelLoader
 			return loaded;
 		}
 
-		public static Harmony harmony;
+		private void ForceLoadAddressableDependencies()
+		{
+			// For some reason, we need a dangling reference to load in game addressable asset bundles.
+			// Level asset bundle dependencies do not work for some reason. That is, loading a custom
+			// level alone does not load the dependencies.
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab").WaitForCompletion();
+
+			// Rant #2: Addressables being a pain again
+			//
+			// After the update from Unity 2019 to 2022, it seems like attempting to load an asset
+			// from addressables during a scene load synchronously could cause a deadlock because
+			// addressables now tries to load the asset bundle asynchronously. Most of the scene load
+			// stuff can be done in a co-routine but room spawns should be done in-time, else many
+			// scripts that reference the player on start will fail. So force these assets to be
+			// always loaded. BTW, this is """"THE SOLUTION""" unity provides, yes the SOLUTION, and they
+			// are not planning to do anything about it (flagged as Won't Fix).
+			Addressables.LoadAssetAsync<GameObject>("FirstRoom").WaitForCompletion();
+			Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret").WaitForCompletion();
+			Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime").WaitForCompletion();
+			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab").WaitForCompletion();
+
+			Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png").WaitForCompletion();
+			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png").WaitForCompletion();
+			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat").WaitForCompletion();
+		}
 
 		// Delayed refresh online catalog on boot
 		private static void RefreshCatalogOnMainMenu(Scene newScene, LoadSceneMode mode)
@@ -853,48 +673,6 @@ namespace AngryLevelLoader
 
 			ConfigManager.InitializeConfig();
 
-			ConfigManager.config.rootPanel.onPannelOpenEvent += (externally) =>
-			{
-				Button.ButtonClickedEvent backButtonEvent = PluginConfiguratorController.backButton.onClick;
-
-				PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
-				PluginConfiguratorController.backButton.onClick.AddListener(() =>
-				{
-					if (folderStack.Count <= 1 || !string.IsNullOrEmpty(ConfigManager.searchBar.value))
-					{
-						backButtonEvent.Invoke();
-					}
-					else
-					{
-						folderStack.Pop();
-
-						if (folderStack.Count != 0)
-							DisplayFolder(folderStack.Peek());
-						else
-							DisplayFolder(null);
-					}
-				});
-			};
-
-			ConfigManager.searchBar.onValueChange += UpdateBundleSearch;
-			ConfigManager.searchBar.onReset += () => ConfigManager.searchBar.value = "";
-			ConfigManager.searchBar.onEndEdit += (bool wasCanceled) =>
-			{
-				if (!wasCanceled)
-					return;
-
-				if (!string.IsNullOrWhiteSpace(ConfigManager.searchBar.value))
-				{
-					ConfigManager.searchBar.value = "";
-					return;
-				}
-
-				if (folderStack.Count > 1)
-					return;
-
-				ConfigManager.config.rootPanel.ClosePanel();
-			};
-
 			BannedModsManager.Init();
 
 			// Also load some necessary assets which are needed during scene load
@@ -925,39 +703,17 @@ namespace AngryLevelLoader
 
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 
+			// Init UI
 			AngryCustomLevelButton.Init();
 			AngryUI.Init();
+			AngryBundleList.Init();
 
 			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
+		#endregion
 
-		private void ForceLoadAddressableDependencies()
-		{
-			// For some reason, we need a dangling reference to load in game addressable asset bundles.
-			// Level asset bundle dependencies do not work for some reason. That is, loading a custom
-			// level alone does not load the dependencies.
-			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Attacks and Projectiles/Projectile Decorative.prefab").WaitForCompletion();
 
-			// Rant #2: Addressables being a pain again
-			//
-			// After the update from Unity 2019 to 2022, it seems like attempting to load an asset
-			// from addressables during a scene load synchronously could cause a deadlock because
-			// addressables now tries to load the asset bundle asynchronously. Most of the scene load
-			// stuff can be done in a co-routine but room spawns should be done in-time, else many
-			// scripts that reference the player on start will fail. So force these assets to be
-			// always loaded. BTW, this is """"THE SOLUTION""" unity provides, yes the SOLUTION, and they
-			// are not planning to do anything about it (flagged as Won't Fix).
-			Addressables.LoadAssetAsync<GameObject>("FirstRoom").WaitForCompletion();
-			Addressables.LoadAssetAsync<GameObject>("FirstRoom Secret").WaitForCompletion();
-			Addressables.LoadAssetAsync<GameObject>("FirstRoom Prime").WaitForCompletion();
-			Addressables.LoadAssetAsync<GameObject>("Assets/Prefabs/Levels/Special Rooms/FirstRoom Encore.prefab").WaitForCompletion();
-
-			Addressables.LoadAssetAsync<Font>("Assets/Fonts/VCR_OSD_MONO_1.001.ttf").WaitForCompletion();
-			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/meter.png").WaitForCompletion();
-			Addressables.LoadAssetAsync<Sprite>("Assets/Textures/UI/arrow.png").WaitForCompletion();
-			Addressables.LoadAssetAsync<Material>("Assets/Materials/Environment/Metal/Metal Decoration 20.mat").WaitForCompletion();
-		}
-
+		#region Keybind handler
 		float lastPress = 0;
 		private void OnGUI()
 		{
@@ -1028,7 +784,10 @@ namespace AngryLevelLoader
 				lastPress = Time.time;
 
 				if (NotificationPanel.CurrentNotificationCount() == 0)
-					ReloadFileKeyPressed();
+				{
+					if (AngrySceneManager.currentBundleContainer != null)
+						AngrySceneManager.currentBundleContainer.ReloadBundle(false, false);
+				}
 			}
 
 			if (keyCode == ConfigManager.reloadScriptKeybind.value)
@@ -1036,12 +795,7 @@ namespace AngryLevelLoader
 				AngryUI.ReloadScript();
 			}
 		}
-	
-		private void ReloadFileKeyPressed()
-		{
-			if (AngrySceneManager.currentBundleContainer != null)
-				AngrySceneManager.currentBundleContainer.ReloadBundle(false, false);
-		}
+		#endregion
 	}
 
 	#region Rude-Angry Interfaces

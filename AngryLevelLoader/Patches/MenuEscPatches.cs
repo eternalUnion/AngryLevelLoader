@@ -7,6 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using AngryLevelLoader.Managers;
+using AngryLevelLoader.UserInterface;
 
 namespace AngryLevelLoader.Patches
 {
@@ -31,12 +32,8 @@ namespace AngryLevelLoader.Patches
 				return false;
 			}
 
-			if (Plugin.folderStack.Count > 1)
-			{
-				Plugin.folderStack.Pop();
-				Plugin.DisplayFolder(Plugin.folderStack.Peek());
+			if (AngryBundleList.PopFolder())
 				return false;
-			}
 
 			return true;
 		}

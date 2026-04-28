@@ -48,6 +48,7 @@ namespace AngryLevelLoader.Fields
 			if (blankIcon == null)
 			{
 				blankIcon = new Texture2D(ICON_SIZE * 2 + ICON_GAP, ICON_SIZE * 2 + ICON_GAP);
+				blankIcon.filterMode = FilterMode.Point;
 				for (int x = 0; x < blankIcon.width; x++)
 					for (int y = 0; y < blankIcon.height; y++)
 						blankIcon.SetPixel(x, y, Color.black);

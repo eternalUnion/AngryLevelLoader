@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using static AngryLevelLoader.Managers.OnlineLevelsUI;
+using static AngryLevelLoader.UserInterface.OnlineLevelsUI;
 
 namespace AngryLevelLoader.Managers
 {

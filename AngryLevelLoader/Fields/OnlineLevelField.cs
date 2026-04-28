@@ -3,6 +3,7 @@ using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
+using AngryLevelLoader.UserInterface;
 using AngryUiComponents;
 using PluginConfig;
 using PluginConfig.API;
@@ -248,7 +249,10 @@ namespace AngryLevelLoader.Fields
                     return $"<color=red><b>Validation error</b></color>";
             }
 
-            if (_status == OnlineLevelStatus.NotInstalled)
+            if (OnlineBundle.Locked)
+                return $"<color=red><b>Locked</b></color>";
+
+			if (_status == OnlineLevelStatus.NotInstalled)
                 return $"<color=red>Not installed</color>";
             else if (_status == OnlineLevelStatus.UpdateAvailable)
                 return $"<color=#00FFFF>Update available</color>";
@@ -462,7 +466,7 @@ namespace AngryLevelLoader.Fields
             AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.changelog,
                 (e) =>
                 {
-                    if (!Downloading)
+                    if (!Downloading && !OnlineBundle.Locked)
                         currentUi.changelog.gameObject.SetActive(true);
                 },
                 (e) =>

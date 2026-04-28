@@ -1,4 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.UserInterface;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -98,7 +99,7 @@ namespace AngryLevelLoader.Managers
 			}
 
 			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
-				Plugin.SortBundles();
+				AngryBundleList.SortBundles();
 		}
 
 		public static void UpdateLastUpdate(BundleContainer bundle)
@@ -124,7 +125,7 @@ namespace AngryLevelLoader.Managers
 			}
 
 			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
-				Plugin.SortBundles();
+				AngryBundleList.SortBundles();
 		}
 	}
 }

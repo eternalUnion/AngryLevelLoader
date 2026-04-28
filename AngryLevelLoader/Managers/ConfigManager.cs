@@ -1,5 +1,7 @@
-﻿using AngryLevelLoader.Fields;
+﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Fields;
 using AngryLevelLoader.Notifications;
+using AngryLevelLoader.UserInterface;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
@@ -137,7 +139,13 @@ namespace AngryLevelLoader.Managers
 			InternalConfigManager.InitializeInternalConfig();
 
 			config = PluginConfigurator.Create("Angry Level Loader", Plugin.PLUGIN_GUID);
-			config.postPresetChangeEvent += (b, a) => Plugin.UpdateAllUI();
+			config.postPresetChangeEvent += (b, a) =>
+			{
+				foreach (BundleContainer angryBundle in Plugin.GetAllBundleContainers())
+				{
+					angryBundle.UpdateAllUI();
+				}
+			};
 			config.SetIconWithURL("file://" + Path.Combine(Plugin.workingDir, "plugin-icon.png"));
 
 			newLevelToggle = new BoolField(config.rootPanel, "", "v_newLevelToggle", false);
@@ -197,7 +205,7 @@ namespace AngryLevelLoader.Managers
 			bundleSortingMode.onValueChange += (e) =>
 			{
 				bundleSortingMode.value = e.value;
-				Plugin.SortBundles();
+				AngryBundleList.SortBundles();
 			};
 			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastPlayed, "Last Played");
 			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastUpdate, "Last Update");
