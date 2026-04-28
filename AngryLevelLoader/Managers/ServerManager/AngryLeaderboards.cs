@@ -100,59 +100,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public bool censorName { get; set; }
 		}
 		#endregion
-		
-		//public static string[] bannedMods = null;
-		//public static bool bannedModsListLoaded = false;
 
-		//private static Task<GetBannedModsResult> loadBannedModsTask = null;
-		//public static bool loadingBannedModsList
-		//{
-		//	get => loadBannedModsTask != null && !loadBannedModsTask.IsCompleted;
-		//}
-
-		//public static void LoadBannedModsList(Action<bool> callback = null)
-		//{
-		//	if (bannedModsListLoaded)
-		//	{
-		//		if (callback != null)
-		//			callback(true);
-
-		//		return;
-		//	}
-
-		//	if (loadBannedModsTask != null)
-		//	{
-		//		if (callback != null)
-		//		{
-		//			loadBannedModsTask.ContinueWith((task) =>
-		//			{
-		//				callback(task.Result.status == GetBannedModsStatus.OK);
-		//			}, TaskScheduler.FromCurrentSynchronizationContext());
-		//		}
-
-		//		return;
-		//	}
-
-		//	loadBannedModsTask = GetBannedModsTask();
-		//	loadBannedModsTask.ContinueWith((task) =>
-		//	{
-		//		loadBannedModsTask = null;
-		//		var result = task.Result;
-
-		//		if (result.status == GetBannedModsStatus.OK)
-		//		{
-		//			bannedModsListLoaded = true;
-		//			bannedMods = result.response.mods;
-		//		}
-
-		//		Plugin.CheckForBannedMods();
-
-		//		if (callback != null)
-		//			callback(result.status == GetBannedModsStatus.OK);
-		//	}, TaskScheduler.FromCurrentSynchronizationContext());
-		//}
-
-		public struct PostRecordInfo
+		internal struct PostRecordInfo
 		{
 			public RecordCategory category;
 			public RecordDifficulty difficulty;
@@ -161,7 +110,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public string levelId;
 			public int time;
 		}
-		public static List<Task> postRecordTasks = new List<Task>();
+		internal static List<Task> postRecordTasks = new List<Task>();
 
 		private static async Task<string> TryPostRecordInternalTask(PostRecordInfo info)
 		{
@@ -261,7 +210,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			}
 		}
 
-		public static Task<string> TryPostRecordTask(PostRecordInfo info)
+		internal static Task<string> TryPostRecordTask(PostRecordInfo info)
 		{
 			Task<string> postRecordTask = TryPostRecordInternalTask(info);
 			postRecordTasks.Add(postRecordTask);
@@ -326,7 +275,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Post Record
-		public enum PostRecordStatus
+		internal enum PostRecordStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -347,18 +296,18 @@ namespace AngryLevelLoader.Managers.ServerManager
 			BANNED = 14,
 		}
 
-		public class PostRecordResponse : AngryResponse
+		internal class PostRecordResponse : AngryResponse
 		{
 			public int ranking { get; set; }
 			public bool newBest { get; set; }
 		}
 
-		public class PostRecordResult : AngryResult<PostRecordResponse, PostRecordStatus>
+		internal class PostRecordResult : AngryResult<PostRecordResponse, PostRecordStatus>
 		{
 
 		}
 
-		public static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, int time, CancellationToken cancellationToken = default)
+		internal static async Task<PostRecordResult> PostRecordTask(RecordCategory category, RecordDifficulty difficulty, string bundleGuid, string hash, string levelId, int time, CancellationToken cancellationToken = default)
 		{
 			PostRecordResult result = new PostRecordResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/postRecord?category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}&bundleGuid={bundleGuid}&hash={hash}&levelId={Uri.EscapeDataString(levelId)}&time={time}";
@@ -477,89 +426,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 		}
 		#endregion
 
-		#region Check For Banned Mods
-		public enum CheckForBannedModsState
-		{
-			FAILED = -2,
-			RATE_LIMITED = -1,
-			OK = 0,
-
-			BANNED_MOD = 1,
-			MISSING_JSON = 2,
-			MISSING_MODS_ARR = 3,
-		}
-
-		public class CheckForBannedModsResponse : AngryResponse
-		{
-			public string[] mods;
-		}
-
-		public class CheckForBannedModsResult : AngryResult<CheckForBannedModsResponse, CheckForBannedModsState>
-		{
-
-		}
-
-		private class CheckForBannedModsBodyObject
-		{
-			public string[] mods;
-		}
-		
-		public static async Task<CheckForBannedModsResult> CheckForBannedModsTask(IEnumerable<string> mods, CancellationToken cancellationToken = default)
-		{
-			CheckForBannedModsResult result = new CheckForBannedModsResult();
-			string url = AngryPaths.SERVER_ROOT + "/leaderboards/checkForBannedMods";
-
-			CheckForBannedModsBodyObject bodyObject = new CheckForBannedModsBodyObject();
-			bodyObject.mods = mods.ToArray();
-			string body = JsonConvert.SerializeObject(bodyObject);
-
-			await AngryRequest.MakeRequest(url, result, cancellationToken, method: "POST", body: body, contentType: AngryRequest.CONTENT_TYPE_JSON);
-
-			result.completed = true;
-			if (!result.completedSuccessfully)
-				result.status = CheckForBannedModsState.FAILED;
-			return result;
-		}
-
-		public static Task<CheckForBannedModsResult> CheckForBannedModsTask(CancellationToken cancellationToken = default)
-		{
-			return CheckForBannedModsTask(BepInEx.Bootstrap.Chainloader.PluginInfos.Keys, cancellationToken);
-		}
-		#endregion
-
-		#region Get Banned Mods
-		public enum GetBannedModsStatus
-		{
-			FAILED = -2,
-			OK = 0
-		}
-
-		public class GetBannedModsResponse : AngryResponse
-		{
-			public string[] mods;
-		}
-
-		public class GetBannedModsResult : AngryResult<GetBannedModsResponse, GetBannedModsStatus>
-		{
-
-		}
-
-		public static async Task<GetBannedModsResult> GetBannedModsTask(CancellationToken cancellationToken = default)
-		{
-			GetBannedModsResult result = new GetBannedModsResult();
-			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getBannedMods";
-
-			await AngryRequest.MakeRequest(url, result, cancellationToken);
-
-			result.completed = true;
-			if (!result.completedSuccessfully)
-				result.status = GetBannedModsStatus.FAILED;
-			return result;
-		}
-		#endregion
-
 		#region Get User Info
-		public enum GetUserInfoStatus
+		internal enum GetUserInfoStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -571,7 +439,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_ID = 4,
 		}
 
-		public class GetUserInfoResponse : AngryResponse
+		internal class GetUserInfoResponse : AngryResponse
 		{
 			public bool leaderboardBanned { get; set; }
 			public int recordCount { get; set; }
@@ -579,12 +447,12 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public int removedRecordCount { get; set; }
 		}
 
-		public class GetUserInfoResult : AngryResult<GetUserInfoResponse, GetUserInfoStatus>
+		internal class GetUserInfoResult : AngryResult<GetUserInfoResponse, GetUserInfoStatus>
 		{
 
 		}
 
-		public static async Task<GetUserInfoResult> GetUserInfoTask(string targetId, CancellationToken cancellationToken = default)
+		internal static async Task<GetUserInfoResult> GetUserInfoTask(string targetId, CancellationToken cancellationToken = default)
 		{
 			GetUserInfoResult result = new GetUserInfoResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserInfo?targetId={targetId}";
@@ -599,7 +467,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Manage User
-		public enum ManageUserStatus
+		internal enum ManageUserStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -611,17 +479,17 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_ID = 4,
 		}
 
-		public class ManageUserResponse : AngryResponse
+		internal class ManageUserResponse : AngryResponse
 		{
 
 		}
 
-		public class ManageUserResult : AngryResult<ManageUserResponse, ManageUserStatus>
+		internal class ManageUserResult : AngryResult<ManageUserResponse, ManageUserStatus>
 		{
 
 		}
 
-		public static async Task<ManageUserResult> ManageUserTask(string targetId, bool censorIcon = false, bool censorName = false, bool banUser = false, CancellationToken cancellationToken = default)
+		internal static async Task<ManageUserResult> ManageUserTask(string targetId, bool censorIcon = false, bool censorName = false, bool banUser = false, CancellationToken cancellationToken = default)
 		{
 			ManageUserResult result = new ManageUserResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/manageUser?targetId={targetId}&censorIcon={(censorIcon ? "true" : "false")}&censorName={(censorName ? "true" : "false")}&banUser={(banUser ? "true" : "false")}";
@@ -636,7 +504,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Remove Record
-		public enum RemoveRecordStatus
+		internal enum RemoveRecordStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -657,17 +525,17 @@ namespace AngryLevelLoader.Managers.ServerManager
 			ENTRY_NOT_FOUND = 13,
 		}
 
-		public class RemoveRecordResponse : AngryResponse
+		internal class RemoveRecordResponse : AngryResponse
 		{
 
 		}
 
-		public class RemoveRecordResult : AngryResult<RemoveRecordResponse, RemoveRecordStatus>
+		internal class RemoveRecordResult : AngryResult<RemoveRecordResponse, RemoveRecordStatus>
 		{
 
 		}
 
-		public static async Task<RemoveRecordResult> RemoveRecordTask(string targetId, string bundleGuid, string levelId, RecordCategory category, RecordDifficulty difficulty, CancellationToken cancellationToken = default)
+		internal static async Task<RemoveRecordResult> RemoveRecordTask(string targetId, string bundleGuid, string levelId, RecordCategory category, RecordDifficulty difficulty, CancellationToken cancellationToken = default)
 		{
 			// bundleGuid, levelId, category, difficulty
 			RemoveRecordResult result = new RemoveRecordResult();
@@ -683,7 +551,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Clear Records
-		public enum ClearRecordsStatus
+		internal enum ClearRecordsStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -695,17 +563,17 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_ID = 4,
 		}
 
-		public class ClearRecordsResponse : AngryResponse
+		internal class ClearRecordsResponse : AngryResponse
 		{
 			public int removedRecordCount { get; set; }
 		}
 
-		public class ClearRecordsResult : AngryResult<ClearRecordsResponse, ClearRecordsStatus>
+		internal class ClearRecordsResult : AngryResult<ClearRecordsResponse, ClearRecordsStatus>
 		{
 
 		}
 
-		public static async Task<ClearRecordsResult> ClearRecordsTask(string targetId, CancellationToken cancellationToken = default)
+		internal static async Task<ClearRecordsResult> ClearRecordsTask(string targetId, CancellationToken cancellationToken = default)
 		{
 			ClearRecordsResult result = new ClearRecordsResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/clearRecords?targetId={targetId}";
@@ -720,7 +588,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Get User History
-		public enum GetUserHistoryStatus
+		internal enum GetUserHistoryStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -732,19 +600,19 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_ID = 4,
 		}
 
-		public class GetUserHistoryResponse : AngryResponse
+		internal class GetUserHistoryResponse : AngryResponse
 		{
 			public Dictionary<string, int> bundleGuidPK;
 			public Dictionary<string, int> levelIdPK;
 			public int[][] runHistory;
 		}
 
-		public class GetUserHistoryResult : AngryResult<GetUserHistoryResponse, GetUserHistoryStatus>
+		internal class GetUserHistoryResult : AngryResult<GetUserHistoryResponse, GetUserHistoryStatus>
 		{
 
 		}
 
-		public static async Task<GetUserHistoryResult> GetUserHistoryTask(string targetId, CancellationToken cancellationToken = default)
+		internal static async Task<GetUserHistoryResult> GetUserHistoryTask(string targetId, CancellationToken cancellationToken = default)
 		{
 			GetUserHistoryResult result = new GetUserHistoryResult();
 			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserHistory?targetId={targetId}";

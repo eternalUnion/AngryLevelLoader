@@ -51,11 +51,11 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Vote
-		public const string VOTE_OP_UPVOTE = "upvote";
-		public const string VOTE_OP_DOWNVOTE = "downvote";
-		public const string VOTE_OP_CLEAR = "clear";
+		internal const string VOTE_OP_UPVOTE = "upvote";
+		internal const string VOTE_OP_DOWNVOTE = "downvote";
+		internal const string VOTE_OP_CLEAR = "clear";
 
-		public enum VoteOperation
+		internal enum VoteOperation
 		{
 			UPVOTE,
 			DOWNVOTE,
@@ -63,7 +63,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			UNKNOWN
 		}
 
-		public enum VoteStatus
+		internal enum VoteStatus
 		{
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -73,7 +73,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			VOTE_INVALID_OPERATION = 3,
 		}
 
-		public class VoteResponse : AngryResponse
+		internal class VoteResponse : AngryResponse
 		{
 			public string bundleGuid { get; set; }
 			public string operation { get; set; }
@@ -81,12 +81,12 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public int downvotes { get; set; }
 		}
 
-		public class VoteResult : AngryResult<VoteResponse, VoteStatus>
+		internal class VoteResult : AngryResult<VoteResponse, VoteStatus>
 		{
 			public VoteOperation operation;
 		}
 
-		public static async Task<VoteResult> VoteTask(string bundleGuid, VoteOperation operation, CancellationToken cancellationToken = default)
+		internal static async Task<VoteResult> VoteTask(string bundleGuid, VoteOperation operation, CancellationToken cancellationToken = default)
 		{
 			VoteResult result = new VoteResult();
 

@@ -35,7 +35,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public Resp response;
 	}
 
-	public static class AngryRequest
+	internal static class AngryRequest
 	{
 		public const string CONTENT_TYPE_JSON = "application/json";
 

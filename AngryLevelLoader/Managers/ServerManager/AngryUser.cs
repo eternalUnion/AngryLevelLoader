@@ -52,8 +52,8 @@ namespace AngryLevelLoader.Managers.ServerManager
             }
         }
 
-        #region Token Gen
-        public enum TokengenStatus
+		#region Token Gen
+		internal enum TokengenStatus
         {
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -63,7 +63,7 @@ namespace AngryLevelLoader.Managers.ServerManager
             TICKET_EXPIRED = 3,
         }
 
-		public class TokenGenResponse
+		internal class TokenGenResponse
 		{
 			public string message { get; set; }
 			public int status { get; set; }
@@ -71,7 +71,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public string token { get; set; }
 		}
 
-		public class TokenGenResult
+		internal class TokenGenResult
         {
             public bool networkError = false;
             public bool httpError = false;
@@ -148,7 +148,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			}
         }
 
-        public static Task<TokenGenResult> GenerateToken()
+		internal static Task<TokenGenResult> GenerateToken()
         {
             if (currentTokenGenTask != null)
                 return currentTokenGenTask;
@@ -201,7 +201,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region Report
-        public enum ReportStatus
+		internal enum ReportStatus
         {
             FAILED = -2,
             RATE_LIMITED = -1,
@@ -213,17 +213,17 @@ namespace AngryLevelLoader.Managers.ServerManager
             INVALID_ENTRY = 4,
 		}
 
-        public class ReportResponse : AngryResponse
+		internal class ReportResponse : AngryResponse
         {
             public bool alreadySent { get; set; }
 		}
 
-        public class ReportResult : AngryResult<ReportResponse, ReportStatus>
+		internal class ReportResult : AngryResult<ReportResponse, ReportStatus>
         {
 
         }
 
-		public static async Task<ReportResult> ReportTask(string category, string difficulty, string bundleGuid, string levelId, string targetId, string reason, CancellationToken cancellationToken = default)
+		internal static async Task<ReportResult> ReportTask(string category, string difficulty, string bundleGuid, string levelId, string targetId, string reason, CancellationToken cancellationToken = default)
 		{
 			ReportResult result = new ReportResult();
 
@@ -238,7 +238,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		#endregion
 
 		#region User Permissions
-        public enum UserPermissionsStatus
+		internal enum UserPermissionsStatus
         {
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -246,17 +246,17 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_TOKEN = 1,
 		}
 
-        public class GetPermissionsResponse : AngryResponse
+		internal class GetPermissionsResponse : AngryResponse
         {
             public bool hasLeaderboardModificationPermission { get; set; }
 		}
 
-        public class GetPermissionsResult : AngryResult<GetPermissionsResponse, UserPermissionsStatus>
+		internal class GetPermissionsResult : AngryResult<GetPermissionsResponse, UserPermissionsStatus>
         {
 
         }
 
-		public static async Task<GetPermissionsResult> GetPermissionsTask(CancellationToken cancellationToken = default)
+		internal static async Task<GetPermissionsResult> GetPermissionsTask(CancellationToken cancellationToken = default)
 		{
 			GetPermissionsResult result = new GetPermissionsResult();
 
