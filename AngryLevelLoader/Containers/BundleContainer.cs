@@ -23,6 +23,8 @@ using System.Threading.Tasks;
 using UnityEngine.UI;
 using System.Text.RegularExpressions;
 using AngryLevelLoader.UserInterface;
+using AngryLevelLoader.Utils;
+using AngryLevelLoader.Extensions;
 
 namespace AngryLevelLoader.Containers
 {
@@ -430,10 +432,13 @@ namespace AngryLevelLoader.Containers
 		private async Task<bool> ReloadData(bool forceReload, bool lazyLoad)
         {
             // Open the angry zip archive
-            AngryBundleData latestData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
-            if (latestData == null)
+            if (!AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData latestData, out Exception error))
             {
                 statusText.text = "<color=red>Invalid angry file!</color>";
+				if (error != null)
+				{
+					statusText.text += $"\n{error.GetType().Name}: {error.Message}\n{error.StackTrace}";
+				}
                 statusText.hidden = false;
                 return false;
             }
@@ -555,8 +560,7 @@ namespace AngryLevelLoader.Containers
                 return false;
             }
 
-            AngryBundleData fileData = AngryFileUtils.GetAngryBundleData(pathToAngryBundle);
-            if (fileData.bundleGuid != bundleData.bundleGuid)
+            if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData fileData, out _) && fileData.bundleGuid != bundleData.bundleGuid)
             {
                 statusText.text = "<color=red>Target file has a different guid</color>";
                 return false;
@@ -586,10 +590,10 @@ namespace AngryLevelLoader.Containers
 				return false;
 
 			// Update online field if there are any
-			if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
+			if (OnlineLevelsList.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
 			{
 				field.UpdateStatus();
-				OnlineLevelsUI.CheckLevelUpdateText();
+				OnlineLevelsList.CheckLevelUpdateText();
 			}
 
 			// Modern bundles support loading the UI without fully loading the bundle into addressables
@@ -719,7 +723,7 @@ namespace AngryLevelLoader.Containers
             if (Directory.Exists(pathToTempFolder))
                 Directory.Delete(pathToTempFolder, true);
 
-            if (OnlineLevelsUI.onlineLevels.TryGetValue(bundleData.bundleGuid, out var onlineField))
+            if (OnlineLevelsList.onlineLevels.TryGetValue(bundleData.bundleGuid, out var onlineField))
             {
                 onlineField.UpdateStatus();
             }

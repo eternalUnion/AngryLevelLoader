@@ -3,6 +3,7 @@ using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
+using AngryLevelLoader.Utils;
 using Logic;
 using PluginConfig;
 using RudeLevelScript;

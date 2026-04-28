@@ -1,4 +1,6 @@
 ﻿using AngryLevelLoader.DataTypes;
+using AngryLevelLoader.Extensions;
+using AngryLevelLoader.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using static AngryLevelLoader.UserInterface.OnlineLevelsUI;
+using static AngryLevelLoader.UserInterface.OnlineLevelsList;
 
 namespace AngryLevelLoader.Managers
 {

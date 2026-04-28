@@ -4,6 +4,7 @@ using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.UserInterface;
+using AngryLevelLoader.Utils;
 using AngryUiComponents;
 using PluginConfig;
 using PluginConfig.API;
@@ -571,7 +572,7 @@ namespace AngryLevelLoader.Fields
                 if (currentUi != null)
 				    currentUi.downloadContainer.gameObject.SetActive(false);
 
-				OnlineLevelsUI.CheckLevelUpdateText();
+				OnlineLevelsList.CheckLevelUpdateText();
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
@@ -757,9 +758,9 @@ namespace AngryLevelLoader.Fields
         internal void UpdateOrder()
         {
             int order = 0;
-            OnlineLevelField[] allBundles = OnlineLevelsUI.onlineLevels.Values.OrderBy(level => level.siblingIndex).ToArray();
+            OnlineLevelField[] allBundles = OnlineLevelsList.onlineLevels.Values.OrderBy(level => level.siblingIndex).ToArray();
 
-            if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.Name)
+            if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.Name)
             {
                 while (order < allBundles.Length)
                 {
@@ -775,7 +776,7 @@ namespace AngryLevelLoader.Fields
                     order += 1;
                 }
             }
-            else if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.Author)
+            else if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.Author)
             {
                 while (order < allBundles.Length)
                 {
@@ -791,7 +792,7 @@ namespace AngryLevelLoader.Fields
                     order += 1;
                 }
             }
-            else if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.LastUpdate)
+            else if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.LastUpdate)
             {
                 while (order < allBundles.Length)
                 {
@@ -807,7 +808,7 @@ namespace AngryLevelLoader.Fields
                     order += 1;
                 }
             }
-			else if (OnlineLevelsUI.sortFilter.value == OnlineLevelsUI.SortFilter.Votes)
+			else if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.Votes)
 			{
 				while (order < allBundles.Length)
 				{

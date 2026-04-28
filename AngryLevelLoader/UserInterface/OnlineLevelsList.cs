@@ -2,6 +2,7 @@
 using AngryLevelLoader.Fields;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
+using AngryLevelLoader.Utils;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
@@ -18,7 +19,7 @@ namespace AngryLevelLoader.UserInterface
 	/// <summary>
 	/// Handler for the online levels panel.
 	/// </summary>
-	public static class OnlineLevelsUI
+	public static class OnlineLevelsList
     {
         internal static ConfigPanel onlineLevelsPanel;
 		internal static ConfigDivision onlineLevelContainer;

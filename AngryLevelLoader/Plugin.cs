@@ -8,6 +8,7 @@ using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
 using AngryLevelLoader.UserInterface;
+using AngryLevelLoader.Utils;
 using AngryUiComponents;
 using BepInEx;
 using BepInEx.Bootstrap;
@@ -262,7 +263,7 @@ namespace AngryLevelLoader
 			}
 
 			AngryBundleList.OpenFolder("/");
-			OnlineLevelsUI.UpdateUI();
+			OnlineLevelsList.UpdateUI();
 		}
 		#endregion
 
@@ -331,7 +332,7 @@ namespace AngryLevelLoader
 				return;
 
 			if (ConfigManager.refreshCatalogOnBoot.value)
-				OnlineLevelsUI.RefreshAsync();
+				OnlineLevelsList.RefreshAsync();
 
 			SceneManager.sceneLoaded -= RefreshCatalogOnMainMenu;
 		}

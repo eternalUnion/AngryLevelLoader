@@ -2,6 +2,7 @@
 using AngryLevelLoader.Fields;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.UserInterface;
+using AngryLevelLoader.Utils;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
@@ -169,15 +170,15 @@ namespace AngryLevelLoader.Managers
 			levelUpdateNotifier = new ConfigHeader(config.rootPanel, "<color=#00FF00>Level updates available!</color>", 16);
 			levelUpdateNotifier.hidden = true;
 
-			OnlineLevelsUI.onlineLevelsPanel = new ConfigPanel(InternalConfigManager.internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
-			new ConfigBridge(OnlineLevelsUI.onlineLevelsPanel, config.rootPanel);
-			OnlineLevelsUI.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(Plugin.workingDir, "online-icon.png"));
-			OnlineLevelsUI.onlineLevelsPanel.onPannelOpenEvent += (e) =>
+			OnlineLevelsList.onlineLevelsPanel = new ConfigPanel(InternalConfigManager.internalConfig.rootPanel, "Online Levels", "b_onlineLevels", ConfigPanel.PanelFieldType.StandardWithIcon);
+			new ConfigBridge(OnlineLevelsList.onlineLevelsPanel, config.rootPanel);
+			OnlineLevelsList.onlineLevelsPanel.SetIconWithURL("file://" + Path.Combine(Plugin.workingDir, "online-icon.png"));
+			OnlineLevelsList.onlineLevelsPanel.onPannelOpenEvent += (e) =>
 			{
 				newLevelNotifier.hidden = true;
 			};
 			
-			OnlineLevelsUI.Init();
+			OnlineLevelsList.Init();
 
 			leaderboardsDivision = new ConfigDivision(config.rootPanel, "leaderboardsDivision");
 			leaderboardsDivision.hidden = !InternalConfigManager.leaderboardToggle.value;
@@ -332,14 +333,14 @@ namespace AngryLevelLoader.Managers
 			levelUpdateNotifierToggle.onValueChange += (e) =>
 			{
 				levelUpdateNotifierToggle.value = e.value;
-				OnlineLevelsUI.CheckLevelUpdateText();
+				OnlineLevelsList.CheckLevelUpdateText();
 			};
 			
 			levelUpdateIgnoreCustomBuilds = new BoolField(settingsPanel, "Ignore updates for custom build", "s_levelUpdateIgnoreCustomBuilds", false);
 			levelUpdateIgnoreCustomBuilds.onValueChange += (e) =>
 			{
 				levelUpdateIgnoreCustomBuilds.value = e.value;
-				OnlineLevelsUI.CheckLevelUpdateText();
+				OnlineLevelsList.CheckLevelUpdateText();
 			};
 			
 			newLevelNotifierLevels = new StringField(settingsPanel, "h_New levels", "s_newLevelNotifierLevels", "", true);
