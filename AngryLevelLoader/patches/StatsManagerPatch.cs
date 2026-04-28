@@ -6,12 +6,10 @@ using HarmonyLib;
 using RudeLevelScripts.Essentials;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace AngryLevelLoader.Patches

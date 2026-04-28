@@ -6,14 +6,11 @@ using AngryUiComponents;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
-using RudeLevelScript;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.UI;
 
 namespace AngryLevelLoader.Fields
 {

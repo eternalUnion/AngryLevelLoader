@@ -1,6 +1,5 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.DataTypes;
-using AngryLevelLoader.Fields;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.BannedMods;
 using AngryLevelLoader.Managers.LegacyPatches;
@@ -9,22 +8,18 @@ using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
 using AngryLevelLoader.UserInterface;
 using AngryLevelLoader.Utils;
-using AngryUiComponents;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using HarmonyLib;
 using Logic;
-using Newtonsoft.Json;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
-using RudeLevelScript;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -34,7 +29,6 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using static AngryLevelLoader.Managers.ServerManager.AngryLeaderboards;
 
 namespace AngryLevelLoader
 {

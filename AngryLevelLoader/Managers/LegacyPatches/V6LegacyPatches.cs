@@ -1,13 +1,9 @@
-﻿using GameConsole.Commands;
-using HarmonyLib;
+﻿using HarmonyLib;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using ULTRAKILL.Portal;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using static AngryLevelLoader.Managers.LegacyPatches.LegacyPatchManager;
 
 namespace AngryLevelLoader.Managers.LegacyPatches
 {

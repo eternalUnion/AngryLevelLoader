@@ -1,7 +1,5 @@
 ﻿using BepInEx.Bootstrap;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AngryLevelLoader.Managers.BannedMods
 {

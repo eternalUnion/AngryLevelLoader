@@ -1,12 +1,4 @@
-﻿using BepInEx.Bootstrap;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
-using UltraFunGuns;
-using UnityEngine.SceneManagement;
-
-namespace AngryLevelLoader.Managers.BannedMods.SoftBans
+﻿namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	//[SoftBanClass]
 	//internal class UltraFunGunsSoftBan : SoftBan

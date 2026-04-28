@@ -1,11 +1,8 @@
-﻿using AngryLevelLoader.Extensions;
-using AngryLevelLoader.Managers;
+﻿using AngryLevelLoader.Managers;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using UnityEngine;
 
 namespace AngryLevelLoader.Patches.NoMo

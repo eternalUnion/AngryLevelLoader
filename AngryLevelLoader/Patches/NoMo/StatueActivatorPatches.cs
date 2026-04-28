@@ -1,8 +1,5 @@
 ﻿using AngryLevelLoader.Managers;
 using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AngryLevelLoader.Patches.NoMo
 {

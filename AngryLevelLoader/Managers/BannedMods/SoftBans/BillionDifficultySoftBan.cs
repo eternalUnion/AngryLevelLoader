@@ -1,12 +1,4 @@
-﻿using BepInEx.Bootstrap;
-using PluginConfig;
-using PluginConfig.API;
-using PluginConfig.API.Fields;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AngryLevelLoader.Managers.BannedMods.SoftBans
+﻿namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
 	internal class BillionDifficultySoftBan : SoftBan

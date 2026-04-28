@@ -1,9 +1,4 @@
-﻿using BepInEx.Bootstrap;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AngryLevelLoader.Managers.BannedMods.SoftBans
+﻿namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {
 	[SoftBanClass]
 	internal class MasqueradeDivinitySoftBan : SoftBan

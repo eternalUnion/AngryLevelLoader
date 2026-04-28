@@ -1,8 +1,4 @@
-﻿using BepInEx.Bootstrap;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine.SceneManagement;
+﻿using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 {

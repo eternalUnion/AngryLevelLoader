@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace AngryLevelLoader.Extensions

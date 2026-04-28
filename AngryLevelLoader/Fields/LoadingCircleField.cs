@@ -1,9 +1,6 @@
 ﻿using PluginConfig.API.Fields;
 using PluginConfig.API;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using UnityEngine.Networking;
 using UnityEngine;
 using UnityEngine.UI;

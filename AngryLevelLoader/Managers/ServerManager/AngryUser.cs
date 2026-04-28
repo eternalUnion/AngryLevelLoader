@@ -3,17 +3,10 @@ using Newtonsoft.Json;
 using PluginConfig.API.Fields;
 using Steamworks;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using static AngryLevelLoader.Managers.ServerManager.AngryVotes;
 
 namespace AngryLevelLoader.Managers.ServerManager
 {

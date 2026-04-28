@@ -1,10 +1,6 @@
-﻿using BepInEx.Bootstrap;
-using PluginConfig;
+﻿using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Managers.BannedMods.SoftBans

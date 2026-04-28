@@ -20,7 +20,6 @@ using AngryLevelLoader.DataTypes;
 using PluginConfig;
 using AngryLevelLoader.Notifications;
 using System.Threading.Tasks;
-using UnityEngine.UI;
 using System.Text.RegularExpressions;
 using AngryLevelLoader.UserInterface;
 using AngryLevelLoader.Utils;

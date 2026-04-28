@@ -1,9 +1,7 @@
-﻿using AngryLevelLoader.Managers.BannedMods.SoftBans;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace AngryLevelLoader.Managers.BannedMods
 {

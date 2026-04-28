@@ -1,19 +1,15 @@
 ﻿using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.ServerManager;
 using AngryUiComponents;
-using Discord;
 using PluginConfig;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.TextCore.Text;
 
 namespace AngryLevelLoader.Notifications
 {

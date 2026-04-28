@@ -1,8 +1,6 @@
 ﻿using PluginConfig.API;
 using PluginConfig.API.Fields;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;

@@ -1,11 +1,8 @@
 ﻿using AngryUiComponents;
 using PluginConfig;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.UI;
 
 namespace AngryLevelLoader.Notifications
 {

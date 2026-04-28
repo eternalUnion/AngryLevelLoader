@@ -5,12 +5,8 @@ using AngryLevelLoader.Utils;
 using Newtonsoft.Json;
 using PluginConfig;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
-using UnityEngine;
 using UnityEngine.Networking;
 
 namespace AngryLevelLoader

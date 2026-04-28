@@ -1,17 +1,11 @@
-﻿using AngryLevelLoader.Containers;
-using AngryLevelLoader.Managers.BannedMods;
-using BepInEx;
+﻿using AngryLevelLoader.Managers.BannedMods;
 using BepInEx.Bootstrap;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.Networking;
 
 namespace AngryLevelLoader.Managers.ServerManager
 {
