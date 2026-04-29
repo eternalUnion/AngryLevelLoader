@@ -52,6 +52,11 @@ namespace AngryLevelLoader.Managers
 			if (AngrySceneManager.isInCustomLevel)
 				return false;
 
+			return ForceSetGamemode(gamemode);
+		}
+
+		internal static bool ForceSetGamemode(Gamemode gamemode)
+		{
 			int gamemodeIndex = gamemodeEnumList.IndexOf(gamemode);
 			if (gamemodeIndex == -1)
 				return false;

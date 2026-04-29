@@ -259,6 +259,11 @@ namespace AngryLevelLoader.Managers
 			if (AngrySceneManager.isInCustomLevel)
 				return false;
 
+			return ForceSetDifficulty(difficulty);
+		}
+
+		internal static bool ForceSetDifficulty(AngryDifficulty difficulty)
+		{
 			int difficultyIndex = Difficulties.IndexOf(difficulty);
 			if (difficultyIndex == -1)
 				return false;

@@ -5,12 +5,11 @@ using System.Reflection;
 
 namespace AngryLevelLoader.Managers.BannedMods
 {
+	/// <summary>
+	/// Angry may support having some banned mods installed, but prevent posting to the leaderboards under some condition.
+	/// </summary>
 	internal static class BannedModsManager
 	{
-		// This is the local banned mods list. It should normally be fetched from angry server
-		// In case the server is offline, this list will be used as a fallback
-		public static readonly List<string> LOCAL_BANNED_MODS_LIST = new List<string>();
-
 		public static List<SoftBan> checkers = new List<SoftBan>();
 
 		public static SoftBan GetChecker(string guid)
@@ -44,7 +43,6 @@ namespace AngryLevelLoader.Managers.BannedMods
 					continue;
 				}
 
-				LOCAL_BANNED_MODS_LIST.Add(instance.ModGuid);
 				checkers.Add(instance);
 			}
 

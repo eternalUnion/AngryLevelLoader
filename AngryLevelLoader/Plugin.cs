@@ -12,7 +12,6 @@ using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using HarmonyLib;
-using Logic;
 using PluginConfig;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
@@ -82,7 +81,7 @@ namespace AngryLevelLoader
 
 
 		#region Bundle data
-		private static Dictionary<string, BundleContainer> angryBundles = new Dictionary<string, BundleContainer>();
+		private static readonly Dictionary<string, BundleContainer> angryBundles = new Dictionary<string, BundleContainer>();
 
 		/// <summary>
 		/// Get all locally installed bundles. <see cref="ScanForLevels"/> ensures that a bundle container is created
@@ -412,7 +411,7 @@ namespace AngryLevelLoader
 
 			scriptsWatcher = new FileSystemWatcher(AngryPaths.ScriptsPath);
 			scriptsWatcher.SynchronizingObject = CrossThreadInvoker.Instance;
-			void OnScriptChange(object sender, FileSystemEventArgs e)
+			scriptsWatcher.Changed += (sender, e) =>
 			{
 				string fullPath = e.FullPath;
 				if (!fullPath.EndsWith(".dll"))
@@ -423,15 +422,14 @@ namespace AngryLevelLoader
 				logger.LogMessage($"Detected script change {Path.GetFileName(fullPath)}");
 
 				AngryUI.UpdatedScript = Path.GetFileName(fullPath);
-			}
-			scriptsWatcher.Changed += OnScriptChange;
+			};
 
 			scriptsWatcher.Filter = "*";
 
 			scriptsWatcher.IncludeSubdirectories = false;
 			scriptsWatcher.EnableRaisingEvents = true;
 
-			IEnumerator LoadLevelInstantly()
+			static IEnumerator LoadLevelInstantly()
 			{
 				yield return null;
 
@@ -514,7 +512,7 @@ namespace AngryLevelLoader
 				AngrySceneManager.LevelButtonPressed(level);
 			}
 
-			SceneManager.sceneLoaded += (scene, mode) =>
+			static void CheckForInstantLoad(Scene scene, LoadSceneMode mode)
 			{
 				if (mode == LoadSceneMode.Additive)
 					return;
@@ -523,12 +521,17 @@ namespace AngryLevelLoader
 					return;
 
 				if (!InternalConfigManager.instantLoadLevel.value)
+				{
+					SceneManager.sceneLoaded -= CheckForInstantLoad;
 					return;
+				}
 				InternalConfigManager.instantLoadLevel.value = false;
 
 				logger.LogInfo("Starting custom level instantly");
 				instance.StartCoroutine(LoadLevelInstantly());
-			};
+			}
+
+			SceneManager.sceneLoaded += CheckForInstantLoad;
 		}
 
 		private void DisplayPluginConfigVersionError()
@@ -648,20 +651,7 @@ namespace AngryLevelLoader
 			harmony = new Harmony(PLUGIN_GUID);
             harmony.PatchAll();
 
-			SceneManager.sceneLoaded += (scene, mode) =>
-			{
-				if (mode == LoadSceneMode.Additive)
-					return;
-
-                if (AngrySceneManager.isInCustomLevel)
-				{
-					Logger.LogInfo("Running post scene load event");
-					AngrySceneManager.PostSceneLoad();
-
-					//Make sure mapvars are ready to go
-					MapVarManager.Instance.ReloadMapVars();
-				}
-			};
+			AngrySceneManager.Init();
 
 			// Delay the catalog reload on boot until the main menu since steam must be initialized for the ticket request
 			SceneManager.sceneLoaded += RefreshCatalogOnMainMenu;

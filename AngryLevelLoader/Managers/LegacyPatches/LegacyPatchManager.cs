@@ -66,6 +66,10 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 		}
 	}
 
+	/// <summary>
+	/// Older angry files may need some additional patches to work.
+	/// These patches are only applied if the angry file version matches the legacy patch version.
+	/// </summary>
 	internal static class LegacyPatchManager
 	{
 		internal static Dictionary<LegacyPatchState, List<Type>> patches = new Dictionary<LegacyPatchState, List<Type>>();

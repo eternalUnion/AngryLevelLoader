@@ -4,6 +4,7 @@ using AngryLevelLoader.Managers.LegacyPatches;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Patches;
 using AngryLevelLoader.Utils;
+using Logic;
 using PluginConfig;
 using RudeLevelScript;
 using RudeLevelScripts.Essentials;
@@ -260,6 +261,8 @@ namespace AngryLevelLoader.Managers
         /// Locally installed custom scripts can be checked with <see cref="ScriptManager.ScriptExists(string)"/>.
         /// Custom scripts available online can be checked from <see cref="OnlineScriptsManager"/>.
         /// Note that downloading and updating custom scripts require user consent.
+        /// 
+        /// Gamemode and difficulty will remain the same as the configured value in the settings.
 		/// </summary>
         /// <returns>True if the custom level was successfully loaded. False if the bundle no longer exists or level no longer exists inside the bundle.</returns>
 		public static async Task<bool> LoadLevel(LevelContainer levelContainer, bool showBlocker = true)
@@ -336,7 +339,47 @@ namespace AngryLevelLoader.Managers
             return true;
         }
 
-        internal static void PostSceneLoad()
+		/// <summary>
+		/// Load an angry level asynchronously. This method does not load the custom scripts.
+		/// Required custom scripts must be checked with <see cref="ScriptManager.GetRequiredScriptsFromBundle(BundleContainer)"/>.
+		/// Locally installed custom scripts can be checked with <see cref="ScriptManager.ScriptExists(string)"/>.
+		/// Custom scripts available online can be checked from <see cref="OnlineScriptsManager"/>.
+		/// Note that downloading and updating custom scripts require user consent.
+        /// 
+        /// Gamemode and difficulty will be set to the given parameters (if valid).
+        /// Gamemode and difficulty will be set even if the player is currently in a custom level.
+		/// </summary>
+		/// <param name="levelContainer"></param>
+		/// <param name="gamemode"></param>
+		/// <param name="difficulty"></param>
+		/// <param name="showBlocker"></param>
+		/// <returns></returns>
+		public static Task<bool> LoadLevel(LevelContainer levelContainer, AngryGamemodeManager.Gamemode gamemode, AngryDifficulty difficulty, bool showBlocker = true)
+        {
+            AngryGamemodeManager.ForceSetGamemode(gamemode);
+            AngryDifficultyManager.SetDifficulty(difficulty);
+            return LoadLevel(levelContainer, showBlocker);
+        }
+
+		internal static void Init()
+        {
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
+				if (AngrySceneManager.isInCustomLevel)
+				{
+					Plugin.logger.LogInfo("Running post scene load event");
+                    PostSceneLoad();
+
+					//Make sure mapvars are ready to go
+					MapVarManager.Instance.ReloadMapVars();
+				}
+			};
+		}
+
+        private static void PostSceneLoad()
         {
 			Vector3 defaultGravity = new Vector3(0, -40, 0);
 			Physics.gravity = defaultGravity;
