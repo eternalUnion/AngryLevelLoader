@@ -23,7 +23,7 @@ namespace AngryLevelLoader.Fields
             {
                 try
                 {
-                    if (spriteReq.isHttpError || spriteReq.isNetworkError)
+                    if (spriteReq.result != UnityWebRequest.Result.Success)
                         return;
 
                     Texture2D texture = DownloadHandlerTexture.GetContent(spriteReq);
@@ -38,7 +38,7 @@ namespace AngryLevelLoader.Fields
             };
         }
 
-        private bool initialized = false;
+        private new bool initialized = false;
         public LoadingCircleField(ConfigPanel parentPanel) : base(parentPanel, 600, 60)
         {
             initialized = true;

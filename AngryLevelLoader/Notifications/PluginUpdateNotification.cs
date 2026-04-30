@@ -9,8 +9,7 @@ using AngryLevelLoader.Managers;
 
 namespace AngryLevelLoader.Notifications
 {
-
-#pragma warning disable IDE1006
+#pragma warning disable CS0649
 	internal class PluginVersion
     {
         public string version { get; set; }
@@ -22,7 +21,7 @@ namespace AngryLevelLoader.Notifications
         public string latestVersion { get; set; }
         public List<PluginVersion> updates;
     }
-#pragma warning restore IDE1006
+#pragma warning restore CS0649
 
 	internal class PluginUpdateNotification : NotificationPanel.Notification
     {

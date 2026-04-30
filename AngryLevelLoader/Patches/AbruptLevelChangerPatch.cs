@@ -31,7 +31,7 @@ namespace AngryLevelLoader.Patches
             if (Plugin.TryGetAngryLevel(levelName, out LevelContainer result))
             {
                 //Prevent the AbruptLevelChanger from loading the level and load angry level
-                AngrySceneManager.LoadLevel(result);
+                _ = AngrySceneManager.LoadLevel(result);
                 return false;
             }
             else
@@ -44,7 +44,6 @@ namespace AngryLevelLoader.Patches
 
                 return true; //Passthrough as to not break shops that use this component.
             }
-
         }
     }
 }

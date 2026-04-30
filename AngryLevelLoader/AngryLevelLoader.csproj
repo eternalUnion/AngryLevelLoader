@@ -38,10 +38,6 @@
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="PropertyBackingFieldAnalyzer" Version="1.0.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="UnityEngine.Modules" Version="2022.3.29" IncludeAssets="compile" />
   </ItemGroup>
   
@@ -50,6 +46,8 @@
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\AngryLevelLoader.Analyzer\AngryLevelLoader.Analyzer.CodeFixes\AngryLevelLoader.Analyzer.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\AngryLevelLoader.Analyzer\AngryLevelLoader.Analyzer\AngryLevelLoader.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\AngryUiComponents\AngryUiComponents.csproj" />
     <ProjectReference Include="..\RudeLevelScripts.Essentials\RudeLevelScripts.Essentials.csproj" />
   </ItemGroup>

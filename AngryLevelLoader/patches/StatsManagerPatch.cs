@@ -207,7 +207,7 @@ namespace AngryLevelLoader.Patches
 						AngryLeaderboards.TryPostRecordTask(record);
 					}
 
-					bool postChallengeRecord = ChallengeManager.instance.challengeDone && !ChallengeManager.instance.challengeFailed;
+					bool postChallengeRecord = ChallengeManager.Instance.challengeDone && !ChallengeManager.Instance.challengeFailed;
 					if (postChallengeRecord && AngrySceneManager.currentLevelData.levelChallengeEnabled)
 					{
 						record.category = AngryLeaderboards.RecordCategory.CHALLENGE;

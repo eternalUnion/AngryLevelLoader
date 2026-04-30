@@ -17,7 +17,7 @@ namespace AngryLevelLoader.Patches
 			if (ConfigManager.config.rootPanel.currentPanel.gameObject != __instance.gameObject)
 				return true;
 
-			bool escape = MonoSingleton<InputManager>.Instance.InputSource.Pause.WasPerformedThisFrame || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame && EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.TryGetComponent<Slider>(out _));
+			bool escape = InputManager.Instance.InputSource.Pause.WasPerformedThisFrame || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame && EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.TryGetComponent<Slider>(out _));
 			bool selectedObject = EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.TryGetComponent(out BackSelectOverride _);
 			if (!escape || selectedObject)
 				return true;

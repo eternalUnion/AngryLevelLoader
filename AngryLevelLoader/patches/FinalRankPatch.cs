@@ -50,7 +50,7 @@ namespace AngryLevelLoader.Patches
                 return true;
             }
 
-            __instance.levelSecrets = StatsManager.instance.secretObjects;
+            __instance.levelSecrets = StatsManager.Instance.secretObjects;
             if (__instance.levelSecrets.Length != AngrySceneManager.currentLevelData.secretCount)
             {
                 Plugin.logger.LogWarning($"Inconsistent secrets size, expected {AngrySceneManager.currentLevelData.secretCount}, found {__instance.levelSecrets.Length}");
@@ -107,7 +107,7 @@ namespace AngryLevelLoader.Patches
             //Quit mission if theres no target level
             if (FinalPit_SendInfo_Patch.lastTarget == null || string.IsNullOrEmpty(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId))
             {
-                MonoSingleton<OptionsManager>.Instance.QuitMission();
+                OptionsManager.Instance.QuitMission();
                 return false;
             }
 
@@ -117,12 +117,12 @@ namespace AngryLevelLoader.Patches
             if (!Plugin.TryGetAngryLevel(levelID, out LevelContainer level))
             {
                 Plugin.logger.LogWarning("Could not find target level id " + levelID);
-                MonoSingleton<OptionsManager>.Instance.QuitMission();
+                OptionsManager.Instance.QuitMission();
                 return false;
             }
 
             //Load the level
-            AngrySceneManager.LoadLevel(level, showBlocker: false);
+            _ = AngrySceneManager.LoadLevel(level, showBlocker: false);
             return false;
         }
     }

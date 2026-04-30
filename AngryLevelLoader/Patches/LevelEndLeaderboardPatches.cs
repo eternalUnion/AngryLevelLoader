@@ -45,7 +45,7 @@ namespace AngryLevelLoader.Patches
 
 			if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
 			{
-				currentCategory = MonoSingleton<StatsManager>.Instance.rankScore == 12 ? AngryLeaderboards.RecordCategory.PRANK : AngryLeaderboards.RecordCategory.ALL;
+				currentCategory = StatsManager.Instance.rankScore == 12 ? AngryLeaderboards.RecordCategory.PRANK : AngryLeaderboards.RecordCategory.ALL;
 			}
 			else if (ConfigManager.difficultyField.gamemodeListValueIndex == 1)
 			{
@@ -154,7 +154,6 @@ namespace AngryLevelLoader.Patches
 			}
 
 			// Display top 10 records
-			int order = 1;
 			foreach (var record in result.response.records)
 			{
 				if (!ulong.TryParse(record.steamId, out ulong steamIdNumeric))

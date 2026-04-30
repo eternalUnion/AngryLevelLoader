@@ -19,7 +19,7 @@ namespace AngryLevelLoader
             infoReq.downloadHandler = new DownloadHandlerBuffer();
             await infoReq.SendWebRequest();
 
-            if (infoReq.isHttpError || infoReq.isNetworkError)
+            if (infoReq.result != UnityWebRequest.Result.Success)
             {
                 Plugin.logger.LogError("Could not download plugin data");
                 infoReq.Dispose();

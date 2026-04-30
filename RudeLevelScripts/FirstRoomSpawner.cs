@@ -316,7 +316,7 @@ namespace RudeLevelScript
 			PlayerActivator act = firstRoom.GetComponentsInChildren<PlayerActivator>().First();
 			act.gameObject.SetActive(false);
 
-			NewMovement player = NewMovement.instance;
+			NewMovement player = NewMovement.Instance;
 			player.transform.localPosition = new Vector3(player.transform.localPosition.x, ascendingPlayerSpawnPos, player.transform.localPosition.z);
 			PlayerForcedMovement focedMov = player.gameObject.AddComponent<PlayerForcedMovement>();
 			
@@ -366,7 +366,7 @@ namespace RudeLevelScript
 			closerA2.events = new UltrakillEvent();
 			closerA2.events.onActivate = new UnityEngine.Events.UnityEvent();
 			closerA2.events.onActivate.AddListener(() => act.gameObject.SetActive(true));
-			closerA2.events.onActivate.AddListener(() => StatsManager.instance.spawnPos = NewMovement.instance.transform.position);
+			closerA2.events.onActivate.AddListener(() => StatsManager.Instance.spawnPos = NewMovement.Instance.transform.position);
 			closerA2.delay = actDelay;
 		}
 
@@ -450,7 +450,7 @@ namespace RudeLevelScript
 				}
 			}
 			// Update player position and orientation
-			Transform player = NewMovement.instance.transform;
+			Transform player = NewMovement.Instance.transform;
 			player.transform.parent = firstRoomInst.transform;
 			firstRoomInst.transform.position = transform.position;
 			firstRoomInst.transform.rotation = transform.rotation;
@@ -464,7 +464,7 @@ namespace RudeLevelScript
 				Utils.SetPlayerWorldRotation(playerSpawnPos.rotation);
 				player.transform.SetParent(null);
 			}
-			StatsManager.instance.spawnPos = player.transform.position;
+			StatsManager.Instance.spawnPos = player.transform.position;
 
 			try
 			{

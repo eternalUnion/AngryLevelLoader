@@ -594,12 +594,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 			INVALID_ID = 4,
 		}
 
+#pragma warning disable CS0649
 		internal class GetUserHistoryResponse : AngryResponse
 		{
 			public Dictionary<string, int> bundleGuidPK;
 			public Dictionary<string, int> levelIdPK;
 			public int[][] runHistory;
 		}
+#pragma warning restore CS0649
 
 		internal class GetUserHistoryResult : AngryResult<GetUserHistoryResponse, GetUserHistoryStatus>
 		{

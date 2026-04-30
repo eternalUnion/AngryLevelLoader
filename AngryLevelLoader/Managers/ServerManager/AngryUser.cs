@@ -103,18 +103,23 @@ namespace AngryLevelLoader.Managers.ServerManager
                 tokenReq.downloadHandler = new DownloadHandlerBuffer();
                 await tokenReq.SendWebRequest();
 
-				if (tokenReq.isNetworkError)
+				if (tokenReq.result == UnityWebRequest.Result.ConnectionError)
                 {
 					result.networkError = true;
                     return result;
                 }
-                if (tokenReq.isHttpError)
+                if (tokenReq.result == UnityWebRequest.Result.ProtocolError)
                 {
                     result.httpError = true;
                     return result;
                 }
+				if (tokenReq.result != UnityWebRequest.Result.Success)
+				{
+					result.httpError = true;
+					return result;
+				}
 
-                TokenGenResponse response = JsonConvert.DeserializeObject<TokenGenResponse>(tokenReq.downloadHandler.text);
+				TokenGenResponse response = JsonConvert.DeserializeObject<TokenGenResponse>(tokenReq.downloadHandler.text);
 
 				result.response = response;
 				result.status = (TokengenStatus)response.status;

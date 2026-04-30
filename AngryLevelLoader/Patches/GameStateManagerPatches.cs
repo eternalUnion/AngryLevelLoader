@@ -18,7 +18,7 @@ namespace AngryLevelLoader.Patches
             if (!AngrySceneManager.isInCustomLevel)
                 return true;
 
-            __result = MonoSingleton<AssistController>.Instance.cheatsEnabled || MonoSingleton<StatsManager>.Instance.majorUsed;
+            __result = AssistController.Instance.cheatsEnabled || StatsManager.Instance.majorUsed;
 			return false;
         }
     }

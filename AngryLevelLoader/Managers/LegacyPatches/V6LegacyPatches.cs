@@ -434,7 +434,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 						componentsInChildren[i].updateWhenOffscreen = true;
 					}
 				}
-				__instance.bsm = MonoSingleton<BloodsplatterManager>.Instance;
+				__instance.bsm = BloodsplatterManager.Instance;
 			}
 			catch (Exception e)
 			{

@@ -74,15 +74,21 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 				await req.SendWebRequest();
 
-				if (req.isNetworkError)
+				if (req.result == UnityWebRequest.Result.ConnectionError)
 				{
 					result.networkError = true;
 					result.completed = true;
 					return result;
 				}
-				if (req.isHttpError)
+				if (req.result == UnityWebRequest.Result.ProtocolError)
 				{
 					result.httpError = true;
+					result.completed = true;
+					return result;
+				}
+				if (req.result != UnityWebRequest.Result.Success)
+				{
+					result.networkError = true;
 					result.completed = true;
 					return result;
 				}
@@ -145,13 +151,19 @@ namespace AngryLevelLoader.Managers.ServerManager
 			});
 			await req.SendWebRequest();
 
-			if (req.isNetworkError)
+			if (req.result == UnityWebRequest.Result.ConnectionError)
 			{
 				result.networkError = true;
 				result.completed = true;
 				return result;
 			}
-			if (req.isHttpError)
+			if (req.result == UnityWebRequest.Result.ProtocolError)
+			{
+				result.httpError = true;
+				result.completed = true;
+				return result;
+			}
+			if (req.result != UnityWebRequest.Result.Success)
 			{
 				result.httpError = true;
 				result.completed = true;

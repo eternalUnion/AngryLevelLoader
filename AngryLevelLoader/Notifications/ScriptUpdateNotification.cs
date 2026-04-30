@@ -158,8 +158,7 @@ namespace AngryLevelLoader.Notifications
                         await Task.Delay(500);
                     }
 
-                    if (currentDllRequest.isNetworkError || currentDllRequest.isHttpError
-                        || currentCertRequest.isNetworkError || currentCertRequest.isHttpError)
+                    if (currentDllRequest.result != UnityWebRequest.Result.Success || currentCertRequest.result != UnityWebRequest.Result.Success)
                     {
                         downloadError = true;
                     }

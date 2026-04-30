@@ -192,7 +192,7 @@ namespace AngryLevelLoader.Managers
 
                         if (notifications.Count == 0)
                         {
-                            LoadLevel(levelContainer);
+                            _ = LoadLevel(levelContainer);
                         }
                     });
                 }
@@ -223,7 +223,7 @@ namespace AngryLevelLoader.Managers
 
                         if (notifications.Count == 0)
                         {
-                            LoadLevel(levelContainer);
+                            _ = LoadLevel(levelContainer);
                         }
                     },
                     "Don't Ask Again For This Script",
@@ -239,7 +239,7 @@ namespace AngryLevelLoader.Managers
 
                         if (notifications.Count == 0)
                         {
-                            LoadLevel(levelContainer);
+                            _ = LoadLevel(levelContainer);
                         }
                     });
                 }
@@ -252,7 +252,7 @@ namespace AngryLevelLoader.Managers
             }
 
             if (notifications.Count == 0)
-                LoadLevel(levelContainer);
+                _ = LoadLevel(levelContainer);
         }
 
 		/// <summary>

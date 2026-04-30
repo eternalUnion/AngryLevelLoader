@@ -7,9 +7,9 @@ namespace RudeLevelScripts
 	{
 		private void OnTriggerEnter(Collider other)
 		{
-			GameObject player = NewMovement.instance.gameObject;
+			GameObject player = NewMovement.Instance.gameObject;
 
-			if (other.gameObject == player && MonoSingleton<NewMovement>.Instance && MonoSingleton<NewMovement>.Instance.hp > 0)
+			if (other.gameObject == player && NewMovement.Instance && NewMovement.Instance.hp > 0)
 			{
 				FirstRoomSpawner.PlayerForcedMovement forcedMovement = player.AddComponent<FirstRoomSpawner.PlayerForcedMovement>();
 				forcedMovement.force = 100f;

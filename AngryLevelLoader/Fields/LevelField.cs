@@ -171,7 +171,7 @@ namespace AngryLevelLoader.Fields
                 _time = value;
 
                 if (currentUi != null)
-					currentUi.timeText.text = $"{GetTimeStringFromSeconds(_time)} {AngryRankUtils.GetFormattedRankText(_timeRank)}";
+					currentUi.timeText.text = $"{GetTimeStringFromSeconds(_time)} {AngryRankUtils.GetFormattedRankText(TimeRank)}";
 			}
         }
 
@@ -184,7 +184,7 @@ namespace AngryLevelLoader.Fields
                 _timeRank = value;
 
                 if (currentUi != null)
-					currentUi.timeText.text = $"{GetTimeStringFromSeconds(_time)} {AngryRankUtils.GetFormattedRankText(_timeRank)}";
+					currentUi.timeText.text = $"{GetTimeStringFromSeconds(Time)} {AngryRankUtils.GetFormattedRankText(_timeRank)}";
 			}
         }
 
@@ -197,7 +197,7 @@ namespace AngryLevelLoader.Fields
                 _kills = value;
 
                 if (currentUi != null)
-					currentUi.killText.text = $"{_kills} {AngryRankUtils.GetFormattedRankText(_killsRank)}";
+					currentUi.killText.text = $"{_kills} {AngryRankUtils.GetFormattedRankText(KillsRank)}";
 			}
         }
 
@@ -223,7 +223,7 @@ namespace AngryLevelLoader.Fields
                 _style = value;
 
                 if (currentUi != null)
-				    currentUi.styleText.text = $"{_style} {AngryRankUtils.GetFormattedRankText(_styleRank)}";
+				    currentUi.styleText.text = $"{_style} {AngryRankUtils.GetFormattedRankText(StyleRank)}";
 			}
         }
 
@@ -315,7 +315,7 @@ namespace AngryLevelLoader.Fields
 						currentUi.secretsHeader.gameObject.SetActive(true);
 						currentUi.secretsText.gameObject.SetActive(true);
 						currentUi.secretsIconContainer.gameObject.SetActive(false);
-
+                        
 						currentUi.secretsText.text = $"{DiscoveredSecrets} / {SecretCount}";
 						if (DiscoveredSecrets == SecretCount)
 							currentUi.secretsText.text = $"<color=aqua>{currentUi.secretsText.text}</color>";
@@ -424,9 +424,9 @@ namespace AngryLevelLoader.Fields
 			currentUi.statContainer.gameObject.SetActive(!IsSecretLevel);
 			currentUi.challengeContainer.gameObject.SetActive(!IsSecretLevel);
 
-            currentUi.timeText.text = $"{GetTimeStringFromSeconds(_time)} {AngryRankUtils.GetFormattedRankText(_timeRank)}";
-            currentUi.killText.text = $"{Kills} {AngryRankUtils.GetFormattedRankText(_killsRank)}";
-            currentUi.styleText.text = $"{Style} {AngryRankUtils.GetFormattedRankText(_styleRank)}";
+            currentUi.timeText.text = $"{GetTimeStringFromSeconds(Time)} {AngryRankUtils.GetFormattedRankText(TimeRank)}";
+            currentUi.killText.text = $"{Kills} {AngryRankUtils.GetFormattedRankText(KillsRank)}";
+            currentUi.styleText.text = $"{Style} {AngryRankUtils.GetFormattedRankText(StyleRank)}";
 
             if (SecretCount == 0)
             {
@@ -462,7 +462,7 @@ namespace AngryLevelLoader.Fields
                     currentUi.secretsText.text = $"<color=aqua>{currentUi.secretsText.text}</color>";
 			}
 
-            currentUi.finalRankText.text = AngryRankUtils.GetFormattedRankText(_finalRank);
+            currentUi.finalRankText.text = AngryRankUtils.GetFormattedRankText(FinalRank);
             
             currentUi.challengeContainerImage.color = ChallengeDone ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
             currentUi.challengeContainer.gameObject.SetActive(ChallengeEnabled);
