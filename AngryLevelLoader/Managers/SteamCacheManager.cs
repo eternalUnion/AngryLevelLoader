@@ -79,7 +79,8 @@ namespace AngryLevelLoader.Managers
                 Texture2D texture2D = new Texture2D((int)profilePicture.Value.Width, (int)profilePicture.Value.Height, TextureFormat.RGBA32, false);
                 texture2D.LoadRawTextureData(profilePicture.Value.Data);
                 texture2D.Apply();
-                result.profilePicture = texture2D;
+                texture2D.filterMode = FilterMode.Point;
+				result.profilePicture = texture2D;
             }
             else
             {

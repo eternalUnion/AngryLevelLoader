@@ -90,6 +90,7 @@ namespace AngryLevelLoader.Managers
 					if (fileTexture != null)
 					{
 						cachedTexture.texture = fileTexture;
+						cachedTexture.texture.filterMode = FilterMode.Point;
 						cachedTexture.hash = hash;
 						return fileTexture;
 					}
@@ -112,6 +113,7 @@ namespace AngryLevelLoader.Managers
 			if (texture != null)
 			{
 				cachedTexture.texture = texture;
+				cachedTexture.texture.filterMode = FilterMode.Point;
 				cachedTexture.hash = hash;
 				return texture;
 			}
@@ -156,6 +158,7 @@ namespace AngryLevelLoader.Managers
 				return null;
 
 			cache.texture = ((DownloadHandlerTexture)thumbnailReq.downloadHandler).texture;
+			cache.texture.filterMode = FilterMode.Point;
 			return cache.texture;
 		}
 	}
