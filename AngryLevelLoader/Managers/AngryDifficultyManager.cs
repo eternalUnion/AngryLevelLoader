@@ -276,7 +276,7 @@ namespace AngryLevelLoader.Managers
 		/// <summary>
 		/// List of supported difficulties. Can include modded difficulties.
 		/// </summary>
-		private static readonly List<AngryDifficulty> _difficulties = new List<AngryDifficulty>()
+		private static readonly List<AngryDifficulty> difficulties = new List<AngryDifficulty>()
 		{
 			HARMLESS,
 			LENIENT,
@@ -288,12 +288,12 @@ namespace AngryLevelLoader.Managers
 		/// <summary>
 		/// List of supported difficulties. Can include modded difficulties.
 		/// </summary>
-		public static IReadOnlyList<AngryDifficulty> Difficulties => _difficulties;
+		public static IReadOnlyList<AngryDifficulty> Difficulties => difficulties;
 
 		/// <summary>
 		/// List of difficulty names in upper case letters.
 		/// </summary>
-		public static IEnumerable<string> DifficultyNames => _difficulties.Select(d => d.name);
+		public static IEnumerable<string> DifficultyNames => Difficulties.Select(d => d.name);
 
 		private static bool _inited = false;
 		public static void Init()
@@ -302,26 +302,26 @@ namespace AngryLevelLoader.Managers
 				return;
 			_inited = true;
 
-			_difficulties.Clear();
-			_difficulties.Add(HARMLESS);
-			_difficulties.Add(LENIENT);
-			_difficulties.Add(STANDARD);
-			_difficulties.Add(VIOLENT);
-			_difficulties.Add(BRUTAL);
+			difficulties.Clear();
+			difficulties.Add(HARMLESS);
+			difficulties.Add(LENIENT);
+			difficulties.Add(STANDARD);
+			difficulties.Add(VIOLENT);
+			difficulties.Add(BRUTAL);
 
 			// Add modded difficulties, if the mod is loaded
 
 			if (AngryDifficulty.UltrapainDifficulty.Instance.IsSupported)
-				_difficulties.Add(AngryDifficulty.UltrapainDifficulty.Instance);
+				difficulties.Add(AngryDifficulty.UltrapainDifficulty.Instance);
 
 			if (AngryDifficulty.BananaDifficulty.Instance.IsSupported)
-				_difficulties.Add(AngryDifficulty.BananaDifficulty.Instance);
+				difficulties.Add(AngryDifficulty.BananaDifficulty.Instance);
 
 			if (AngryDifficulty.BillionDifficulty.Instance.IsSupported)
-				_difficulties.Add(AngryDifficulty.BillionDifficulty.Instance);
+				difficulties.Add(AngryDifficulty.BillionDifficulty.Instance);
 
 			if (AngryDifficulty.BrilliantBillionDifficulty.Instance.IsSupported)
-				_difficulties.Add(AngryDifficulty.BrilliantBillionDifficulty.Instance);
+				difficulties.Add(AngryDifficulty.BrilliantBillionDifficulty.Instance);
 		}
 
 		// After clicking a difficulty button in the act menu, change the difficulty accordingly

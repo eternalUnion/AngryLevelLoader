@@ -242,20 +242,20 @@ namespace AngryLevelLoader.Fields
 
         private string GetStatusString()
         {
-            if (_errorStatus != ErrorStat.NoError)
+            if (ErrorStatus != ErrorStat.NoError)
             {
-                if (_errorStatus == ErrorStat.NetworkError)
+                if (ErrorStatus == ErrorStat.NetworkError)
                     return $"<color=red><b>Network error</b></color>";
-                else if (_errorStatus == ErrorStat.ValidationError)
+                else if (ErrorStatus == ErrorStat.ValidationError)
                     return $"<color=red><b>Validation error</b></color>";
             }
 
             if (OnlineBundle.Locked)
                 return $"<color=red><b>Locked</b></color>";
 
-			if (_status == OnlineLevelStatus.NotInstalled)
+			if (Status == OnlineLevelStatus.NotInstalled)
                 return $"<color=red>Not installed</color>";
-            else if (_status == OnlineLevelStatus.UpdateAvailable)
+            else if (Status == OnlineLevelStatus.UpdateAvailable)
                 return $"<color=#00FFFF>Update available</color>";
             else
                 return $"<color=#00FF00>Installed</color>";

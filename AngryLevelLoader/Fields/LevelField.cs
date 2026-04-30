@@ -47,7 +47,7 @@ namespace AngryLevelLoader.Fields
 
                 if (currentUi != null)
                 {
-                    if (_locked)
+                    if (Locked)
                         return;
 
                     if (!PlayedBefore && !DoNotHideLevelPreviewWhenNotCompleted)
@@ -62,7 +62,7 @@ namespace AngryLevelLoader.Fields
 		{
 			get
 			{
-				return _finalRank != '-';
+				return FinalRank != '-';
 			}
 		}
 
@@ -73,7 +73,7 @@ namespace AngryLevelLoader.Fields
             set
             {
                 _discovered = value;
-                hidden = !_discovered && _hideIfNotPlayed;
+                hidden = !_discovered && HideIfNotPlayed;
 			}
         }
 
@@ -84,7 +84,7 @@ namespace AngryLevelLoader.Fields
             set
             {
                 _hideIfNotPlayed = value;
-				hidden = !_discovered && _hideIfNotPlayed;
+				hidden = !Discovered && _hideIfNotPlayed;
 			}
         }
 
@@ -210,7 +210,7 @@ namespace AngryLevelLoader.Fields
                 _killsRank = value;
 
 				if (currentUi != null)
-					currentUi.killText.text = $"{_kills} {AngryRankUtils.GetFormattedRankText(_killsRank)}";
+					currentUi.killText.text = $"{Kills} {AngryRankUtils.GetFormattedRankText(_killsRank)}";
 			}
         }
 
@@ -236,7 +236,7 @@ namespace AngryLevelLoader.Fields
                 _styleRank = value;
 
 				if (currentUi != null)
-					currentUi.styleText.text = $"{_style} {AngryRankUtils.GetFormattedRankText(_styleRank)}";
+					currentUi.styleText.text = $"{Style} {AngryRankUtils.GetFormattedRankText(_styleRank)}";
 			}
         }
 
@@ -274,7 +274,7 @@ namespace AngryLevelLoader.Fields
 
 		public int SecretCount
         {
-            get => _secretsString.Length;
+            get => SecretsString.Length;
         }
 
         private string _secretsString = "";
@@ -326,7 +326,7 @@ namespace AngryLevelLoader.Fields
 
         public int DiscoveredSecrets
         {
-            get => _secretsString.ToCharArray().Count(c => c == 'T');
+            get => SecretsString.ToCharArray().Count(c => c == 'T');
         }
 
         private bool _challengeEnabled = false;
@@ -351,7 +351,7 @@ namespace AngryLevelLoader.Fields
                 _challengeText = value;
 
                 if (currentUi != null)
-					currentUi.challengeText.text = _challengeEnabled ? _challengeText : "No challenge available for the level";
+					currentUi.challengeText.text = ChallengeEnabled ? _challengeText : "No challenge available for the level";
 			}
         }
         
@@ -425,8 +425,8 @@ namespace AngryLevelLoader.Fields
 			currentUi.challengeContainer.gameObject.SetActive(!IsSecretLevel);
 
             currentUi.timeText.text = $"{GetTimeStringFromSeconds(_time)} {AngryRankUtils.GetFormattedRankText(_timeRank)}";
-            currentUi.killText.text = $"{_kills} {AngryRankUtils.GetFormattedRankText(_killsRank)}";
-            currentUi.styleText.text = $"{_style} {AngryRankUtils.GetFormattedRankText(_styleRank)}";
+            currentUi.killText.text = $"{Kills} {AngryRankUtils.GetFormattedRankText(_killsRank)}";
+            currentUi.styleText.text = $"{Style} {AngryRankUtils.GetFormattedRankText(_styleRank)}";
 
             if (SecretCount == 0)
             {
@@ -443,7 +443,7 @@ namespace AngryLevelLoader.Fields
                 for (int i = 0; i < SecretCount; i++)
                 {
                     currentUi.secretsIcons[i].gameObject.SetActive(true);
-                    currentUi.secretsIcons[i].fillCenter = _secretsString[i] == 'T';
+                    currentUi.secretsIcons[i].fillCenter = SecretsString[i] == 'T';
 				}
 
 				for (int i = SecretCount; i < 5; i++)
@@ -464,11 +464,11 @@ namespace AngryLevelLoader.Fields
 
             currentUi.finalRankText.text = AngryRankUtils.GetFormattedRankText(_finalRank);
             
-            currentUi.challengeContainerImage.color = _challengeDone ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
+            currentUi.challengeContainerImage.color = ChallengeDone ? new Color(0xff / 255f, 0xa5 / 255f, 0, 0.8f) : new Color(0, 0, 0, 0.8f);
             currentUi.challengeContainer.gameObject.SetActive(ChallengeEnabled);
             currentUi.challengeText.text = ChallengeEnabled ? ChallengeText : "No challenge available for the level";
             
-            if (_finalRank == 'P')
+            if (FinalRank == 'P')
             {
                 currentUi.fieldImage.color = perfectUiColor;
                 currentUi.statContainerImage.color = perfectStatsColor;
@@ -558,7 +558,7 @@ namespace AngryLevelLoader.Fields
 				currentUi.resetBundleVarsText.text = "Reset Bundle Variables";
 				currentUi.resetUserVarsText.text = "Reset User Variables";
 
-				currentUi.resetStatsButton.interactable = _finalRank != '-';
+				currentUi.resetStatsButton.interactable = FinalRank != '-';
 				currentUi.resetSecretsButton.interactable = !IsSecretLevel && SecretCount != 0 && DiscoveredSecrets != 0;
 				currentUi.resetChallengeButton.interactable = !IsSecretLevel && ChallengeEnabled && ChallengeDone;
 
