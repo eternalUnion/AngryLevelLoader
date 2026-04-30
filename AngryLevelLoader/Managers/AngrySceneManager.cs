@@ -113,7 +113,9 @@ namespace AngryLevelLoader.Managers
 
         internal static void LevelButtonPressed(LevelContainer levelContainer)
         {
-            void ContinueLoadLevel()
+			Stack<NotificationPanel.Notification> notifications = new Stack<NotificationPanel.Notification>();
+
+			void ContinueLoadLevel()
             {
                 List<string> requiredScripts = ScriptManager.GetRequiredScriptsFromBundle(levelContainer.bundleContainer);
 
@@ -158,13 +160,32 @@ namespace AngryLevelLoader.Managers
 
             if (levelContainer.bundleContainer.EpilepsyWarning && !InternalConfigManager.ignoreEpilepsyWarning.value)
             {
-                EpilepsyWarningNotification notification = new EpilepsyWarningNotification(ContinueLoadLevel, "Play", "Play and do not ask again");
-                NotificationPanel.Open(notification);
-            }
-            else
+                notifications.Push(new EpilepsyWarningNotification(() =>
+                {
+                    notifications.Pop();
+                    if (notifications.Count == 0)
+                    {
+						ContinueLoadLevel();
+					}
+                }, "Play", "Play and do not ask again"));
+				NotificationPanel.Open(notifications.Peek());
+			}
+
+            if (levelContainer.LevelData.doesNotSupportNoMo && AngryGamemodeManager.NoMonsters && !InternalConfigManager.ignoreNoMoWarning.value.Split('\n').Contains(levelContainer.levelId))
             {
+				notifications.Push(new NoMoNotSupportedNotification(() =>
+                {
+					notifications.Pop();
+					if (notifications.Count == 0)
+					{
+						ContinueLoadLevel();
+					}
+				}, "Play", "Play and do not ask again for this level", levelContainer));
+                NotificationPanel.Open(notifications.Peek());
+			}
+
+            if (notifications.Count == 0)
                 ContinueLoadLevel();
-            }
         }
 
         internal static void LoadLevelWithScripts(List<string> scripts, LevelContainer levelContainer)

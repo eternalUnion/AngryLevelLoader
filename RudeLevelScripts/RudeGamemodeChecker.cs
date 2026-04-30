@@ -9,9 +9,9 @@ namespace RudeLevelScripts
 	[Flags]
 	public enum Gamemode
 	{
-		None,
-		NoMonsters,
-		NoMonstersAndWeapons,
+		NoGamemode = 1,
+		NoMonsters = 2,
+		NoMonstersAndWeapons = 4,
 	}
 
 	public class RudeGamemodeChecker : MonoBehaviour
@@ -35,7 +35,7 @@ namespace RudeLevelScripts
 			switch (RudeGamemodeInterface.GetCurrentGamemode())
 			{
 				case AngryLevelLoader.Managers.AngryGamemodeManager.Gamemode.None:
-					success = gamemode.HasFlag(Gamemode.None);
+					success = gamemode.HasFlag(Gamemode.NoGamemode);
 					break;
 
 				case AngryLevelLoader.Managers.AngryGamemodeManager.Gamemode.NoMonsters:

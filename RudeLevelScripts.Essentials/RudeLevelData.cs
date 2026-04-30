@@ -2,39 +2,6 @@
 
 namespace RudeLevelScript
 {
-	/*public enum LevelRankState
-	{
-		NotCompleted,
-		Completed,
-		CompletedWithCheats,
-		CompletedWithoutCheats,
-		D,
-		AtLeastD,
-		AtMostD,
-		C,
-		AtLeastC,
-		AtMostC,
-		B,
-		AtLeastB,
-		AtMostB,
-		A,
-		AtLeastA,
-		AtMostA,
-		S,
-		AtLeastS,
-		AtMostS,
-		P
-	}
-
-	[Serializable]
-	public class LevelRankRequirement
-	{
-		[SerializeField]
-		public string levelId = "";
-		[SerializeField]
-		public LevelRankState requiredRank = LevelRankState.Completed;
-	}*/
-
 	[CreateAssetMenu]
 	public class RudeLevelData : ScriptableObject
 	{
@@ -79,5 +46,8 @@ namespace RudeLevelScript
 
 		// V7.1
 		public bool doNotExport = false;
+
+		// V7.2
+		public bool doesNotSupportNoMo = false;
 	}
 }

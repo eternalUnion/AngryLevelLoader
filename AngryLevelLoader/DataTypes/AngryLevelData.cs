@@ -1,4 +1,6 @@
-﻿using RudeLevelScript;
+﻿using Newtonsoft.Json;
+using RudeLevelScript;
+using System.ComponentModel;
 
 namespace AngryLevelLoader.DataTypes
 {
@@ -20,6 +22,9 @@ namespace AngryLevelLoader.DataTypes
 		public string levelChallengeText { get; set; }
 		public int secretCount { get; set; }
 		public bool doNotHideLevelPreviewWhenNotCompleted { get; set; }
+		// V7.1
+		[DefaultValue(false)]
+		public bool doesNotSupportNoMo { get; set; }
 
 		internal static AngryLevelData FromRudeLevelData(RudeLevelData levelData)
 		{
@@ -36,6 +41,7 @@ namespace AngryLevelLoader.DataTypes
 				levelChallengeText = levelData.levelChallengeText,
 				secretCount = levelData.secretCount,
 				doNotHideLevelPreviewWhenNotCompleted = levelData.doNotHideLevelPreviewWhenNotCompleted,
+				doesNotSupportNoMo = levelData.doesNotSupportNoMo,
 			};
 		}
 	}

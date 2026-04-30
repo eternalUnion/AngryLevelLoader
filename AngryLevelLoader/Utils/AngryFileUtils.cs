@@ -44,28 +44,36 @@ namespace AngryLevelLoader.Utils
 
         public static bool IsV1LegacyFile(string pathToAngryBundle)
         {
-            using (FileStream fs = File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read))
+            try
             {
-                try
+                using (FileStream fs = File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read))
                 {
-                    BinaryReader reader = new BinaryReader(fs);
-                    fs.Seek(0, SeekOrigin.Begin);
-                    int bundleCount = reader.ReadInt32();
-                    if (bundleCount * 4 + 4 >= fs.Length)
-                        return false;
-                    int totalSize = 4 + bundleCount * 4;
-                    for (int i = 0; i < bundleCount && totalSize < fs.Length; i++)
-                        totalSize += reader.ReadInt32();
-
-                    if (totalSize == fs.Length)
+                    try
                     {
-                        return true;
+                        BinaryReader reader = new BinaryReader(fs);
+                        fs.Seek(0, SeekOrigin.Begin);
+                        int bundleCount = reader.ReadInt32();
+                        if (bundleCount * 4 + 4 >= fs.Length)
+                            return false;
+                        int totalSize = 4 + bundleCount * 4;
+                        for (int i = 0; i < bundleCount && totalSize < fs.Length; i++)
+                            totalSize += reader.ReadInt32();
+
+                        if (totalSize == fs.Length)
+                        {
+                            return true;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        return false;
                     }
                 }
-                catch (Exception)
-                {
-                    return false;
-                }
+            }
+            catch (Exception e)
+            {
+                Plugin.logger.LogError(e);
+                return false;
             }
 
             return false;

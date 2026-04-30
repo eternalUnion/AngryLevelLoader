@@ -71,7 +71,7 @@ namespace AngryLevelLoader
         internal static string levelsPath;
 		internal static string mapVarsFolderPath;
 		/// <summary>
-		/// This field is required by the addressables system. Do not modify it.
+		/// This field is required by the addressables system. Do not modify it. ({AngryLevelLoader.Plugin.angryCatalogPath}).
 		/// </summary>
 		public static string angryCatalogPath;
 

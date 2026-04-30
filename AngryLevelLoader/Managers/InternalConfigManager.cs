@@ -23,6 +23,7 @@ namespace AngryLevelLoader.Managers
 		public static BoolField instantLoadLevel;
 		public static StringField instantLoadLevelGuid;
 		public static StringField instantLoadLevelId;
+		public static StringMultilineField ignoreNoMoWarning;
 
 		public static void InitializeInternalConfig()
 		{
@@ -70,6 +71,8 @@ namespace AngryLevelLoader.Managers
 			{
 				ConfigManager.leaderboardsDivision.hidden = newVal;
 			};
+
+			ignoreNoMoWarning = new StringMultilineField(internalConfig.rootPanel, "ignoreNoMoWarning", "ignoreNoMoWarning", "", true);
 		}
 	}
 }
