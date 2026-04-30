@@ -46,6 +46,9 @@ namespace AngryLevelLoader.Managers.BannedMods.SoftBans
 					if (mode == LoadSceneMode.Additive)
 						return;
 
+					if (!AngrySceneManager.isInCustomLevel)
+						return;
+
 					currentlyBanned = UIManager.ShowMenu;
 				};
 

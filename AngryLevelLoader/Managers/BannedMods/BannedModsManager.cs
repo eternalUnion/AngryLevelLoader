@@ -19,7 +19,7 @@ namespace AngryLevelLoader.Managers.BannedMods
 
 		public static void Init()
 		{
-			foreach (Type softBanClassType in Assembly.GetCallingAssembly().GetTypes().Where(t => t.GetCustomAttribute(typeof(SoftBanClassAttribute)) != null))
+			foreach (Type softBanClassType in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.GetCustomAttribute(typeof(SoftBanClassAttribute)) != null))
 			{
 				SoftBan instance = softBanClassType.GetConstructor(new Type[0]).Invoke(new object[0]) as SoftBan;
 				if (instance == null)

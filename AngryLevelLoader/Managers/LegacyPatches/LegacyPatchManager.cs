@@ -79,7 +79,7 @@ namespace AngryLevelLoader.Managers.LegacyPatches
 			foreach (LegacyPatchState patchState in Enum.GetValues(typeof(LegacyPatchState)))
 				patches[patchState] = new List<Type>();
 
-			foreach (Type patchType in Assembly.GetCallingAssembly().GetTypes().Where(t => t.GetCustomAttribute(typeof(LegacyPatchAttribute)) != null))
+			foreach (Type patchType in Assembly.GetExecutingAssembly().GetTypes().Where(t => t.GetCustomAttribute(typeof(LegacyPatchAttribute)) != null))
 			{
 				foreach (LegacyPatchState patchVersion in patchType.GetCustomAttributes<LegacyPatchAttribute>().Select(attr => attr.targetVersion).Distinct())
 				{

@@ -266,26 +266,56 @@ namespace AngryLevelLoader
         {
 			bool loaded = true;
 
-			var res = ScriptManager.AttemptLoadScriptWithCertificate("AngryLoaderAPI.dll");
-			if (res == ScriptManager.LoadScriptResult.NotFound)
+			switch (ScriptManager.AttemptLoadScriptWithCertificate("AngryLoaderAPI.dll"))
 			{
-				logger.LogError("Required script AngryLoaderAPI.dll not found");
-				loaded = false;
-			}
-			else
-			{
-				ScriptManager.ForceLoadScript("AngryLoaderAPI.dll");
+				case ScriptManager.LoadScriptResult.Loaded:
+					break;
+
+				case ScriptManager.LoadScriptResult.NotFound:
+					logger.LogError("Required script AngryLoaderAPI.dll not found");
+					loaded = false;
+					break;
+
+				case ScriptManager.LoadScriptResult.NoCertificate:
+					logger.LogError("Required script AngryLoaderAPI.dll is not signed");
+					loaded = false;
+					break;
+
+				case ScriptManager.LoadScriptResult.InvalidCertificate:
+					logger.LogError("Required script AngryLoaderAPI.dll signature is invalid");
+					loaded = false;
+					break;
+
+				default:
+					logger.LogError("Required script AngryLoaderAPI.dll could not be loaded");
+					loaded = false;
+					break;
 			}
 
-			res = ScriptManager.AttemptLoadScriptWithCertificate("RudeLevelScripts.dll");
-			if (res == ScriptManager.LoadScriptResult.NotFound)
+			switch (ScriptManager.AttemptLoadScriptWithCertificate("RudeLevelScripts.dll"))
 			{
-				logger.LogError("Required script RudeLevelScripts.dll not found");
-				loaded = false;
-			}
-			else
-			{
-				ScriptManager.ForceLoadScript("RudeLevelScripts.dll");
+				case ScriptManager.LoadScriptResult.Loaded:
+					break;
+
+				case ScriptManager.LoadScriptResult.NotFound:
+					logger.LogError("Required script RudeLevelScripts.dll not found");
+					loaded = false;
+					break;
+
+				case ScriptManager.LoadScriptResult.NoCertificate:
+					logger.LogError("Required script RudeLevelScripts.dll is not signed");
+					loaded = false;
+					break;
+
+				case ScriptManager.LoadScriptResult.InvalidCertificate:
+					logger.LogError("Required script RudeLevelScripts.dll signature is invalid");
+					loaded = false;
+					break;
+
+				default:
+					logger.LogError("Required script RudeLevelScripts.dll could not be loaded");
+					loaded = false;
+					break;
 			}
 
 			return loaded;

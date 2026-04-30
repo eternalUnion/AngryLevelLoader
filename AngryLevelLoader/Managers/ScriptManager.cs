@@ -52,12 +52,19 @@ namespace AngryLevelLoader.Managers
 		/// This method should NOT be used without user consent.
 		/// </summary>
 		/// <param name="scriptName">Full name of the script, including the .dll extension.</param>
-		internal static void ForceLoadScript(string scriptName)
+		internal static bool ForceLoadScript(string scriptName)
         {
+            if (Assembly.GetCallingAssembly() != Assembly.GetExecutingAssembly())
+                return false;
+
             string scriptPath = Path.Combine(AngryPaths.ScriptsPath, scriptName);
+			if (!File.Exists(scriptPath))
+				return false;
+
 			byte[] script = File.ReadAllBytes(scriptPath);
 			Assembly a = Assembly.Load(script);
 			loadedScriptsDict[scriptName] = AngryCryptographyUtils.GetMD5String(script);
+            return true;
 		}
 
         /// <summary>
