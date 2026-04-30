@@ -869,5 +869,13 @@ namespace AngryLevelLoader
 		}
     }
 
+	public static class RudeGamemodeInterface
+	{
+		public static AngryGamemodeManager.Gamemode GetCurrentGamemode()
+		{
+			return AngryGamemodeManager.SelectedGamemode;
+		}
+	}
+
 	#endregion
 }
