@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "3.2.3",
+  "latestVersion": "4.0.0",
   "updates": [
     {
       "version": "1.0.0",
@@ -140,6 +140,10 @@
     {
       "version": "3.2.3",
       "updateText": "Hotfix for a common error caused by corrupted data path"
+    },
+    {
+      "version": "4.0.0",
+      "updateText": "- Reworked search UI for local and online level list\n- Fixed billion difficulty always being in hard mode\n- Fixed an issue with levels using custom players\n- Refactored the codebase, mods referencing Angry loader may break"
     }
   ]
 }
