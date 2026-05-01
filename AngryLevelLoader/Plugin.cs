@@ -178,7 +178,6 @@ namespace AngryLevelLoader
                 bundle = new BundleContainer(path, data);
 				angryBundles[data.bundleGuid] = bundle;
 				AngryBundleList.AddBundle(bundle, folder);
-				bundle.UpdateOrder();
 
                 try
                 {
@@ -246,6 +245,7 @@ namespace AngryLevelLoader
 				ProcessPath(file.filePath, file.subFolder);
 			}
 
+			AngryBundleList.SortBundles();
 			AngryBundleList.UpdateFolderIcons();
 
 			if (numOfOldBundles != 0)

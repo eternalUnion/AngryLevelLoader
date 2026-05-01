@@ -95,6 +95,28 @@ namespace AngryLevelLoader.Managers
 			}
 		}
 
+		private static AsyncAddressableObject<Sprite> _favouriteUnselected;
+		public static Sprite favouriteUnselected
+		{
+			get
+			{
+				if (!_favouriteUnselected.completed)
+					_favouriteUnselected.WaitForCompletion();
+				return _favouriteUnselected.result;
+			}
+		}
+
+		private static AsyncAddressableObject<Sprite> _favouriteSelected;
+		public static Sprite favouriteSelected
+		{
+			get
+			{
+				if (!_favouriteSelected.completed)
+					_favouriteSelected.WaitForCompletion();
+				return _favouriteSelected.result;
+			}
+		}
+
 		private static bool _inited = false;
 		public static void Init()
 		{
@@ -106,6 +128,8 @@ namespace AngryLevelLoader.Managers
 			_arrowFilled = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/arrow-filled.png");
 			_notPlayedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png");
 			_lockedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png");
+			_favouriteUnselected = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/fav-unselected.png");
+			_favouriteSelected = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/fav-selected.png");
 		}
 	}
 }

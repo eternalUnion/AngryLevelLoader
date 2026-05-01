@@ -154,6 +154,19 @@ namespace AngryLevelLoader.Containers
 
         // UI
 
+		internal bool Favourite
+		{
+			get => favourite.value;
+			set
+			{
+				if (favourite.value == value)
+					return;
+
+				favourite.value = value;
+				AngryBundleList.SortBundles();
+			}
+		}
+
         internal bool SearchMatch { get; private set; } = true;
 
         private static Regex richText = new Regex(@"<[^>]*>");
@@ -223,6 +236,7 @@ namespace AngryLevelLoader.Containers
 
         internal int SiblingIndex { get => rootPanel.siblingIndex; set => rootPanel.siblingIndex = value; }
 
+		private BoolField favourite;
         private ConfigPanelForBundles rootPanel;
         private LoadingCircleField loadingCircle;
         private ConfigHeader statusText;
@@ -302,97 +316,6 @@ namespace AngryLevelLoader.Containers
 			}
 
 			RecalculateFinalRank();
-		}
-
-		// Faster ordering since not all fields are moved, only this one
-		internal void UpdateOrder()
-		{
-			int order = 0;
-			BundleContainer[] allBundles = Plugin.GetAllBundleContainers().OrderBy(b => b.rootPanel.siblingIndex).ToArray();
-
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
-			{
-				while (order < allBundles.Length)
-				{
-					if (order == rootPanel.siblingIndex)
-					{
-						order += 1;
-						continue;
-					}
-
-					if (string.Compare(BundleName, allBundles[order].BundleName) == -1)
-						break;
-
-					order += 1;
-				}
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
-			{
-				while (order < allBundles.Length)
-				{
-					if (order == rootPanel.siblingIndex)
-					{
-						order += 1;
-						continue;
-					}
-
-					if (string.Compare(BundleAuthor, allBundles[order].BundleAuthor) == -1)
-						break;
-
-					order += 1;
-				}
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
-			{
-				if (!LastPlayedMapManager.lastPlayed.TryGetValue(bundleGuid, out long lastTime))
-					lastTime = 0;
-
-				while (order < allBundles.Length)
-				{
-					if (order == rootPanel.siblingIndex)
-					{
-						order += 1;
-						continue;
-					}
-
-					if (!LastPlayedMapManager.lastPlayed.TryGetValue(allBundles[order].bundleGuid, out long otherPlayime))
-						otherPlayime = 0;
-
-					if (lastTime > otherPlayime)
-						break;
-
-					order += 1;
-				}
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
-			{
-				if (!LastPlayedMapManager.lastUpdate.TryGetValue(bundleGuid, out long lastUpdate))
-					lastUpdate = 0;
-
-				while (order < allBundles.Length)
-				{
-					if (order == rootPanel.siblingIndex)
-					{
-						order += 1;
-						continue;
-					}
-
-					if (!LastPlayedMapManager.lastUpdate.TryGetValue(allBundles[order].bundleGuid, out long otherLastUpdate))
-						otherLastUpdate = 0;
-
-					if (lastUpdate > otherLastUpdate)
-						break;
-
-					order += 1;
-				}
-			}
-
-			if (order < 0)
-				order = 0;
-			else if (order >= allBundles.Length)
-				order = allBundles.Length - 1;
-
-			rootPanel.siblingIndex = order;
 		}
 
         // Bundle load/unload/refresh
@@ -772,8 +695,10 @@ namespace AngryLevelLoader.Containers
             bundleData = data;
             bundleGuid = bundleData.bundleGuid;
 
+			favourite = new BoolField(InternalConfigManager.internalConfig.rootPanel, bundleGuid + "_fav", bundleGuid + "_fav", false);
             rootPanel = new ConfigPanelForBundles(this, ConfigManager.bundleDivision, data.bundleName, data.bundleGuid);
-            rootPanel.forceHidden = true;
+			rootPanel.Favourite = Favourite;
+			rootPanel.forceHidden = true;
 			rootPanel.onPannelOpenEvent += (e) =>
 			{
 				if (!LazyUILoadingSupported && !Loaded)

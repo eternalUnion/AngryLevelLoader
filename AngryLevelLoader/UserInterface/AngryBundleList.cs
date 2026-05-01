@@ -6,47 +6,117 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine.UI;
 
 namespace AngryLevelLoader.UserInterface
 {
 	internal static class AngryBundleList
 	{
+		#region Comparers
+		private static Regex richText = new Regex(@"<[^>]*>");
+
+		class BundleNameComparer : IComparer<BundleContainer>
+		{
+			public static readonly BundleNameComparer Instance = new BundleNameComparer();
+
+			public int Compare(BundleContainer b1, BundleContainer b2)
+			{
+				if (b1.Favourite && !b2.Favourite)
+					return -1;
+
+				if (!b1.Favourite && b2.Favourite)
+					return 1;
+
+				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleName, string.Empty), richText.Replace(b2.BundleName, string.Empty));
+			}
+		}
+
+		class BundleAuthorComparer : IComparer<BundleContainer>
+		{
+			public static readonly BundleAuthorComparer Instance = new BundleAuthorComparer();
+
+			public int Compare(BundleContainer b1, BundleContainer b2)
+			{
+				if (b1.Favourite && !b2.Favourite)
+					return -1;
+
+				if (!b1.Favourite && b2.Favourite)
+					return 1;
+
+				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleAuthor, string.Empty), richText.Replace(b2.BundleAuthor, string.Empty));
+			}
+		}
+
+		class BundleLastUpdateComparer : IComparer<BundleContainer>
+		{
+			public static readonly BundleLastUpdateComparer Instance = new BundleLastUpdateComparer();
+
+			public int Compare(BundleContainer b1, BundleContainer b2)
+			{
+				if (b1.Favourite && !b2.Favourite)
+					return -1;
+
+				if (!b1.Favourite && b2.Favourite)
+					return 1;
+
+				if (!LastPlayedMapManager.lastUpdate.TryGetValue(b1.bundleGuid, out long time1))
+					time1 = 0;
+				if (!LastPlayedMapManager.lastUpdate.TryGetValue(b2.bundleGuid, out long time2))
+					time2 = 0;
+
+				return (int)(time2 - time1);
+			}
+		}
+
+		class BundleLastPlayedComparer : IComparer<BundleContainer>
+		{
+			public static readonly BundleLastPlayedComparer Instance = new BundleLastPlayedComparer();
+
+			public int Compare(BundleContainer b1, BundleContainer b2)
+			{
+				if (b1.Favourite && !b2.Favourite)
+					return -1;
+
+				if (!b1.Favourite && b2.Favourite)
+					return 1;
+
+				if (!LastPlayedMapManager.lastPlayed.TryGetValue(b1.bundleGuid, out long time1))
+					time1 = 0;
+				if (!LastPlayedMapManager.lastPlayed.TryGetValue(b2.bundleGuid, out long time2))
+					time2 = 0;
+
+				return (int)(time2 - time1);
+			}
+		}
+		#endregion
+
 		internal static void SortBundles()
 		{
+			IComparer<BundleContainer> comparer;
+			switch (ConfigManager.bundleSortingMode.value)
+			{
+				case ConfigManager.BundleSorting.Alphabetically:
+				default:
+					comparer = BundleNameComparer.Instance;
+					break;
+
+				case ConfigManager.BundleSorting.Author:
+					comparer = BundleAuthorComparer.Instance;
+					break;
+
+				case ConfigManager.BundleSorting.LastUpdate:
+					comparer = BundleLastUpdateComparer.Instance;
+					break;
+
+				case ConfigManager.BundleSorting.LastPlayed:
+					comparer = BundleLastPlayedComparer.Instance;
+					break;
+			}
+
 			int i = 0;
-			if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Alphabetically)
-			{
-				foreach (var bundle in Plugin.GetAllBundleContainers().OrderBy(b => b.BundleName))
-					bundle.SiblingIndex = i++;
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.Author)
-			{
-				foreach (var bundle in Plugin.GetAllBundleContainers().OrderBy(b => b.BundleAuthor))
-					bundle.SiblingIndex = i++;
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastPlayed)
-			{
-				foreach (var bundle in Plugin.GetAllBundleContainers().OrderByDescending((b) => {
-					if (LastPlayedMapManager.lastPlayed.TryGetValue(b.bundleGuid, out long time))
-						return time;
-					return 0;
-				}))
-				{
-					bundle.SiblingIndex = i++;
-				}
-			}
-			else if (ConfigManager.bundleSortingMode.value == ConfigManager.BundleSorting.LastUpdate)
-			{
-				foreach (var bundle in Plugin.GetAllBundleContainers().OrderByDescending((b) => {
-					if (LastPlayedMapManager.lastUpdate.TryGetValue(b.bundleGuid, out long time))
-						return time;
-					return 0;
-				}))
-				{
-					bundle.SiblingIndex = i++;
-				}
-			}
+			foreach (var bundle in Plugin.GetAllBundleContainers().OrderBy(b => b, comparer))
+				bundle.SiblingIndex = i++;
 		}
 
 		#region Folder subsystem
@@ -198,7 +268,6 @@ namespace AngryLevelLoader.UserInterface
 			}
 		}
 		#endregion
-
 
 
 		#region Search subsystem

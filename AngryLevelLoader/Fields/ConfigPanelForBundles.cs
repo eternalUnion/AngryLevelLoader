@@ -1,6 +1,8 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers;
 using AngryLevelLoader.Utils;
 using PluginConfig.API;
+using System;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
@@ -17,14 +19,45 @@ namespace AngryLevelLoader.Fields
             }
         }
 
-        private const string ASSET_PATH_RANK_ICON = "AngryLevelLoader/Fields/BundlePanelPrefabs/RankIcon.prefab";
+		private class ConditionalHideOnDisable : MonoBehaviour
+		{
+            public Func<bool> condition;
+
+			void OnDisable()
+			{
+                if (condition != null && condition())
+				    gameObject.SetActive(false);
+			}
+		}
+
+		private const string ASSET_PATH_FAV_BUTTON = "AngryLevelLoader/Fields/BundlePanelPrefabs/FavButton.prefab";
+		private const string ASSET_PATH_RANK_ICON = "AngryLevelLoader/Fields/BundlePanelPrefabs/RankIcon.prefab";
         private const string ASSET_PATH_DELETE_BUTTON = "AngryLevelLoader/Fields/BundlePanelPrefabs/DeleteButton.prefab";
 
         public readonly BundleContainer callback;
 
+        protected Button favButton;
+        protected Image favIcon;
         protected Text rank;
         protected Image rankBg;
         protected Button deleteButton;
+
+        private bool _favourite = false;
+        public bool Favourite
+        {
+            get => _favourite;
+            set
+            {
+                _favourite = value;
+
+                if (favIcon != null)
+                {
+                    favIcon.sprite = (_favourite) ? AssetManager.favouriteSelected : AssetManager.favouriteUnselected;
+                    if (_favourite)
+                        favButton.gameObject.SetActive(true);
+                }
+            }
+        }
 
         private string _rankText = " ";
         public string rankText
@@ -114,7 +147,24 @@ namespace AngryLevelLoader.Fields
                 button.pivot = new Vector2(1, 0.5f);
                 button.anchoredPosition = new Vector2(-150, 0);
 
-                rank = Addressables.InstantiateAsync(ASSET_PATH_RANK_ICON, currentMenu.transform).WaitForCompletion().GetComponentInChildren<Text>();
+                favButton = Addressables.InstantiateAsync(ASSET_PATH_FAV_BUTTON, currentMenu.transform).WaitForCompletion().GetComponentInChildren<Button>();
+                favIcon = favButton.gameObject.GetComponent<Image>();
+				favIcon.sprite = (Favourite) ? AssetManager.favouriteSelected : AssetManager.favouriteUnselected;
+				AngryUIUtils.AddMouseEvents(currentMenu.gameObject, favButton,
+					(e) => favButton.gameObject.SetActive(true),
+					(e) => favButton.gameObject.SetActive(Favourite));
+				favButton.gameObject.SetActive(Favourite);
+				favButton.gameObject.AddComponent<ConditionalHideOnDisable>().condition = () => !Favourite;
+				favButton.onClick.AddListener(() =>
+                {
+                    Favourite = !Favourite;
+                    callback.Favourite = Favourite;
+                });
+
+                currentMenu.icon.GetComponent<RectTransform>().anchoredPosition += Vector2.right * 15;
+				currentMenu.name.GetComponent<RectTransform>().anchoredPosition += Vector2.right * 15;
+
+				rank = Addressables.InstantiateAsync(ASSET_PATH_RANK_ICON, currentMenu.transform).WaitForCompletion().GetComponentInChildren<Text>();
                 rank.text = _rankText;
                 rank.color = _rankTextColor;
                 rank.alignByGeometry = true;
