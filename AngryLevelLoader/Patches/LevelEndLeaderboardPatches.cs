@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 using TMPro;
+using System;
 
 namespace AngryLevelLoader.Patches
 {
@@ -154,6 +155,13 @@ namespace AngryLevelLoader.Patches
 			}
 
 			// Display top 10 records
+			string currentUserId = "";
+			try
+			{
+				currentUserId = Steamworks.SteamClient.SteamId.ToString();
+			}
+			catch (Exception) { }
+
 			foreach (var record in result.response.records)
 			{
 				if (!ulong.TryParse(record.steamId, out ulong steamIdNumeric))
@@ -178,13 +186,18 @@ namespace AngryLevelLoader.Patches
 					newUsernameField = newUsernameFieldTrans.GetComponent<TextMeshProUGUI>();
 				RawImage profilePicture = gameObject.GetComponentInChildren<RawImage>();
 
+				bool isCurrentUser = currentUserId == record.steamId;
 				SteamCacheManager.RequestUser(steamIdNumeric, (result) =>
 				{
 					if (newUsernameField != null)
-						newUsernameField.text = result.name;
+					{
+						newUsernameField.text = (record.censorName && !isCurrentUser) ? "(hidden)" : result.name;
+					}
 
-					if (result.profilePicture != null && profilePicture != null)
+					if (result.profilePicture != null && profilePicture != null && !(record.censorIcon && !isCurrentUser))
+					{
 						profilePicture.texture = result.profilePicture;
+					}
 				});
 
 				gameObject.SetActive(true);
