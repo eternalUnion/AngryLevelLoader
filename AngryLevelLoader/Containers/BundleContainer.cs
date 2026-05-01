@@ -497,6 +497,15 @@ namespace AngryLevelLoader.Containers
                 TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
                 SceneHelper.LoadSceneAsync("AngryLevelLoader/Blank").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
                 await completionSource.Task;
+
+				if (AngrySceneManager.isInCustomLevel)
+				{
+					Plugin.logger.LogError("Failed to switch to blank scene, have no other option other than returning to main menu");
+					completionSource = new TaskCompletionSource<bool>();
+					SceneHelper.LoadSceneAsync("Main Menu").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
+					await completionSource.Task;
+					SceneHelper.ShowLoadingBlocker();
+				}
                 
                 inTempScene = true;
 			}
