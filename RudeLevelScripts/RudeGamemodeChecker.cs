@@ -1,4 +1,4 @@
-﻿using AngryLevelLoader;
+﻿using AngryLoaderAPI;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -32,17 +32,17 @@ namespace RudeLevelScripts
 		{
 			bool success = false;
 
-			switch (RudeGamemodeInterface.GetCurrentGamemode())
+			switch (GamemodeInterface.GetCurrentGamemode())
 			{
-				case AngryLevelLoader.Managers.AngryGamemodeManager.Gamemode.None:
+				case GamemodeInterface.Gamemode.None:
 					success = gamemode.HasFlag(Gamemode.NoGamemode);
 					break;
 
-				case AngryLevelLoader.Managers.AngryGamemodeManager.Gamemode.NoMonsters:
+				case GamemodeInterface.Gamemode.NoMonsters:
 					success = gamemode.HasFlag(Gamemode.NoMonsters);
 					break;
 
-				case AngryLevelLoader.Managers.AngryGamemodeManager.Gamemode.NoMonstersAndWeapons:
+				case GamemodeInterface.Gamemode.NoMonstersAndWeapons:
 					success = gamemode.HasFlag(Gamemode.NoMonstersAndWeapons);
 					break;
 			}
