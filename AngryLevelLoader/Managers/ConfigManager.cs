@@ -202,14 +202,13 @@ namespace AngryLevelLoader.Managers
 			difficultyField = new DifficultyField(config.rootPanel);
 
 			bundleSortingMode = new EnumField<BundleSorting>(InternalConfigManager.internalConfig.rootPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
-			bundleSortingMode.onValueChange += (e) =>
+			bundleSortingMode.postValueChangeEvent += (mode) =>
 			{
-				bundleSortingMode.value = e.value;
+				bundleSortingMode.value = mode;
 				AngryBundleList.SortBundles();
 			};
 			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastPlayed, "Last Played");
 			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastUpdate, "Last Update");
-			new ConfigBridge(bundleSortingMode, config.rootPanel);
 
 			ConfigHeader difficultyOverrideWarning = new ConfigHeader(config.rootPanel, "Difficulty is overridden by gamemode\nWarning: Some levels may not be compatible with gamemodes", 18);
 			difficultyOverrideWarning.textColor = Color.yellow;
@@ -455,6 +454,7 @@ namespace AngryLevelLoader.Managers
 
 			levelBundlesHeader = new ConfigHeader(config.rootPanel, "Level Bundles");
 			searchBar = new SearchBarField(config.rootPanel);
+			new BundleSortField(config.rootPanel);
 			folderDivision = new ConfigDivision(config.rootPanel, "div_folders");
 			bundleDivision = new ConfigDivision(config.rootPanel, "div_bundles");
 			searchInfo = new ConfigHeader(config.rootPanel, "", 18);
