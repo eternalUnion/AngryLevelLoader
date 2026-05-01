@@ -204,10 +204,29 @@ namespace AngryLevelLoader.Fields
             {
                 _status = value;
 				SearchKeywords = SearchKeywords;
+
+                switch (_status)
+                {
+                    case OnlineLevelStatus.Installed:
+                        hidden = !SearchMatch || !OnlineLevelsList.showInstalledLevels.value;
+                        break;
+
+					case OnlineLevelStatus.NotInstalled:
+						hidden = !SearchMatch || !OnlineLevelsList.showNotInstalledLevels.value;
+						break;
+
+					case OnlineLevelStatus.UpdateAvailable:
+						hidden = !SearchMatch || !OnlineLevelsList.showUpdateAvailableLevels.value;
+						break;
+
+                    default:
+                        hidden = true;
+                        break;
+				}
 			}
         }
 
-		internal void UpdateStatus()
+        internal void UpdateStatus()
 		{
 			if (Bundle == null || string.IsNullOrEmpty(Bundle.pathToAngryBundle) || !File.Exists(Bundle.pathToAngryBundle))
 				Status = OnlineLevelStatus.NotInstalled;
@@ -307,11 +326,9 @@ namespace AngryLevelLoader.Fields
 					if (!matches)
                     {
                         SearchMatch = false;
-                        break;
+						break;
 					}
 				}
-
-                hidden = !SearchMatch;
 
                 if (currentUi != null)
                 {
@@ -334,7 +351,7 @@ namespace AngryLevelLoader.Fields
                 OnCreateUI(currentContainer);
         }
 
-		// UI
+        // UI
 
 		private AngryOnlineLevelFieldComponent currentUi;
 		private RectTransform currentContainer = null;
@@ -753,84 +770,5 @@ namespace AngryLevelLoader.Fields
                 // ELSE THERE WILL BE A PROMPT FROM FILE SYSTEM WATCHER
             }
 		}
-
-        // Update order for this field only, assuming every other field is ordered correctly
-        internal void UpdateOrder()
-        {
-            int order = 0;
-            OnlineLevelField[] allBundles = OnlineLevelsList.onlineLevels.Values.OrderBy(level => level.siblingIndex).ToArray();
-
-            if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.Name)
-            {
-                while (order < allBundles.Length)
-                {
-                    if (order == siblingIndex)
-                    {
-                        order += 1;
-                        continue;
-                    }
-
-                    if (string.Compare(OnlineBundle.Name, allBundles[order].OnlineBundle.Name) == -1)
-                        break;
-
-                    order += 1;
-                }
-            }
-            else if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.Author)
-            {
-                while (order < allBundles.Length)
-                {
-                    if (order == siblingIndex)
-                    {
-                        order += 1;
-                        continue;
-                    }
-
-                    if (string.Compare(OnlineBundle.Author, allBundles[order].OnlineBundle.Author) == -1)
-                        break;
-
-                    order += 1;
-                }
-            }
-            else if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.LastUpdate)
-            {
-                while (order < allBundles.Length)
-                {
-                    if (order == siblingIndex)
-                    {
-                        order += 1;
-                        continue;
-                    }
-
-                    if (OnlineBundle.LastUpdate > allBundles[order].OnlineBundle.LastUpdate)
-                        break;
-
-                    order += 1;
-                }
-            }
-			else if (OnlineLevelsList.sortFilter.value == OnlineLevelsList.SortFilter.Votes)
-			{
-				while (order < allBundles.Length)
-				{
-					if (order == siblingIndex)
-					{
-						order += 1;
-						continue;
-					}
-
-					if (VoteCount > allBundles[order].VoteCount)
-						break;
-
-					order += 1;
-				}
-			}
-
-			if (order < 0)
-                order = 0;
-            else if (order >= allBundles.Length)
-                order = allBundles.Length - 1;
-
-            siblingIndex = order;
-        }
     }
 }

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace AngryUiComponents
 {
-	public class AngryBundleSortFieldComponent : MonoBehaviour
+	public class AngryOnlineSortFieldComponent : MonoBehaviour
 	{
 		class GraphicCopier : MonoBehaviour
 		{
@@ -35,8 +35,7 @@ namespace AngryUiComponents
 			}
 		}
 
-		public Button favSortButton;
-		public Image favSortIcon;
+		public Button refreshButton;
 
 		[Space(5)]
 		public Button nameButton;
@@ -60,11 +59,11 @@ namespace AngryUiComponents
 		private GraphicCopier lastUpdateCopier;
 
 		[Space(5)]
-		public Button lastPlayedButton;
-		public Image lastPlayedBg;
-		public Image lastPlayedFrame;
-		public TextMeshProUGUI lastPlayedText;
-		private GraphicCopier lastPlayedCopier;
+		public Button votesButton;
+		public Image votesBg;
+		public Image votesFrame;
+		public TextMeshProUGUI votesText;
+		private GraphicCopier votesCopier;
 
 		struct ButtonInfo
 		{
@@ -92,12 +91,12 @@ namespace AngryUiComponents
 			nameCopier = nameFrame.gameObject.AddComponent<GraphicCopier>();
 			authorCopier = authorFrame.gameObject.AddComponent<GraphicCopier>();
 			lastUpdateCopier = lastUpdateFrame.gameObject.AddComponent<GraphicCopier>();
-			lastPlayedCopier = lastPlayedFrame.gameObject.AddComponent<GraphicCopier>();
+			votesCopier = votesFrame.gameObject.AddComponent<GraphicCopier>();
 
 			nameCopier.targetGraphic = nameText;
 			authorCopier.targetGraphic = authorText;
 			lastUpdateCopier.targetGraphic = lastUpdateText;
-			lastPlayedCopier.targetGraphic = lastPlayedText;
+			votesCopier.targetGraphic = votesText;
 		}
 
 		void Awake()
@@ -109,7 +108,7 @@ namespace AngryUiComponents
 		{
 			Init();
 
-			foreach (ButtonInfo btn in new ButtonInfo[] { new ButtonInfo(nameButton, nameBg, nameText, nameCopier), new ButtonInfo(authorButton, authorBg, authorText, authorCopier), new ButtonInfo(lastUpdateButton, lastUpdateBg, lastUpdateText, lastUpdateCopier), new ButtonInfo(lastPlayedButton, lastPlayedBg, lastPlayedText, lastPlayedCopier) })
+			foreach (ButtonInfo btn in new ButtonInfo[] { new ButtonInfo(nameButton, nameBg, nameText, nameCopier), new ButtonInfo(authorButton, authorBg, authorText, authorCopier), new ButtonInfo(lastUpdateButton, lastUpdateBg, lastUpdateText, lastUpdateCopier), new ButtonInfo(votesButton, votesBg, votesText, votesCopier) })
 			{
 				if (btn.button == button)
 				{

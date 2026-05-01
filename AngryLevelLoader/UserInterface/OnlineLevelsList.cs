@@ -10,6 +10,7 @@ using PluginConfig.API.Functionals;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -68,28 +69,32 @@ namespace AngryLevelLoader.UserInterface
             OnlineCatalogManager.LoadCachedCatalog();
             OnlineScriptsManager.LoadCachedCatalog();
 
-            var filterPanel = new ConfigPanel(onlineLevelsPanel, "Filters", "online_filters");
-            filterPanel.hidden = true;
-
-            new ConfigHeader(filterPanel, "State Filters");
-            showInstalledLevels = new BoolField(filterPanel, "Installed", "online_installedLevels", true);
-            showNotInstalledLevels = new BoolField(filterPanel, "Not installed", "online_notInstalledLevels", true);
-            showUpdateAvailableLevels = new BoolField(filterPanel, "Update available", "online_updateAvailableLevels", true);
-            sortFilter = new EnumField<SortFilter>(filterPanel, "Sort type", "sf_o_sortType", SortFilter.LastUpdate);
+			searchBar = new SearchBarField(onlineLevelsPanel);
+			sortFilter = new EnumField<SortFilter>(onlineLevelsPanel, "Sort type", "sf_o_sortType", SortFilter.LastUpdate);
+            sortFilter.hidden = true;
             sortFilter.SetEnumDisplayName(SortFilter.LastUpdate, "Last Update");
             sortFilter.SetEnumDisplayName(SortFilter.ReleaseDate, "Release Date");
-            sortFilter.onValueChange += (e) =>
+            sortFilter.postValueChangeEvent += (val) =>
             {
-                sortFilter.value = e.value;
                 SortAll();
             };
-            var toolbar = new ButtonArrayField(onlineLevelsPanel, "online_toolbar", 2, new float[] { 0.5f, 0.5f }, new string[] { "Refresh", "Filters" });
-            toolbar.OnClickEventHandler(0).onClick += () => RefreshAsync();
-            toolbar.OnClickEventHandler(1).onClick += () => filterPanel.OpenPanel();
+            new OnlineSortField(onlineLevelsPanel);
+			
+            showInstalledLevels = new BoolField(onlineLevelsPanel, "Installed", "online_installedLevels", true);
+            showInstalledLevels.postValueChangeEvent += (val) => UpdateVisibility();
+			showInstalledLevels.hidden = true;
+			
+            showNotInstalledLevels = new BoolField(onlineLevelsPanel, "Not installed", "online_notInstalledLevels", true);
+			showNotInstalledLevels.postValueChangeEvent += (val) => UpdateVisibility();
+            showNotInstalledLevels.hidden = true;
+			
+            showUpdateAvailableLevels = new BoolField(onlineLevelsPanel, "Update available", "online_updateAvailableLevels", true);
+			showUpdateAvailableLevels.postValueChangeEvent += (val) => UpdateVisibility();
+            showUpdateAvailableLevels.hidden = true;
+            
+            new OnlineStatusFilterField(onlineLevelsPanel);
 
-            searchBar = new SearchBarField(onlineLevelsPanel);
-
-            loadingCircle = new LoadingCircleField(onlineLevelsPanel);
+			loadingCircle = new LoadingCircleField(onlineLevelsPanel);
             loadingCircle.hidden = true;
             onlineLevelContainer = new ConfigDivision(onlineLevelsPanel, "p_onlineLevelsDiv");
 
@@ -106,6 +111,8 @@ namespace AngryLevelLoader.UserInterface
                 searchKeywords = newKeywords;
                 foreach (OnlineLevelField onlineLevel in onlineLevels.Values)
                     onlineLevel.SearchKeywords = searchKeywords;
+
+                UpdateVisibility();
 
 				if (searchKeywords.Length == 0)
                 {
@@ -133,17 +140,19 @@ namespace AngryLevelLoader.UserInterface
 			searchBar.onReset = () => searchBar.value = "";
         }
 
-        private static void SortAll()
+		private static Regex richText = new Regex(@"<[^>]*>");
+
+		private static void SortAll()
         {
             int i = 0;
             if (sortFilter.value == SortFilter.Name)
             {
-                foreach (var bundle in onlineLevels.Values.OrderBy(b => b.OnlineBundle.Name))
+                foreach (var bundle in onlineLevels.Values.OrderBy(b => richText.Replace(b.OnlineBundle.Name, string.Empty)))
                     bundle.siblingIndex = i++;
             }
             else if (sortFilter.value == SortFilter.Author)
             {
-                foreach (var bundle in onlineLevels.Values.OrderBy(b => b.OnlineBundle.Author))
+                foreach (var bundle in onlineLevels.Values.OrderBy(b => richText.Replace(b.OnlineBundle.Author, string.Empty)))
                     bundle.siblingIndex = i++;
             }
             else if (sortFilter.value == SortFilter.Votes)
@@ -170,7 +179,31 @@ namespace AngryLevelLoader.UserInterface
             }
         }
 
-        private static CachedTask currentRefreshTask = new CachedTask(RefreshTask);
+        private static void UpdateVisibility()
+        {
+			foreach (var bundle in onlineLevels.Values)
+            {
+                bool visible = false;
+                switch (bundle.Status)
+                {
+                    case OnlineLevelField.OnlineLevelStatus.Installed:
+                        visible = bundle.SearchMatch && showInstalledLevels.value;
+                        break;
+
+                    case OnlineLevelField.OnlineLevelStatus.NotInstalled:
+                        visible = bundle.SearchMatch && showNotInstalledLevels.value;
+                        break;
+
+                    case OnlineLevelField.OnlineLevelStatus.UpdateAvailable:
+                        visible = bundle.SearchMatch && showUpdateAvailableLevels.value;
+                        break;
+                }
+
+                bundle.hidden = !visible;
+            }
+		}
+
+		private static CachedTask currentRefreshTask = new CachedTask(RefreshTask);
         /// <summary>
         /// Set to true if the online levels are being refreshed by fetching the latest catalog.
         /// </summary>
@@ -352,37 +385,13 @@ namespace AngryLevelLoader.UserInterface
                     if (task.Result != null)
                         field.PreviewImage = task.Result;
                 }, TaskScheduler.FromCurrentSynchronizationContext());
-
-                // Sort if just created
-                if (justCreated)
-                    field.UpdateOrder();
-
-                // Show the field if matches the filter
-                field.hidden = !field.SearchMatch;
-                if (!field.hidden)
-                {
-                    if (field.Status == OnlineLevelField.OnlineLevelStatus.NotInstalled)
-                    {
-                        if (!showNotInstalledLevels.value)
-                            field.hidden = true;
-                    }
-                    else if (field.Status == OnlineLevelField.OnlineLevelStatus.Installed)
-                    {
-                        if (!showInstalledLevels.value)
-                            field.hidden = true;
-                    }
-                    else if (field.Status == OnlineLevelField.OnlineLevelStatus.UpdateAvailable)
-                    {
-                        if (!showUpdateAvailableLevels.value)
-                            field.hidden = true;
-                    }
-                }
 			}
 
             CheckNewLevelText(previousCatalog);
             CheckLevelUpdateText();
 
             SortAll();
+            UpdateVisibility();
 
             if (searchKeywords.Length == 0)
             {

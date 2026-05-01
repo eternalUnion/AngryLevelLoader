@@ -22,11 +22,14 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
-				if (b1.Favourite && !b2.Favourite)
-					return -1;
+				if (ConfigManager.bundleFavSort.value)
+				{
+					if (b1.Favourite && !b2.Favourite)
+						return -1;
 
-				if (!b1.Favourite && b2.Favourite)
-					return 1;
+					if (!b1.Favourite && b2.Favourite)
+						return 1;
+				}
 
 				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleName, string.Empty), richText.Replace(b2.BundleName, string.Empty));
 			}
@@ -38,11 +41,14 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
-				if (b1.Favourite && !b2.Favourite)
-					return -1;
+				if (ConfigManager.bundleFavSort.value)
+				{
+					if (b1.Favourite && !b2.Favourite)
+						return -1;
 
-				if (!b1.Favourite && b2.Favourite)
-					return 1;
+					if (!b1.Favourite && b2.Favourite)
+						return 1;
+				}
 
 				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleAuthor, string.Empty), richText.Replace(b2.BundleAuthor, string.Empty));
 			}
@@ -54,11 +60,14 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
-				if (b1.Favourite && !b2.Favourite)
-					return -1;
+				if (ConfigManager.bundleFavSort.value)
+				{
+					if (b1.Favourite && !b2.Favourite)
+						return -1;
 
-				if (!b1.Favourite && b2.Favourite)
-					return 1;
+					if (!b1.Favourite && b2.Favourite)
+						return 1;
+				}
 
 				if (!LastPlayedMapManager.lastUpdate.TryGetValue(b1.bundleGuid, out long time1))
 					time1 = 0;
@@ -75,11 +84,14 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
-				if (b1.Favourite && !b2.Favourite)
-					return -1;
+				if (ConfigManager.bundleFavSort.value)
+				{
+					if (b1.Favourite && !b2.Favourite)
+						return -1;
 
-				if (!b1.Favourite && b2.Favourite)
-					return 1;
+					if (!b1.Favourite && b2.Favourite)
+						return 1;
+				}
 
 				if (!LastPlayedMapManager.lastPlayed.TryGetValue(b1.bundleGuid, out long time1))
 					time1 = 0;

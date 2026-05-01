@@ -20,6 +20,21 @@ namespace AngryLevelLoader.Fields
 		private AngryBundleSortFieldComponent currentUi;
 
 		// Data
+		private bool _sortFavourites;
+		private bool SortFavourites
+		{
+			get => _sortFavourites;
+			set
+			{
+				_sortFavourites = value;
+
+				if (currentUi != null)
+				{
+					currentUi.favSortIcon.sprite = (_sortFavourites) ? AssetManager.favouriteSelected : AssetManager.favouriteUnselected;
+				}
+			}
+		}
+
 		private ConfigManager.BundleSorting _sortingMode;
 		private ConfigManager.BundleSorting SortingMode
 		{
@@ -57,7 +72,14 @@ namespace AngryLevelLoader.Fields
 		{
 			inited = true;
 
+			SortFavourites = ConfigManager.bundleFavSort.value;
+			SortingMode = ConfigManager.bundleSortingMode.value;
+
 			ConfigManager.InitializeConfig();
+			ConfigManager.bundleFavSort.postValueChangeEvent += (fav) =>
+			{
+				SortFavourites = fav;
+			};
 			ConfigManager.bundleSortingMode.postValueChangeEvent += (sortMode) =>
 			{
 				SortingMode = sortMode;
@@ -77,7 +99,14 @@ namespace AngryLevelLoader.Fields
 			RectTransform currentUiRect = currentUi.GetComponent<RectTransform>();
 			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
+			SortFavourites = ConfigManager.bundleFavSort.value;
 			SortingMode = ConfigManager.bundleSortingMode.value;
+
+			currentUi.favSortButton.onClick.AddListener(() =>
+			{
+				ConfigManager.bundleFavSort.value = !SortFavourites;
+				ConfigManager.bundleFavSort.TriggerPostValueChangeEvent();
+			});
 
 			currentUi.nameButton.onClick.AddListener(() =>
 			{

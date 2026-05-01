@@ -102,6 +102,7 @@ namespace AngryLevelLoader.Managers
 		public static BoolField useDevelopmentBranch;
 		public static BoolField useLocalServer;
 		public static BoolField scriptUpdateIgnoreCustom;
+		public static BoolField bundleFavSort;
 		public static EnumField<BundleSorting> bundleSortingMode;
 
 		public static BoolField showLeaderboardOnLevelEnd;
@@ -201,10 +202,14 @@ namespace AngryLevelLoader.Managers
 
 			difficultyField = new DifficultyField(config.rootPanel);
 
+			bundleFavSort = new BoolField(InternalConfigManager.internalConfig.rootPanel, "Sort by fav", "s_bundleSortingFav", true);
+			bundleFavSort.postValueChangeEvent += (fav) =>
+			{
+				AngryBundleList.SortBundles();
+			};
 			bundleSortingMode = new EnumField<BundleSorting>(InternalConfigManager.internalConfig.rootPanel, "Bundle sorting", "s_bundleSortingMode", BundleSorting.LastPlayed);
 			bundleSortingMode.postValueChangeEvent += (mode) =>
 			{
-				bundleSortingMode.value = mode;
 				AngryBundleList.SortBundles();
 			};
 			bundleSortingMode.SetEnumDisplayName(BundleSorting.LastPlayed, "Last Played");
