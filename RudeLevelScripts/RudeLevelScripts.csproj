@@ -13,6 +13,14 @@
     </PackageReference>
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AngryLoaderAPI\AngryLoaderAPI.csproj" />
   </ItemGroup>
@@ -20,21 +28,27 @@
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\AngryLevelLoader\libs\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>..\AngryLevelLoader\libs\Unity.Addressables.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.ResourceManager">
       <HintPath>..\AngryLevelLoader\libs\Unity.ResourceManager.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\AngryLevelLoader\libs\Unity.TextMeshPro.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>..\AngryLevelLoader\libs\UnityEngine.AssetBundleModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\AngryLevelLoader\libs\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   

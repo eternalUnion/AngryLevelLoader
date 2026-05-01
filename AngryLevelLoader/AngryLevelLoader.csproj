@@ -55,75 +55,99 @@
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>libs\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Atlas">
       <HintPath>libs\Atlas.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="BananaDifficulty">
       <HintPath>libs\BananaDifficulty.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="BillionDifficulty">
       <HintPath>libs\BillionDifficulty.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Configgy">
       <HintPath>libs\Configgy.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Facepunch.Steamworks.Win64">
       <HintPath>libs\Facepunch.Steamworks.Win64.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="FasterPunch">
       <HintPath>libs\FasterPunch.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Movement">
       <HintPath>libs\Movement.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="PluginConfiguratorComponents">
       <HintPath>libs\PluginConfiguratorComponents.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="ProjectProphet">
       <HintPath>libs\ProjectProphet.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="The Timestopper">
       <HintPath>libs\The Timestopper.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="TimeStop">
       <HintPath>libs\TimeStop.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Ultracoins">
       <HintPath>libs\Ultracoins.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UltraFunGuns">
       <HintPath>libs\UltraFunGuns.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Ultrapain_Refueled">
       <HintPath>libs\Ultrapain_Refueled.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UltraTweaker">
       <HintPath>libs\UltraTweaker.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>libs\Unity.Addressables.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.InputSystem">
       <HintPath>libs\Unity.InputSystem.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.ResourceManager">
       <HintPath>libs\Unity.ResourceManager.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>libs\Unity.TextMeshPro.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>libs\UnityEngine.AssetBundleModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>libs\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityExplorer.BIE5.Mono">
       <HintPath>libs\UnityExplorer.BIE5.Mono.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
 </Project>
