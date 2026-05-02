@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "4.0.0",
+  "latestVersion": "4.0.1",
   "updates": [
     {
       "version": "1.0.0",
@@ -144,6 +144,10 @@
     {
       "version": "4.0.0",
       "updateText": "- Reworked search UI for local and online level list\n- Fixed billion difficulty always being in hard mode\n- Fixed an issue with levels using custom players\n- Refactored the codebase, mods referencing Angry loader may break"
+    },
+    {
+      "version": "4.0.1",
+      "updateText": "- Fixed a bug that would crash Angry if there are no levels installed\n- Fixed challenge panel color in final rank screen\n- Added compatibility option for quick level reload"
     }
   ]
 }
