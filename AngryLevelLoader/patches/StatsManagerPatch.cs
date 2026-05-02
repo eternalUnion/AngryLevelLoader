@@ -312,8 +312,30 @@ namespace AngryLevelLoader.Patches
 					if (AngrySceneManager.currentLevelData.levelChallengeEnabled && (challengeCompletedThisSeason || challengeCompletedBefore))
 					{
 						Plugin.logger.LogInfo("Enabling challenge panel since it is completed now or before");
-						challengePanel.GetComponent<Image>().color = usedCheats && !challengeCompletedBefore ? new Color(0, 1, 0, 0.5f) : new Color(1f, 0.696f, 0f, 0.5f);
-						challengePanel.GetComponent<AudioSource>().volume = !challengeCompletedBefore && !usedCheats ? 1f : 0f;
+						if (usedCheats)
+						{
+							challengePanel.GetComponent<AudioSource>().volume = 0f;
+							
+							if (challengeCompletedBefore && !challengeCompletedThisSeason)
+							{
+								challengePanel.GetComponent<Image>().color = new Color(0, 1, 0, 0.5f);
+							}
+							else
+							{
+								challengePanel.GetComponent<Image>().color = new Color(0, 1, 0, 1f);
+							}
+						}
+						else if (challengeCompletedBefore && !challengeCompletedThisSeason)
+						{
+							challengePanel.GetComponent<Image>().color = new Color(1f, 0.696f, 0f, 0.5f);
+							challengePanel.GetComponent<AudioSource>().volume = 1f;
+						}
+						else
+						{
+							challengePanel.GetComponent<Image>().color = new Color(1f, 0.696f, 0f, 1f);
+							challengePanel.GetComponent<AudioSource>().volume = 1f;
+						}
+						
 						challengePanel.SetActive(true);
 					}
 					else
