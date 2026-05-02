@@ -167,30 +167,5 @@ namespace AngryLevelLoader.Utils
 
 			return Path.GetFullPath(path1) == Path.GetFullPath(path2);
 		}
-
-		public struct SubFileInfo
-		{
-			public string filePath;
-			public string subFolder;
-
-			public SubFileInfo(string fileName, string subFolder)
-			{
-				filePath = fileName;
-				this.subFolder = subFolder;
-			}
-		}
-
-		public static IEnumerable<SubFileInfo> GetAllFilesRecursive(string folderPath, string currentSubFolder = "/")
-		{
-			foreach (string filePath in Directory.GetFiles(folderPath))
-				yield return new SubFileInfo(filePath, currentSubFolder);
-
-			foreach (string subFolderPath in Directory.GetDirectories(folderPath))
-			{
-				string subFolderName = Path.GetFileName(subFolderPath);
-				foreach (SubFileInfo subFile in GetAllFilesRecursive(subFolderPath, currentSubFolder == "/" ? "/" + subFolderName : $"{currentSubFolder}/{subFolderName}"))
-					yield return subFile;
-			}
-		}
 	}
 }

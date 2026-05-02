@@ -1,4 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
+using AngryLevelLoader.Managers;
+using AngryLevelLoader.UserInterface;
 using AngryUiComponents;
 using PluginConfig.API;
 using PluginConfig.API.Fields;
@@ -6,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
@@ -27,8 +30,71 @@ namespace AngryLevelLoader.Fields
 			}
 		}
 
-		public readonly List<BundleContainer> bundles = new List<BundleContainer>();
-		public readonly List<FolderButtonField> folders = new List<FolderButtonField>();
+		internal readonly string folderName;
+		internal readonly FolderButtonField parent;
+		private readonly List<FolderButtonField> folders = new List<FolderButtonField>();
+		
+		internal readonly List<BundleContainer> bundles = new List<BundleContainer>();
+
+		internal IEnumerable<FolderButtonField> GetAllSubfolders()
+		{
+			return folders;
+		}
+
+		internal FolderButtonField GetOrCreateFolder(string subfolderName)
+		{
+			FolderButtonField subFolder = folders.FirstOrDefault(f => f.folderName == subfolderName);
+			if (subFolder == null)
+			{
+				subFolder = new FolderButtonField(subfolderName, this);
+				folders.Add(subFolder);
+			}
+
+			return subFolder;
+		}
+
+		public string GetRelativeFolderPath()
+		{
+			if (parent == null)
+				return "/";
+
+			StringBuilder sb = new StringBuilder();
+			FolderButtonField current = this;
+
+			while (current != null && current.parent != null)
+			{
+				sb.Insert(0, '/');
+				sb.Insert(1, current.folderName);
+				current = current.parent;
+			}
+
+			return sb.ToString();
+		}
+
+		public string GetAbsoluteFolderPath(string prefixPath)
+		{
+			List<FolderButtonField> folders = new List<FolderButtonField>();
+			FolderButtonField currentFolder = this;
+
+			while (currentFolder != null)
+			{
+				if (currentFolder == AngryBundleList.rootFolder)
+					break;
+
+				folders.Add(currentFolder);
+				currentFolder = currentFolder.parent;
+			}
+
+			folders.Reverse();
+
+			string absolutePath = prefixPath;
+			foreach (FolderButtonField folder in folders)
+			{
+				absolutePath = Path.Combine(absolutePath, folder.folderName);
+			}
+
+			return absolutePath;
+		}
 
 		private const string ASSET_PATH = "AngryLevelLoader/Fields/FolderButtonField.prefab";
 		private const int ICON_SIZE = 128;
@@ -110,24 +176,20 @@ namespace AngryLevelLoader.Fields
 				currentUi.folderIcon.texture = icon;
 		}
 
-		private string _folderName = "FOLDER NAME";
-		public string folderName
-		{
-			get => _folderName;
-			set
-			{
-				_folderName = value;
-                if (currentUi != null)
-					currentUi.folderName.text = value;
-            }
-		}
-
 		public UnityEvent onPressed = new UnityEvent();
 
 		private readonly bool _inited = false;
-		public FolderButtonField(ConfigPanel parentPanel) : base(parentPanel)
+		public FolderButtonField(string folderName, FolderButtonField parent) : base(ConfigManager.folderDivision)
 		{
 			_inited = true;
+			this.folderName = folderName;
+			this.parent = parent;
+
+			onPressed.AddListener(() =>
+			{
+				AngryBundleList.DisplayFolder(this);
+			});
+
 			if (currentContainer != null)
 				OnCreateUI(currentContainer);
 
@@ -150,7 +212,7 @@ namespace AngryLevelLoader.Fields
 			currentUiRect.anchorMax = new Vector2(0, 1);
 			currentUiRect.anchoredPosition = new Vector2(0, 0);
 
-			currentUi.folderName.text = _folderName;
+			currentUi.folderName.text = folderName;
 			currentUi.folderButton.onClick.AddListener(() => onPressed.Invoke());
 			currentUi.folderIcon.texture = icon;
 

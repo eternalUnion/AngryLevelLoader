@@ -1,5 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.DataTypes;
+using AngryLevelLoader.Fields;
 using AngryLevelLoader.Managers;
 using AngryLevelLoader.Managers.BannedMods;
 using AngryLevelLoader.Managers.LegacyPatches;
@@ -130,7 +131,7 @@ namespace AngryLevelLoader
 
 		#region Angry file loader
 		private static int numOfOldBundles = 0;
-		private static void ProcessPath(string path, string folder)
+		private static void ProcessPath(string path, FolderButtonField folder)
 		{
 			if (AngryFileUtils.TryGetAngryBundleData(path, out AngryBundleData data, out Exception error))
 			{
@@ -148,7 +149,7 @@ namespace AngryLevelLoader
 						return;
 					}
 
-					AngryBundleList.AddBundle(bundle, folder);
+					folder.bundles.Add(bundle);
 
 					if (data.bundleVersion < 6)
 					{
@@ -177,9 +178,9 @@ namespace AngryLevelLoader
 
                 bundle = new BundleContainer(path, data);
 				angryBundles[data.bundleGuid] = bundle;
-				AngryBundleList.AddBundle(bundle, folder);
+				folder.bundles.Add(bundle);
 
-                try
+				try
                 {
 					bundle.ReloadBundle(false, true);
 				}
@@ -218,6 +219,23 @@ namespace AngryLevelLoader
             }
         }
 
+		private static void ScanForLevelsRecursive(string folderPath, FolderButtonField folder)
+		{
+			foreach (string filePath in Directory.GetFiles(folderPath))
+			{
+				if (!filePath.EndsWith(".angry"))
+					continue;
+
+				ProcessPath(Path.Combine(folderPath, filePath), folder);
+			}
+
+			foreach (string subfolderPath in Directory.GetDirectories(folderPath))
+			{
+				string subfolderName = Path.GetFileName(subfolderPath);
+				ScanForLevelsRecursive(subfolderPath, folder.GetOrCreateFolder(subfolderName));
+			}
+		}
+
 		/// <summary>
 		/// Read all files in the levels directory and create bundle containers for them.
 		/// Bundles are only partially loaded (see <see cref="BundleContainer.LazyLoaded"/>)
@@ -237,13 +255,7 @@ namespace AngryLevelLoader
             }
 
 			AngryBundleList.ResetFolders();
-
-			foreach (AngryIOUtils.SubFileInfo file in AngryIOUtils.GetAllFilesRecursive(levelsPath))
-			{
-				if (!file.filePath.EndsWith(".angry"))
-					continue;
-				ProcessPath(file.filePath, file.subFolder);
-			}
+			ScanForLevelsRecursive(levelsPath, AngryBundleList.rootFolder);
 
 			AngryBundleList.SortBundles();
 			AngryBundleList.UpdateFolderIcons();
@@ -255,7 +267,7 @@ namespace AngryLevelLoader
 				ConfigManager.errorText.text += $"<color=yellow>Hidden {numOfOldBundles} old angry file(s). These files can be deleted at the bottom of the settings page.</color>";
 			}
 
-			AngryBundleList.OpenFolder("/");
+			AngryBundleList.DisplayFolder(AngryBundleList.rootFolder);
 			OnlineLevelsList.UpdateUI();
 		}
 		#endregion
@@ -387,14 +399,14 @@ namespace AngryLevelLoader
 			levelsWatcher.Renamed += (sender, e) =>
 			{
 				// Try to find if a bundle owns the file, then update its file path
-
-				string fullPath = e.FullPath;
+				
+				string oldFullPath = e.OldFullPath;
 				foreach (var bundle in angryBundles.Values)
 				{
-					if (AngryIOUtils.PathEquals(fullPath, bundle.pathToAngryBundle))
+					if (AngryIOUtils.PathEquals(oldFullPath, bundle.pathToAngryBundle))
 					{
-						logger.LogWarning($"Bundle {fullPath} was renamed, path updated");
-						bundle.pathToAngryBundle = fullPath;
+						logger.LogWarning($"Bundle {oldFullPath} was renamed, path updated");
+						bundle.pathToAngryBundle = e.FullPath;
 						return;
 					}
 				}
@@ -436,7 +448,7 @@ namespace AngryLevelLoader
 
 			levelsWatcher.Filter = "*";
 
-			levelsWatcher.IncludeSubdirectories = false;
+			levelsWatcher.IncludeSubdirectories = true;
 			levelsWatcher.EnableRaisingEvents = true;
 
 			scriptsWatcher = new FileSystemWatcher(AngryPaths.ScriptsPath);
