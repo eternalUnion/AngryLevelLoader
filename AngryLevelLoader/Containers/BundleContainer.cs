@@ -494,9 +494,12 @@ namespace AngryLevelLoader.Containers
             string previousId = AngrySceneManager.isInCustomLevel ? AngrySceneManager.currentLevelData.uniqueIdentifier : "";
             if (GetAllScenePaths().Contains(previousPath))
             {
-                TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
-                SceneHelper.LoadSceneAsync("AngryLevelLoader/Blank").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
+				string tempSceneToLoad = (ConfigManager.reloadAlwaysGoToMainMenu.value) ? "Main Menu" : "AngryLevelLoader/Blank";
+
+				TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+                SceneHelper.LoadSceneAsync(tempSceneToLoad).ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
                 await completionSource.Task;
+				await Task.Yield();
 
 				if (AngrySceneManager.isInCustomLevel)
 				{
@@ -505,6 +508,7 @@ namespace AngryLevelLoader.Containers
 					SceneHelper.LoadSceneAsync("Main Menu").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
 					await completionSource.Task;
 					SceneHelper.ShowLoadingBlocker();
+					await Task.Yield();
 				}
                 
                 inTempScene = true;

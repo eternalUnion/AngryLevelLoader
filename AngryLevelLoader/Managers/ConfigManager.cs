@@ -104,6 +104,7 @@ namespace AngryLevelLoader.Managers
 		public static BoolField scriptUpdateIgnoreCustom;
 		public static BoolField bundleFavSort;
 		public static EnumField<BundleSorting> bundleSortingMode;
+		public static BoolField reloadAlwaysGoToMainMenu;
 
 		public static BoolField showLeaderboardOnLevelEnd;
 		public static BoolField showLeaderboardOnSecretLevelEnd;
@@ -364,6 +365,12 @@ namespace AngryLevelLoader.Managers
 			scriptCertificateIgnoreField = new StringMultilineField(settingsPanel, "Certificate ignore", "s_scriptCertificateIgnore", "", true);
 			
 			scriptCertificateIgnore = scriptCertificateIgnoreField.value.Split('\n').ToList();
+
+			new SpaceField(settingsPanel, 5);
+
+			new ConfigHeader(settingsPanel, "Compatibility") { textColor = new Color(1f, 0.408f, 0.408f) };
+
+			reloadAlwaysGoToMainMenu = new BoolField(settingsPanel, "Quick reload in main menu", "s_reloadAlwaysGoToMainMenu", false);
 
 			new SpaceField(settingsPanel, 5);
 
