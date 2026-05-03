@@ -22,6 +22,15 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
+				if (b1 == b2)
+					return 0;
+
+				if (b1 == null)
+					return 1;
+
+				if (b2 == null)
+					return -1;
+
 				if (ConfigManager.bundleFavSort.value)
 				{
 					if (b1.Favourite && !b2.Favourite)
@@ -31,7 +40,7 @@ namespace AngryLevelLoader.UserInterface
 						return 1;
 				}
 
-				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleName, string.Empty), richText.Replace(b2.BundleName, string.Empty));
+				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleName ?? string.Empty, string.Empty), richText.Replace(b2.BundleName ?? string.Empty, string.Empty));
 			}
 		}
 
@@ -41,6 +50,15 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
+				if (b1 == b2)
+					return 0;
+
+				if (b1 == null)
+					return 1;
+
+				if (b2 == null)
+					return -1;
+
 				if (ConfigManager.bundleFavSort.value)
 				{
 					if (b1.Favourite && !b2.Favourite)
@@ -50,7 +68,7 @@ namespace AngryLevelLoader.UserInterface
 						return 1;
 				}
 
-				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleAuthor, string.Empty), richText.Replace(b2.BundleAuthor, string.Empty));
+				return StringComparer.OrdinalIgnoreCase.Compare(richText.Replace(b1.BundleAuthor ?? string.Empty, string.Empty), richText.Replace(b2.BundleAuthor ?? string.Empty, string.Empty));
 			}
 		}
 
@@ -60,6 +78,15 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
+				if (b1 == b2)
+					return 0;
+
+				if (b1 == null)
+					return 1;
+
+				if (b2 == null)
+					return -1;
+
 				if (ConfigManager.bundleFavSort.value)
 				{
 					if (b1.Favourite && !b2.Favourite)
@@ -73,8 +100,8 @@ namespace AngryLevelLoader.UserInterface
 					time1 = 0;
 				if (!LastPlayedMapManager.lastUpdate.TryGetValue(b2.bundleGuid, out long time2))
 					time2 = 0;
-
-				return (int)(time2 - time1);
+				
+				return -Comparer<long>.Default.Compare(time1, time2);
 			}
 		}
 
@@ -84,6 +111,15 @@ namespace AngryLevelLoader.UserInterface
 
 			public int Compare(BundleContainer b1, BundleContainer b2)
 			{
+				if (b1 == b2)
+					return 0;
+
+				if (b1 == null)
+					return 1;
+
+				if (b2 == null)
+					return -1;
+
 				if (ConfigManager.bundleFavSort.value)
 				{
 					if (b1.Favourite && !b2.Favourite)
@@ -98,7 +134,7 @@ namespace AngryLevelLoader.UserInterface
 				if (!LastPlayedMapManager.lastPlayed.TryGetValue(b2.bundleGuid, out long time2))
 					time2 = 0;
 
-				return (int)(time2 - time1);
+				return -Comparer<long>.Default.Compare(time1, time2);
 			}
 		}
 		#endregion
