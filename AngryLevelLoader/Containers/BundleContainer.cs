@@ -433,8 +433,14 @@ namespace AngryLevelLoader.Containers
                 return true;
 
 			// Load the catalog
-			var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
+			await Addressables.InitializeAsync();
+            var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
             await addressableHandle;
+            if (addressableHandle.Status == AsyncOperationStatus.Failed)
+            {
+	            statusText.text = $"<color=red>Failed to load catalog: {addressableHandle.OperationException?.Message}</color>";
+	            return false;
+            }
             locator = addressableHandle.Result;
 
             // Load the level data
