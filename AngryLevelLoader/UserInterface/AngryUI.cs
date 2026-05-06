@@ -1,6 +1,7 @@
 ﻿using AngryLevelLoader.Managers;
 using AngryUiComponents;
 using PluginConfig;
+using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
@@ -73,12 +74,15 @@ namespace AngryLevelLoader.UserInterface
 			// Restart the game
 			ProcessStartInfo procInfo = new ProcessStartInfo()
 			{
-				FileName = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ULTRAKILL.exe"),
+				FileName = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ULTRAKILL.exe"),	
 				WorkingDirectory = Directory.GetParent(Application.dataPath).FullName,
 				UseShellExecute = false,
 				RedirectStandardError = true,
 				RedirectStandardOutput = true,
 			};
+			
+			foreach (string arg in Environment.GetCommandLineArgs().Skip(1))
+				procInfo.ArgumentList.Add(arg);
 
 			string[] variablesToRemove = new string[]
 			{
