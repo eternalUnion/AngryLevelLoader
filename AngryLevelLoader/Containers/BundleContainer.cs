@@ -400,8 +400,13 @@ namespace AngryLevelLoader.Containers
 
             if (unzip)
             {
-                if (Directory.Exists(pathToTempFolder))
-                    Directory.Delete(pathToTempFolder, true);
+	            int retries = 50;
+	            while (Directory.Exists(pathToTempFolder) && retries-- > 0)
+	            {
+		            Directory.Delete(pathToTempFolder, true);
+		            await Task.Delay(100);
+	            }
+	            if (retries <= 0) throw new IOException("Delete retries exhausted");
                 Directory.CreateDirectory(pathToTempFolder);
 
                 using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read)))
@@ -435,14 +440,9 @@ namespace AngryLevelLoader.Containers
                 return true;
 
 			// Load the catalog
-            var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
-            await addressableHandle;
-            if (addressableHandle.Status == AsyncOperationStatus.Failed)
-            {
-	            statusText.text = $"<color=red>Failed to load catalog: {addressableHandle.OperationException?.Message}</color>";
-	            return false;
-            }
-            locator = addressableHandle.Result;
+			var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
+			await addressableHandle;
+			locator = addressableHandle.Result;
 
             // Load the level data
             statusText.text = "";
