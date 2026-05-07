@@ -333,6 +333,8 @@ namespace AngryLevelLoader.Containers
             if (locator != null)
             {
                 Addressables.RemoveResourceLocator(locator);
+                while (!Caching.ready)
+                    await Task.Yield();
                 await AssetManager.CleanBundleCache();
 			}
 
@@ -433,7 +435,6 @@ namespace AngryLevelLoader.Containers
                 return true;
 
 			// Load the catalog
-			await Addressables.InitializeAsync();
             var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
             await addressableHandle;
             if (addressableHandle.Status == AsyncOperationStatus.Failed)
