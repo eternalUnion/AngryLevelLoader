@@ -333,6 +333,8 @@ namespace AngryLevelLoader.Containers
             if (locator != null)
             {
                 Addressables.RemoveResourceLocator(locator);
+                while (!Caching.ready)
+                    await Task.Yield();
                 await AssetManager.CleanBundleCache();
 			}
 
@@ -398,8 +400,23 @@ namespace AngryLevelLoader.Containers
 
             if (unzip)
             {
-                if (Directory.Exists(pathToTempFolder))
-                    Directory.Delete(pathToTempFolder, true);
+				if (Directory.Exists(pathToTempFolder))
+					Directory.Delete(pathToTempFolder, true);
+
+				int retries = 50;
+	            while (Directory.Exists(pathToTempFolder) && retries-- > 0)
+	            {
+		            await Task.Delay(100);
+		            Directory.Delete(pathToTempFolder, true);
+	            }
+
+	            if (retries <= 0 && Directory.Exists(pathToTempFolder))
+				{
+					statusText.text = "<color=red>Failed to clear temporary folder, try reloading again</color>";
+					statusText.hidden = false;
+					return false;
+				}
+
                 Directory.CreateDirectory(pathToTempFolder);
 
                 using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read)))
@@ -434,8 +451,8 @@ namespace AngryLevelLoader.Containers
 
 			// Load the catalog
 			var addressableHandle = Addressables.LoadContentCatalogAsync(Path.Combine(pathToTempFolder, "catalog.json"), false);
-            await addressableHandle;
-            locator = addressableHandle.Result;
+			await addressableHandle;
+			locator = addressableHandle.Result;
 
             // Load the level data
             statusText.text = "";
@@ -522,7 +539,16 @@ namespace AngryLevelLoader.Containers
                 pair.Value.ForceHidden = true;
 			
 			if (!reloadDataSuccess)
+			{
+				if (inTempScene)
+				{
+					TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+					SceneHelper.LoadSceneAsync("Main Menu").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
+					await completionSource.Task;
+				}
+
 				return false;
+			}
 
 			// Update online field if there are any
 			if (OnlineLevelsList.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
@@ -714,7 +740,7 @@ namespace AngryLevelLoader.Containers
 			rootPanel.forceHidden = true;
 			rootPanel.onPannelOpenEvent += (e) =>
 			{
-				if (!LazyUILoadingSupported && !Loaded)
+				if (!LazyUILoadingSupported && !Loaded && !(updateTask != null && updateTask.IsCompleted && !updateTask.Result))
 					ReloadBundle(false, false);
 			};
             
