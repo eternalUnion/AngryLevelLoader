@@ -736,7 +736,7 @@ namespace AngryLevelLoader.Containers
 			rootPanel.forceHidden = true;
 			rootPanel.onPannelOpenEvent += (e) =>
 			{
-				if (!LazyUILoadingSupported && !Loaded)
+				if (!LazyUILoadingSupported && !Loaded && !(updateTask != null && updateTask.IsCompleted && !updateTask.Result))
 					ReloadBundle(false, false);
 			};
             
