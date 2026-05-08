@@ -400,13 +400,17 @@ namespace AngryLevelLoader.Containers
 
             if (unzip)
             {
-	            int retries = 50;
+				if (Directory.Exists(pathToTempFolder))
+					Directory.Delete(pathToTempFolder, true);
+
+				int retries = 50;
 	            while (Directory.Exists(pathToTempFolder) && retries-- > 0)
 	            {
-		            Directory.Delete(pathToTempFolder, true);
 		            await Task.Delay(100);
+		            Directory.Delete(pathToTempFolder, true);
 	            }
-	            if (retries <= 0)
+
+	            if (retries <= 0 && Directory.Exists(pathToTempFolder))
 				{
 					statusText.text = "<color=red>Failed to clear temporary folder, try reloading again</color>";
 					statusText.hidden = false;
