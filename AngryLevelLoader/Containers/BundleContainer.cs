@@ -406,7 +406,13 @@ namespace AngryLevelLoader.Containers
 		            Directory.Delete(pathToTempFolder, true);
 		            await Task.Delay(100);
 	            }
-	            if (retries <= 0) throw new IOException("Delete retries exhausted");
+	            if (retries <= 0)
+				{
+					statusText.text = "<color=red>Failed to clear temporary folder, try reloading again</color>";
+					statusText.hidden = false;
+					return false;
+				}
+
                 Directory.CreateDirectory(pathToTempFolder);
 
                 using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read)))
@@ -529,7 +535,16 @@ namespace AngryLevelLoader.Containers
                 pair.Value.ForceHidden = true;
 			
 			if (!reloadDataSuccess)
+			{
+				if (inTempScene)
+				{
+					TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+					SceneHelper.LoadSceneAsync("Main Menu").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
+					await completionSource.Task;
+				}
+
 				return false;
+			}
 
 			// Update online field if there are any
 			if (OnlineLevelsList.onlineLevels.TryGetValue(bundleGuid, out OnlineLevelField field))
