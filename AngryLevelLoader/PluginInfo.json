@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "4.0.1",
+  "latestVersion": "4.0.3",
   "updates": [
     {
       "version": "1.0.0",
@@ -148,6 +148,10 @@
     {
       "version": "4.0.1",
       "updateText": "- Fixed a bug that would crash Angry if there are no levels installed\n- Fixed challenge panel color in final rank screen\n- Added compatibility option for quick level reload"
+    },
+    {
+      "version": "4.0.3",
+      "updateText": "- Moved update and new level notifications to Notiffy\n- Fixed a bug where Ultrakill settings wouldn't take effect after level restart\n- Fixed a bug where bundle sorting would prevent the plugin from loading\n- Fixed a bug preventing script reloading from working on r2modman\n- Fixed a bug preventing hot reload from working on Linux properly"
     }
   ]
 }
