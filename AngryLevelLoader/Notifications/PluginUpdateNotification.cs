@@ -52,6 +52,7 @@ namespace AngryLevelLoader.Notifications
 
             ui.ignoreUpdate.onClick.AddListener(() =>
             {
+                InternalConfigManager.ignoreUpdateVersion.value = json.latestVersion;
                 Close();
 			});
 

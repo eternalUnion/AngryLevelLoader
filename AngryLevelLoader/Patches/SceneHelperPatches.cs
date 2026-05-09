@@ -25,48 +25,16 @@ namespace AngryLevelLoader.Patches
 
 		[HarmonyPatch(nameof(SceneHelper.RestartSceneAsync))]
 		[HarmonyPrefix]
-		public static bool ChangeSceneNameBeforeLoad(SceneHelper __instance)
+		public static bool ChangeSceneNameBeforeLoad(SceneHelper __instance, ref Coroutine __result)
 		{
 			if (!AngrySceneManager.isInCustomLevel)
 				return true;
 
-			Time.timeScale = 0f;
-			SceneHelper.PendingScene = AngrySceneManager.currentLevelData.uniqueIdentifier;
+			if (string.IsNullOrEmpty(SceneHelper.CurrentScene))
+				SceneHelper.CurrentScene = AngrySceneManager.currentLevelData.uniqueIdentifier;
+			__result = SceneHelper.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath);
 
-			foreach (MonoBehaviour monoBehaviour in Object.FindObjectsOfType<MonoBehaviour>())
-            {
-                if (!(monoBehaviour == null) && !(monoBehaviour.gameObject.scene.name == "DontDestroyOnLoad"))
-                {
-                    monoBehaviour.enabled = false;
-					monoBehaviour.CancelInvoke();
-				}
-            }
-
-            if (string.IsNullOrEmpty(SceneHelper.CurrentScene))
-            {
-                SceneHelper.CurrentScene = AngrySceneManager.currentLevelData.uniqueIdentifier;
-			}
-
-			//call will be rerouted to AngryMapVarManager.
-			MapVarManager.Instance?.ReloadMapVars();
-
-			if (SceneHelper.Instance.loadingBlocker != null)
-				SceneHelper.Instance.loadingBlocker.SetActive(true);
-
-			Addressables.LoadSceneAsync(AngrySceneManager.currentLevelData.scenePath, LoadSceneMode.Single, true, 100).Completed += (scene) =>
-			{
-				if (SceneHelper.Instance.preloadingBadge != null)
-					SceneHelper.Instance.preloadingBadge.SetActive(false);
-				if (SceneHelper.Instance.loadingBlocker != null)
-					SceneHelper.Instance.loadingBlocker.SetActive(false);
-				if (SceneHelper.Instance.loadingBar != null)
-					SceneHelper.Instance.loadingBar.gameObject.SetActive(false);
-
-				Time.timeScale = 1f;
-				SceneHelper.PendingScene = null;
-			};
-
-            return false;
+			return false;
 		}
 
 		internal static bool forceDisableIsInCustomLevel = false;

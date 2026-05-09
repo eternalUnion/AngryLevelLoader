@@ -91,7 +91,7 @@ namespace AngryLevelLoader
                 { ignore_action, "Ignore" },
             };
 
-			uint notification_id = Notiffy.API.NotificationSystem.NotifySend("AngryLevelLoader updated!", $"Current: {Plugin.PLUGIN_VERSION}, Latest: {json.latestVersion}", actions: actions);
+			uint notification_id = Notiffy.API.NotificationSystem.NotifySend("AngryLevelLoader updated!", $"Current: {Plugin.PLUGIN_VERSION}, Latest: {json.latestVersion}", actions: actions, iconFilePath: Path.Combine(Plugin.workingDir, "plugin-icon.png"));
             Notiffy.API.NotificationSystem.ActionInvoked += OnAction;
             Notiffy.API.NotificationSystem.NotificationDeleted += OnDeleted;
 
