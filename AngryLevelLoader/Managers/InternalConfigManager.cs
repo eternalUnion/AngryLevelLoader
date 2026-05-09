@@ -13,8 +13,7 @@ namespace AngryLevelLoader.Managers
 		public static PluginConfigurator internalConfig;
 		public static BoolField devMode;
 		public static StringField lastVersion;
-		public static StringField updateLastVersion;
-		public static BoolField ignoreUpdates;
+		public static StringField ignoreUpdateVersion;
 		public static StringField configDataPath;
 		public static BoolField leaderboardToggle;
 		public static BoolField askedPermissionForLeaderboards;
@@ -37,9 +36,8 @@ namespace AngryLevelLoader.Managers
 			internalConfig.presetButtonHidden = true;
 			internalConfig.presetButtonInteractable = false;
 			devMode = new BoolField(internalConfig.rootPanel, "devMode", "devMode", false);
-			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", "", true, true, false);
-			updateLastVersion = new StringField(internalConfig.rootPanel, "updateLastVersion", "updateLastVersion", "", true, true, false);
-			ignoreUpdates = new BoolField(internalConfig.rootPanel, "ignoreUpdate", "ignoreUpdate", false, true, false);
+			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", Plugin.PLUGIN_VERSION, true, true, false);
+			ignoreUpdateVersion = new StringField(internalConfig.rootPanel, "ignoreUpdateVersion", "ignoreUpdateVersion", Plugin.PLUGIN_VERSION, true, true, false);
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(AngryIOUtils.AppData, "AngryLevelLoader"), false, true, false);
 
 			// Might be corrupted

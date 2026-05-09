@@ -85,6 +85,10 @@
       <HintPath>libs\Movement.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Notiffy">
+      <HintPath>libs\Notiffy.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="PluginConfigurator">
       <HintPath>libs\PluginConfigurator.dll</HintPath>
       <Private>False</Private>

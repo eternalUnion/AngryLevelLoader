@@ -352,11 +352,7 @@ namespace AngryLevelLoader.Managers
             AngryMapVarManager.Instance.ResetStores();
 			LastPlayedMapManager.UpdateLastPlayed(levelContainer.bundleContainer);
 			
-            Coroutine handler = SceneHelper.LoadSceneAsync(rudeLevelData.scenePath, noBlocker: !showBlocker);
-            TaskCompletionSource<bool> sceneLoadCompletion = new TaskCompletionSource<bool>();
-            handler.ContinueWith(SceneHelper.Instance, () => sceneLoadCompletion.SetResult(true));
-            await sceneLoadCompletion.Task;
-
+            await AngryAsyncUtils.LoadSceneAsync(rudeLevelData.scenePath, !showBlocker);
             return true;
         }
 

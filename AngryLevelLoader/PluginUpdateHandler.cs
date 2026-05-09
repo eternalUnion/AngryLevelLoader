@@ -5,15 +5,125 @@ using AngryLevelLoader.Utils;
 using Newtonsoft.Json;
 using PluginConfig;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader
 {
     internal static class PluginUpdateHandler
     {
-        public static async Task CheckPluginUpdate(bool userRequested = true)
+        private static async Task PauseAndShowChangelog(PluginInfoJson json)
+        {
+			GameObject canvasObj = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
+			if (canvasObj == null)
+			{
+				Plugin.logger.LogWarning("Angry tried to find canvas, but failed");
+                return;
+			}
+
+			// Find the options menu
+			Transform optionsMenu = canvasObj.transform.Find("OptionsMenu");
+			if (optionsMenu == null)
+			{
+				Plugin.logger.LogError("Angry tried to find the options menu but failed!");
+				return;
+			}
+
+			if (SceneHelper.CurrentScene != "Main Menu" && !OptionsManager.Instance.paused)
+            {
+                OptionsManager.Instance.Pause();
+                await Task.Yield();
+            }
+
+            OptionsManager.Instance.OpenOptions();
+			await Task.Yield();
+
+			PluginUpdateNotification notification = new PluginUpdateNotification(json);
+			NotificationPanel.Open(notification);
+		}
+
+        public static async Task CheckForUpdate()
+        {
+			UnityWebRequest infoReq = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
+			infoReq.downloadHandler = new DownloadHandlerBuffer();
+			await infoReq.SendWebRequest();
+
+			if (infoReq.result != UnityWebRequest.Result.Success)
+			{
+				Plugin.logger.LogError("Could not download plugin data");
+				infoReq.Dispose();
+				ConfigManager.openButtons.SetButtonInteractable(1, true);
+				return;
+			}
+
+			string text = infoReq.downloadHandler.text;
+			int startIndex = text.IndexOf('{');
+			if (startIndex > 0)
+				text = text.Substring(startIndex);
+
+			PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(text);
+
+            if (Version.TryParse(json.latestVersion, out Version jsonVer))
+            {
+                if (jsonVer <= new Version(Plugin.PLUGIN_VERSION))
+                    return;
+                if (Version.TryParse(InternalConfigManager.ignoreUpdateVersion.value, out Version configVer) && jsonVer == configVer)
+                    return;
+            }
+
+            await AngryAsyncUtils.WaitUntilSceneLoaded("Main Menu");
+            Plugin.logger.LogWarning("Update available, notifying user...");
+
+            // Show update notification
+			const string changelog_action = "changelog";
+            const string remind_action = "remind";
+			const string ignore_action = "ignore";
+
+			Dictionary<string, string> actions = new()
+            {
+                { changelog_action, "View Changelog" },
+                { remind_action, "Remind Me Later" },
+                { ignore_action, "Ignore" },
+            };
+
+			uint notification_id = Notiffy.API.NotificationSystem.NotifySend("AngryLevelLoader updated!", $"Current: {Plugin.PLUGIN_VERSION}, Latest: {json.latestVersion}", actions: actions);
+            Notiffy.API.NotificationSystem.ActionInvoked += OnAction;
+            Notiffy.API.NotificationSystem.NotificationDeleted += OnDeleted;
+
+            void OnAction(uint id, string actionIdentifier)
+            {
+                if (id != notification_id)
+                    return;
+
+                if (actionIdentifier == ignore_action)
+                {
+                    InternalConfigManager.ignoreUpdateVersion.value = json.latestVersion;
+				}
+                else if (actionIdentifier == changelog_action)
+                {
+                    _ = PauseAndShowChangelog(json);
+				}
+
+				Notiffy.API.NotificationSystem.ActionInvoked -= OnAction;
+				Notiffy.API.NotificationSystem.NotificationDeleted -= OnDeleted;
+			}
+
+			void OnDeleted(uint id)
+			{
+				if (id != notification_id)
+					return;
+
+				Notiffy.API.NotificationSystem.ActionInvoked -= OnAction;
+				Notiffy.API.NotificationSystem.NotificationDeleted -= OnDeleted;
+			}
+		}
+
+        public static async Task ShowChangelog()
         {
             UnityWebRequest infoReq = new UnityWebRequest(AngryPaths.GetGithubURL(AngryPaths.Repo.AngryLevelLoader, "AngryLevelLoader/PluginInfo.json"));
             infoReq.downloadHandler = new DownloadHandlerBuffer();
@@ -34,16 +144,6 @@ namespace AngryLevelLoader
             PluginInfoJson json = JsonConvert.DeserializeObject<PluginInfoJson>(text);
 			ConfigManager.openButtons.SetButtonInteractable(1, true);
 			infoReq.Dispose();
-
-            if (!userRequested)
-            {
-                bool pluginUpdated = InternalConfigManager.lastVersion.value != Plugin.PLUGIN_VERSION;
-                bool updateReleased = new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion) && !InternalConfigManager.ignoreUpdates.value;
-                bool newUpdateReleased = json.latestVersion != InternalConfigManager.updateLastVersion.value;
-
-				if (!(pluginUpdated || updateReleased || newUpdateReleased))
-                    return;
-            }
 
             PluginUpdateNotification notification = new PluginUpdateNotification(json);
             NotificationPanel.Open(notification);
@@ -129,20 +229,15 @@ namespace AngryLevelLoader
             }
 
 			// 2.8.0: Added any difficulty leaderboard
-            if (string.IsNullOrEmpty(InternalConfigManager.lastVersion.value) || new Version(InternalConfigManager.lastVersion.value) <= new Version("2.7.3"))
+            if (Version.TryParse(InternalConfigManager.lastVersion.value, out Version configVer) && configVer <= new Version("2.7.3"))
             {
 				ConfigManager.defaultLeaderboardDifficulty.value = ConfigManager.DefaultLeaderboardDifficulty.Any;
             }
 
-			// Reset ignore update on version change
-			if (Plugin.PLUGIN_VERSION != InternalConfigManager.lastVersion.value)
-				InternalConfigManager.ignoreUpdates.value = false;
+            // Download plugin info from GitHub and compare to current version
+            _ = CheckForUpdate();
 
-            // Show update notification
-            if (ConfigManager.checkForUpdates.value)
-            {
-				_ = CheckPluginUpdate(false);
-			}
-		}
+            InternalConfigManager.lastVersion.value = Plugin.PLUGIN_VERSION;
+        }
     }
 }

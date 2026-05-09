@@ -93,7 +93,6 @@ namespace AngryLevelLoader.Managers
 		public static ColorField customLevelButtonFrameColor;
 		public static ColorField customLevelButtonTextColor;
 		public static BoolField refreshCatalogOnBoot;
-		public static BoolField checkForUpdates;
 		public static BoolField levelUpdateNotifierToggle;
 		public static BoolField levelUpdateIgnoreCustomBuilds;
 		public static BoolField newLevelNotifierToggle;
@@ -268,7 +267,7 @@ namespace AngryLevelLoader.Managers
 			changelogButton = new ButtonField(settingsPanel, "Changelog", "changelogButton");
 			changelogButton.onClick += () => {
 				openButtons.SetButtonInteractable(1, false);
-				_ = PluginUpdateHandler.CheckPluginUpdate();
+				_ = PluginUpdateHandler.ShowChangelog();
 			};
 			
 			openButtons = new ButtonArrayField(settingsPanel, "settingButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Open Levels Folder", "Open Scripts Folder" });
@@ -317,8 +316,6 @@ namespace AngryLevelLoader.Managers
 			new ConfigHeader(settingsPanel, "Online") { textColor = new Color(0.532f, 0.8284001f, 1f) };
 			
 			refreshCatalogOnBoot = new BoolField(settingsPanel, "Refresh online catalog on boot", "s_refreshCatalogBoot", true);
-			
-			checkForUpdates = new BoolField(settingsPanel, "Check for updates on boot", "s_checkForUpdates", true);
 			
 			useDevelopmentBranch = new BoolField(settingsPanel, "Use development chanel", "s_useDevChannel", false);
 			

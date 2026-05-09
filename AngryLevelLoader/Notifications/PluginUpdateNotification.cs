@@ -48,20 +48,15 @@ namespace AngryLevelLoader.Notifications
             ui.cancel.onClick.AddListener(() =>
             {
                 Close();
-				InternalConfigManager.lastVersion.value = Plugin.PLUGIN_VERSION;
-				InternalConfigManager.updateLastVersion.value = json.latestVersion;
 			});
 
             ui.ignoreUpdate.onClick.AddListener(() =>
             {
                 Close();
-				InternalConfigManager.lastVersion.value = Plugin.PLUGIN_VERSION;
-				InternalConfigManager.ignoreUpdates.value = true;
-				InternalConfigManager.updateLastVersion.value = json.latestVersion;
 			});
 
             ui.header.text = "<color=#00FFFF>Changelog</color>";
-            if (new Version(Plugin.PLUGIN_VERSION) < new Version(json.latestVersion))
+            if (Version.TryParse(json.latestVersion, out Version jsonVersion) && new Version(Plugin.PLUGIN_VERSION) < jsonVersion)
                 ui.header.text = "<color=#00FF00>UPDATE AVAILABLE</color>";
 
             StringBuilder updateTextBuilder = new StringBuilder();

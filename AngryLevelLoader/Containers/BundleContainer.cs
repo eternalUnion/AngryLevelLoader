@@ -513,17 +513,13 @@ namespace AngryLevelLoader.Containers
             {
 				string tempSceneToLoad = (ConfigManager.reloadAlwaysGoToMainMenu.value) ? "Main Menu" : "AngryLevelLoader/Blank";
 
-				TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
-                SceneHelper.LoadSceneAsync(tempSceneToLoad).ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
-                await completionSource.Task;
+				await AngryAsyncUtils.LoadSceneAsync(tempSceneToLoad);
 				await Task.Yield();
 
 				if (AngrySceneManager.isInCustomLevel)
 				{
 					Plugin.logger.LogError("Failed to switch to blank scene, have no other option other than returning to main menu");
-					completionSource = new TaskCompletionSource<bool>();
-					SceneHelper.LoadSceneAsync("Main Menu").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
-					await completionSource.Task;
+					await AngryAsyncUtils.LoadSceneAsync("Main Menu");
 					SceneHelper.ShowLoadingBlocker();
 					await Task.Yield();
 				}
@@ -541,11 +537,7 @@ namespace AngryLevelLoader.Containers
 			if (!reloadDataSuccess)
 			{
 				if (inTempScene)
-				{
-					TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
-					SceneHelper.LoadSceneAsync("Main Menu").ContinueWith(SceneHelper.Instance, () => completionSource.SetResult(true));
-					await completionSource.Task;
-				}
+					await AngryAsyncUtils.LoadSceneAsync("Main Menu");
 
 				return false;
 			}

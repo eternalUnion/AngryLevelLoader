@@ -42,6 +42,7 @@ namespace AngryLevelLoader
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
+	[BepInDependency(Notiffy.NotiffyPlugin.PluginGUID)]
 	// Soft ban dependencies
 	[BepInDependency("com.eternalUnion.ultraPain", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.banana.BananaDifficulty", BepInDependency.DependencyFlags.SoftDependency)]
@@ -677,7 +678,8 @@ namespace AngryLevelLoader
 			Addressables.LoadContentCatalogAsync(Path.Combine(angryCatalogPath, "catalog.json"), true).WaitForCompletion();
 			AssetManager.Init();
 
-            LegacyPatchManager.Init();
+			AngryUser.Init();
+			LegacyPatchManager.Init();
 
 			// These scripts are common among all the levels
 			if (!LoadEssentialScripts())
@@ -710,7 +712,6 @@ namespace AngryLevelLoader
 
             ScanForLevels();
 
-			AngryUser.Init();
 			AngryUser.GetPermissionsTask().ContinueWith((res) =>
 			{
 				if (!res.IsCompletedSuccessfully || !res.Result.completedSuccessfully)
