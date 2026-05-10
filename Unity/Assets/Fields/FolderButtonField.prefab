@@ -67,7 +67,7 @@ MonoBehaviour:
   m_text: FOLDER NAME
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c665f735df1f4db43a715b3cb44a57c0, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 45ba7b0cca420b048ad47a13cb94f3b3, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 240b769a52dbaa3f84461820c7b801c8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -483,7 +483,7 @@ MonoBehaviour:
   m_text: OPEN
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c665f735df1f4db43a715b3cb44a57c0, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 45ba7b0cca420b048ad47a13cb94f3b3, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 240b769a52dbaa3f84461820c7b801c8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

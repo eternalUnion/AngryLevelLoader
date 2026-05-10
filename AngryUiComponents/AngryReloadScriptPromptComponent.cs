@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace AngryUiComponents
 {
-	public class AngryReloadBundlePromptComponent : MonoBehaviour
+	public class AngryReloadScriptPromptComponent : MonoBehaviour
 	{
 		public CanvasGroup division;
 		public AudioSource audio;

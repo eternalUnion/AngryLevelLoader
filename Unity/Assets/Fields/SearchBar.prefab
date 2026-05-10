@@ -186,7 +186,7 @@ MonoBehaviour:
   m_text: X
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c665f735df1f4db43a715b3cb44a57c0, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 45ba7b0cca420b048ad47a13cb94f3b3, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 240b769a52dbaa3f84461820c7b801c8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -367,7 +367,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 5063a1cd97871884eb094e27008dc16c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 302e8bf4cd0f9094284124eca310d920, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -444,7 +444,7 @@ MonoBehaviour:
   m_text: "\u200B"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c665f735df1f4db43a715b3cb44a57c0, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 45ba7b0cca420b048ad47a13cb94f3b3, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 240b769a52dbaa3f84461820c7b801c8, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace AngryUiComponents
@@ -50,5 +47,8 @@ namespace AngryUiComponents
 		public Button reportCancel;
 		public Button reportSend;
 		public Button reportReturn;
+
+		public AngryManageUserComponent manageUserPanel;
+		public AngryUserHistoryPanelComponent historyPanel;
 	}
 }

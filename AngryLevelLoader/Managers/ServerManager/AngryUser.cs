@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PluginConfig.API.Fields;
 using Steamworks;
 using System;
 using System.Collections;
@@ -17,13 +18,51 @@ namespace AngryLevelLoader.Managers.ServerManager
 {
     public static class AngryUser
     {
+        static AngryUser()
+        {
+            Init();
+        }
+
         // Angry uses the access token in queries of most of the api requests
         internal static string token = "";
         // Steam id is also used in the requests
         internal static string steamId = "";
 
-        #region Token Gen
-        public enum TokengenStatus
+		private static StringField tokenCache;
+		private static StringField lastTokenFetch;
+
+		internal static bool hasLeaderboardPermissions = false;
+
+        private static bool _inited = false;
+		internal static void Init()
+		{
+            if (_inited)
+                return;
+            _inited = true;
+
+			tokenCache = new StringField(Plugin.internalConfig.rootPanel, "token", "angryServerToken", "", true);
+			lastTokenFetch = new StringField(Plugin.internalConfig.rootPanel, "last token fetch", "angryServerTokenFetchTime", "0", false);
+
+			try
+			{
+				SteamClient.Init(1229490);
+
+				if (long.TryParse(lastTokenFetch.value, out long lastTokenTimeTicks) && (DateTime.Now - new DateTime(lastTokenTimeTicks)).TotalDays < 1.0)
+				{
+					Plugin.logger.LogInfo("Using cached token");
+					steamId = SteamClient.SteamId.Value.ToString();
+					token = tokenCache.value;
+				}
+			}
+			catch (Exception e)
+			{
+				Plugin.logger.LogError(e.Message);
+				Plugin.logger.LogError(e.StackTrace);
+			}
+		}
+
+		#region Token Gen
+		public enum TokengenStatus
         {
 			FAILED = -2,
 			RATE_LIMITED = -1,
@@ -198,6 +237,39 @@ namespace AngryLevelLoader.Managers.ServerManager
 			result.completed = true;
 			if (!result.completedSuccessfully)
 				result.status = ReportStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region User Permissions
+		internal enum UserPermissionsStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+			INVALID_TOKEN = 1,
+		}
+
+		internal class GetPermissionsResponse : AngryResponse
+		{
+			public bool hasLeaderboardModificationPermission { get; set; }
+		}
+
+		internal class GetPermissionsResult : AngryResult<GetPermissionsResponse, UserPermissionsStatus>
+		{
+
+		}
+
+		internal static async Task<GetPermissionsResult> GetPermissionsTask(CancellationToken cancellationToken = default)
+		{
+			GetPermissionsResult result = new GetPermissionsResult();
+
+			string url = AngryPaths.SERVER_ROOT + $"/user/getPermissions?";
+			await AngryRequest.MakeRequestWithToken(url, result, UserPermissionsStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = UserPermissionsStatus.FAILED;
 			return result;
 		}
 		#endregion

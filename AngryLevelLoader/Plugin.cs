@@ -2197,6 +2197,34 @@ namespace AngryLevelLoader
 				config.rootPanel.ClosePanel();
 			};
 
+			AngryUser.Init();
+			AngryUser.GetPermissionsTask().ContinueWith((res) =>
+			{
+				if (!res.IsCompleted)
+				{
+					logger.LogError($"Could not obtain user permissions");
+					return;
+				}
+
+				if (res.IsFaulted)
+				{
+					logger.LogError(res.Exception);
+					return;
+				}
+
+				var perms = res.Result;
+				if (perms.status != AngryUser.UserPermissionsStatus.OK)
+				{
+					logger.LogError($"Could not obtain user permissions: {perms.message}");
+					return;
+				}
+
+				AngryUser.hasLeaderboardPermissions = perms.response.hasLeaderboardModificationPermission;
+
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+
+			OnlineCatalogManagerV2.DownloadCatalogAsync();
+
 			AngryLeaderboards.LoadBannedModsList();
 
 			// TODO: Investigate further on this issue:

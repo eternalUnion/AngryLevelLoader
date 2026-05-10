@@ -64,6 +64,15 @@ namespace AngryLevelLoader.Managers.ServerManager
 			{ RecordDifficulty.VIOLENT, RECORD_DIFFICULTY_VIOLENT },
 			{ RecordDifficulty.BRUTAL, RECORD_DIFFICULTY_BRUTAL },
 		};
+		public static readonly Dictionary<string, RecordDifficulty> RECORD_DIFFICULTY_REVERSE_DICT = new Dictionary<string, RecordDifficulty>()
+		{
+			{ RECORD_DIFFICULTY_ANY, RecordDifficulty.ANY },
+			{ RECORD_DIFFICULTY_HARMLESS, RecordDifficulty.HARMLESS },
+			{ RECORD_DIFFICULTY_LENIENT, RecordDifficulty.LENIENT },
+			{ RECORD_DIFFICULTY_STANDARD, RecordDifficulty.STANDARD },
+			{ RECORD_DIFFICULTY_VIOLENT, RecordDifficulty.VIOLENT },
+			{ RECORD_DIFFICULTY_BRUTAL, RecordDifficulty.BRUTAL },
+		};
 		public static RecordDifficulty DifficultyFromInteger(int difficulty)
 		{
 			switch (difficulty)
@@ -87,6 +96,8 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public string steamId { get; set; }
 			public int time { get; set; }
 			public string difficulty { get; set; }
+			public bool censorIcon { get; set; }
+			public bool censorName { get; set; }
 		}
 		#endregion
 		
@@ -552,5 +563,207 @@ namespace AngryLevelLoader.Managers.ServerManager
 			return result;
 		}
 		#endregion
+
+		#region Get User Info
+		internal enum GetUserInfoStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+		}
+
+		internal class GetUserInfoResponse : AngryResponse
+		{
+			public bool leaderboardBanned { get; set; }
+			public int recordCount { get; set; }
+			public int reportCount { get; set; }
+			public int removedRecordCount { get; set; }
+		}
+
+		internal class GetUserInfoResult : AngryResult<GetUserInfoResponse, GetUserInfoStatus>
+		{
+
+		}
+
+		internal static async Task<GetUserInfoResult> GetUserInfoTask(string targetId, CancellationToken cancellationToken = default)
+		{
+			GetUserInfoResult result = new GetUserInfoResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserInfo?targetId={targetId}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, GetUserInfoStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetUserInfoStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Manage User
+		internal enum ManageUserStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+		}
+
+		internal class ManageUserResponse : AngryResponse
+		{
+
+		}
+
+		internal class ManageUserResult : AngryResult<ManageUserResponse, ManageUserStatus>
+		{
+
+		}
+
+		internal static async Task<ManageUserResult> ManageUserTask(string targetId, bool censorIcon = false, bool censorName = false, bool banUser = false, CancellationToken cancellationToken = default)
+		{
+			ManageUserResult result = new ManageUserResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/manageUser?targetId={targetId}&censorIcon={(censorIcon ? "true" : "false")}&censorName={(censorName ? "true" : "false")}&banUser={(banUser ? "true" : "false")}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, ManageUserStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = ManageUserStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Remove Record
+		internal enum RemoveRecordStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+			MISSING_CATEGORY = 5,
+			INVALID_CATEGORY = 6,
+			MISSING_DIFFICULTY = 7,
+			INVALID_DIFFICULTY = 8,
+			MISSING_BUNDLE = 9,
+			INVALID_BUNDLE = 10,
+			INVALID_LEVEL_ID = 11,
+			MISSING_LEVEL_ID = 12,
+			ENTRY_NOT_FOUND = 13,
+		}
+
+		internal class RemoveRecordResponse : AngryResponse
+		{
+
+		}
+
+		internal class RemoveRecordResult : AngryResult<RemoveRecordResponse, RemoveRecordStatus>
+		{
+
+		}
+
+		internal static async Task<RemoveRecordResult> RemoveRecordTask(string targetId, string bundleGuid, string levelId, RecordCategory category, RecordDifficulty difficulty, CancellationToken cancellationToken = default)
+		{
+			// bundleGuid, levelId, category, difficulty
+			RemoveRecordResult result = new RemoveRecordResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/removeRecord?targetId={targetId}&bundleGuid={bundleGuid}&levelId={Uri.EscapeDataString(levelId)}&category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, RemoveRecordStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = RemoveRecordStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Clear Records
+		internal enum ClearRecordsStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+		}
+
+		internal class ClearRecordsResponse : AngryResponse
+		{
+			public int removedRecordCount { get; set; }
+		}
+
+		internal class ClearRecordsResult : AngryResult<ClearRecordsResponse, ClearRecordsStatus>
+		{
+
+		}
+
+		internal static async Task<ClearRecordsResult> ClearRecordsTask(string targetId, CancellationToken cancellationToken = default)
+		{
+			ClearRecordsResult result = new ClearRecordsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/clearRecords?targetId={targetId}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, ClearRecordsStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = ClearRecordsStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Get User History
+		internal enum GetUserHistoryStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			INVALID_ID = 4,
+		}
+
+#pragma warning disable CS0649
+		internal class GetUserHistoryResponse : AngryResponse
+		{
+			public Dictionary<string, int> bundleGuidPK;
+			public Dictionary<string, int> levelIdPK;
+			public int[][] runHistory;
+		}
+#pragma warning restore CS0649
+
+		internal class GetUserHistoryResult : AngryResult<GetUserHistoryResponse, GetUserHistoryStatus>
+		{
+
+		}
+
+		internal static async Task<GetUserHistoryResult> GetUserHistoryTask(string targetId, CancellationToken cancellationToken = default)
+		{
+			GetUserHistoryResult result = new GetUserHistoryResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getUserHistory?targetId={targetId}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, GetUserHistoryStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetUserHistoryStatus.FAILED;
+			return result;
+		}
+		#endregion	
 	}
 }
