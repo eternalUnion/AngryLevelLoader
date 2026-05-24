@@ -304,7 +304,7 @@ namespace AngryLevelLoader.UserInterface
 			foreach (var bundleVoteInfo in votes.response.bundles)
 			{
 				if (onlineLevels.TryGetValue(bundleVoteInfo.Key, out OnlineLevelField field))
-					field.VoteCount = bundleVoteInfo.Value.upvotes - bundleVoteInfo.Value.downvotes;
+					field.VoteCount = bundleVoteInfo.Value.upvotes;
 			}
 
 			if (sortFilter.value == SortFilter.Votes)
@@ -318,8 +318,6 @@ namespace AngryLevelLoader.UserInterface
 			{
 				if (data.upvotedBundles.Contains(field.Key))
 					field.Value.VoteStatus = OnlineLevelField.VoteStat.Upvoted;
-				else if (data.downvotedBundles.Contains(field.Key))
-					field.Value.VoteStatus = OnlineLevelField.VoteStat.Downvoted;
 				else
 					field.Value.VoteStatus = OnlineLevelField.VoteStat.Cleared;
 			}

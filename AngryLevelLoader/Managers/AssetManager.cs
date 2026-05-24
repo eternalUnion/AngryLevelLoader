@@ -51,25 +51,25 @@ namespace AngryLevelLoader.Managers
 			return cleanBundleCacheHandle;
 		}
 
-		private static AsyncAddressableObject<Sprite> _arrow;
-		public static Sprite arrow
+		private static AsyncAddressableObject<Sprite> _heart;
+		public static Sprite heart
 		{
 			get
 			{
-				if (!_arrow.completed)
-					_arrow.WaitForCompletion();
-				return _arrow.result;
+				if (!_heart.completed)
+					_heart.WaitForCompletion();
+				return _heart.result;
 			}
 		}
 
-		private static AsyncAddressableObject<Sprite> _arrowFilled;
-		public static Sprite arrowFilled
+		private static AsyncAddressableObject<Sprite> _heartFilled;
+		public static Sprite heartFilled
 		{
 			get
 			{
-				if (!_arrowFilled.completed)
-					_arrowFilled.WaitForCompletion();
-				return _arrowFilled.result;
+				if (!_heartFilled.completed)
+					_heartFilled.WaitForCompletion();
+				return _heartFilled.result;
 			}
 		}
 
@@ -124,8 +124,8 @@ namespace AngryLevelLoader.Managers
 				return;
 			_inited = true;
 
-			_arrow = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/arrow.png");
-			_arrowFilled = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/arrow-filled.png");
+			_heart = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/heart-unselected.png");
+			_heartFilled = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/heart-selected.png");
 			_notPlayedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked3.png");
 			_lockedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png");
 			_favouriteUnselected = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/fav-unselected.png");

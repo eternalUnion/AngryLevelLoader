@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,6 +18,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class GetAllVotesBundleInfo
 		{
 			public int upvotes { get; set; }
+			[Obsolete("Downvotes are no longer supported. This field will always be 0.")]
 			public int downvotes { get; set; }
 		}
 
@@ -46,12 +48,14 @@ namespace AngryLevelLoader.Managers.ServerManager
 
 		#region Vote
 		internal const string VOTE_OP_UPVOTE = "upvote";
+		[Obsolete("This operation is no longer supported. VoteOperation.CLEAR will be executed instead.")]
 		internal const string VOTE_OP_DOWNVOTE = "downvote";
 		internal const string VOTE_OP_CLEAR = "clear";
 
 		internal enum VoteOperation
 		{
 			UPVOTE,
+			[Obsolete("This operation is no longer supported. VoteOperation.CLEAR will be executed instead.")]
 			DOWNVOTE,
 			CLEAR,
 			UNKNOWN
@@ -72,6 +76,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 			public string bundleGuid { get; set; }
 			public string operation { get; set; }
 			public int upvotes { get; set; }
+			[Obsolete("Downvotes are no longer supported. This field will always be 0.")]
 			public int downvotes { get; set; }
 		}
 
@@ -87,8 +92,6 @@ namespace AngryLevelLoader.Managers.ServerManager
 			string op = VOTE_OP_CLEAR;
 			if (operation == VoteOperation.UPVOTE)
 				op = VOTE_OP_UPVOTE;
-			else if (operation == VoteOperation.DOWNVOTE)
-				op = VOTE_OP_DOWNVOTE;
 
 			string url = AngryPaths.SERVER_ROOT + $"/user/vote?bundleGuid={bundleGuid}&op={op}";
 			await AngryRequest.MakeRequestWithToken(url, result, VoteStatus.VOTE_INVALID_TOKEN, cancellationToken);
@@ -98,8 +101,6 @@ namespace AngryLevelLoader.Managers.ServerManager
 			{
 				if (result.response.operation == VOTE_OP_UPVOTE)
 					result.operation = VoteOperation.UPVOTE;
-				else if (result.response.operation == VOTE_OP_DOWNVOTE)
-					result.operation = VoteOperation.DOWNVOTE;
 			}
 
 			result.completed = true;

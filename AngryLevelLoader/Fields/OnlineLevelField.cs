@@ -41,13 +41,13 @@ namespace AngryLevelLoader.Fields
 
         private const string ASSET_PATH = "AngryLevelLoader/Fields/OnlineLevelField.prefab";
 
-        private static Sprite arrow;
-        private static Sprite arrowFilled;
+        private static Sprite heart;
+        private static Sprite heartFilled;
 
         static OnlineLevelField()
         {
-            arrow = AssetManager.arrow;
-            arrowFilled = AssetManager.arrowFilled;
+			heart = AssetManager.heart;
+			heartFilled = AssetManager.heartFilled;
         }
 
         // Data
@@ -76,6 +76,7 @@ namespace AngryLevelLoader.Fields
 				    currentUi.install.interactable = !locked;
 				    currentUi.update.interactable = !locked;
 				    currentUi.votes.gameObject.SetActive(!locked);
+                    currentUi.upvoteButton.gameObject.SetActive(!locked);
                 }
 			}
         }
@@ -151,20 +152,16 @@ namespace AngryLevelLoader.Fields
 				if (value == VoteStat.Disabled)
 				{
 					currentUi.upvoteButton.interactable = false;
-					currentUi.downvoteButton.interactable = false;
 					currentUi.votes.color = Color.gray;
 
-					currentUi.upvoteImage.sprite = arrowFilled;
-					currentUi.downvoteImage.sprite = arrowFilled;
+					currentUi.upvoteImage.sprite = heartFilled;
 				}
 				else
 				{
 					currentUi.upvoteButton.interactable = true;
-					currentUi.downvoteButton.interactable = true;
 					currentUi.votes.color = Color.white;
 
-					currentUi.upvoteImage.sprite = (value == VoteStat.Upvoted) ? arrowFilled : arrow;
-					currentUi.downvoteImage.sprite = (value == VoteStat.Downvoted) ? arrowFilled : arrow;
+					currentUi.upvoteImage.sprite = (value == VoteStat.Upvoted) ? heartFilled : heart;
 				}
 			}
 		}
@@ -412,12 +409,10 @@ namespace AngryLevelLoader.Fields
                     {
                         if (res.operation == AngryVotes.VoteOperation.UPVOTE)
                             VoteStatus = VoteStat.Upvoted;
-                        else if (res.operation == AngryVotes.VoteOperation.DOWNVOTE)
-                            VoteStatus = VoteStat.Downvoted;
                         else
                             VoteStatus = VoteStat.Cleared;
 
-                        VoteCount = res.response.upvotes - res.response.downvotes;
+                        VoteCount = res.response.upvotes;
                     }
                     else
                     {
@@ -428,50 +423,8 @@ namespace AngryLevelLoader.Fields
                     }
                 }, TaskScheduler.FromCurrentSynchronizationContext());
             });
-            currentUi.upvoteButton.gameObject.AddComponent<DisableWhenHidden>();
-            currentUi.upvoteButton.gameObject.SetActive(false);
-			AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.upvoteButton,
-                (e) => currentUi.upvoteButton.gameObject.SetActive(!OnlineBundle.Locked),
-                (e) => currentUi.upvoteButton.gameObject.SetActive(false)
-                );
 
-			currentUi.downvoteButton.onClick.AddListener(() =>
-			{
-				AngryVotes.VoteOperation op = (VoteStatus == VoteStat.Downvoted) ? AngryVotes.VoteOperation.CLEAR : AngryVotes.VoteOperation.DOWNVOTE;
-				VoteStatus = VoteStat.Disabled;
-
-				AngryVotes.VoteTask(OnlineBundle.Guid, op).ContinueWith((resTask) =>
-				{
-                    var res = resTask.Result;
-
-					if (res.completedSuccessfully && res.status == AngryVotes.VoteStatus.VOTE_OK)
-					{
-						if (res.operation == AngryVotes.VoteOperation.UPVOTE)
-							VoteStatus = VoteStat.Upvoted;
-						else if (res.operation == AngryVotes.VoteOperation.DOWNVOTE)
-							VoteStatus = VoteStat.Downvoted;
-						else
-							VoteStatus = VoteStat.Cleared;
-
-						VoteCount = res.response.upvotes - res.response.downvotes;
-					}
-					else
-					{
-						Plugin.logger.LogError($"Could not vote! Message: {res.message}. Status: {res.status}.");
-
-						VoteStatus = VoteStat.Disabled;
-						VoteCount = 0;
-					}
-				}, TaskScheduler.FromCurrentSynchronizationContext());
-			});
-			currentUi.downvoteButton.gameObject.AddComponent<DisableWhenHidden>();
-			currentUi.downvoteButton.gameObject.SetActive(false);
-			AngryUIUtils.AddMouseEvents(currentUi.gameObject, currentUi.downvoteButton,
-				(e) => currentUi.downvoteButton.gameObject.SetActive(!OnlineBundle.Locked),
-				(e) => currentUi.downvoteButton.gameObject.SetActive(false)
-				);
-
-            currentUi.changelog.onClick.AddListener(() =>
+			currentUi.changelog.onClick.AddListener(() =>
             {
                 LevelUpdateNotification notification = new LevelUpdateNotification();
                 notification.currentHash = (Bundle == null || Status == OnlineLevelStatus.NotInstalled) ? "" : Bundle.BuildHash;

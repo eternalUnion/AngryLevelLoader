@@ -15,8 +15,6 @@ namespace AngryUiComponents
 
         public Button upvoteButton;
         public Image upvoteImage;
-        public Button downvoteButton;
-        public Image downvoteImage;
         public Text votes;
 
         public RectTransform downloadContainer;

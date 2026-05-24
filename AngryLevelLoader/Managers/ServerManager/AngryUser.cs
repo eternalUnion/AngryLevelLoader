@@ -171,8 +171,9 @@ namespace AngryLevelLoader.Managers.ServerManager
 		public class UserInfoData
 		{
 			public string[] upvotedBundles;
-			public string[] downvotedBundles;
-		}
+            [Obsolete("Downvotes are no longer supported. This field will always be empty.")]
+            public string[] downvotedBundles;
+        }
 
 		public class UserInfoResponse : AngryResponse
         {
