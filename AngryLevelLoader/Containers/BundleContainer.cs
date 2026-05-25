@@ -286,6 +286,7 @@ namespace AngryLevelLoader.Containers
 			}
 			
 			finalRankScore.value = totalRankScore <= 0 ? 0 : (int)(((float)currentRankScore / totalRankScore) * 6f);
+			finalRankScore.TriggerPostValueChangeEvent();
 			return true;
 		}
 
