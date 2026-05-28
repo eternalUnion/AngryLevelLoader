@@ -56,5 +56,12 @@ namespace AngryLevelLoader.Utils
 			byte[] hash = md5.ComputeHash(data);
 			return ByteArrayToString(hash).ToLower();
 		}
+
+		public static string GetMD5String(Stream stream)
+		{
+			MD5 md5 = MD5.Create();
+			byte[] hash = md5.ComputeHash(stream);
+			return ByteArrayToString(hash).ToLower();
+		}
 	}
 }

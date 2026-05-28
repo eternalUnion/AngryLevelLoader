@@ -32,6 +32,7 @@ namespace AngryLevelLoader.DataTypes
 		public int Size { get; set; }
 		public string Guid { get; set; }
 		public string Hash { get; set; }
+		public string FileMD5 { get; set; }
 		public string ThumbnailHash { get; set; }
 
 		public bool Locked { get; set; }

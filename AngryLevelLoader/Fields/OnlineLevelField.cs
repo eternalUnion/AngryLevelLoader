@@ -237,7 +237,8 @@ namespace AngryLevelLoader.Fields
 		{
 			NoError,
 			NetworkError,
-			ValidationError
+			ValidationError,
+            FileModifiedError,
 		}
 
 		private ErrorStat _errorStatus = ErrorStat.NoError;
@@ -264,6 +265,8 @@ namespace AngryLevelLoader.Fields
                     return $"<color=red><b>Network error</b></color>";
                 else if (ErrorStatus == ErrorStat.ValidationError)
                     return $"<color=red><b>Validation error</b></color>";
+                else if (ErrorStatus == ErrorStat.FileModifiedError)
+                    return $"<color=red><b>File was modified</b></color>";
             }
 
             if (OnlineBundle.Locked)
@@ -672,10 +675,22 @@ namespace AngryLevelLoader.Fields
 
 			if (!valid)
 			{
-				File.Delete(combinedFilePath);
 				ErrorStatus = ErrorStat.ValidationError;
+				File.Delete(combinedFilePath);
 				return;
 			}
+
+            string downloadMd5;
+            using (FileStream downloadStream = File.OpenRead(combinedFilePath))
+                downloadMd5 = AngryCryptographyUtils.GetMD5String(downloadStream);
+
+            if (downloadMd5 != bundle.FileMD5)
+            {
+				Plugin.logger.LogError($"Downloaded file's MD5 hash ({downloadMd5}) does not match the catalog's MD5 hash ({bundle.FileMD5})!");
+				ErrorStatus = ErrorStat.FileModifiedError;
+				File.Delete(combinedFilePath);
+				return;
+            }
 
 			string destinationFolder = Plugin.levelsPath;
 			if (!Directory.Exists(destinationFolder))
