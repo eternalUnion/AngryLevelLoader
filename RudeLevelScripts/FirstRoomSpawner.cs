@@ -117,16 +117,20 @@ namespace RudeLevelScript
 
 		[Tooltip("Player will be moved to this position if the room is not ascending variant. If null, default position is used")]
 		public Transform playerSpawnPos;
+		[HideInInspector]
 		[Tooltip("If set to true, room will not be deleted. Else, it will be replaced in game")]
 		public bool doNotReplace = false;
 
 		[Header("Replace Settings")]
 		[Tooltip("Enabling this field causes room to be spawned as the secret variant")]
+		[HideInInspector]
 		public bool secretRoom = false;
 		[Tooltip("Enabling this field causes room to be spawned as the prime variant")]
+		[HideInInspector]
 		public bool primeRoom = false;
         [Tooltip("Enabling this field causes room to be spawned as the encore variant")]
-        public bool encoreRoom = false;
+		[HideInInspector]
+		public bool encoreRoom = false;
 		[HideInInspector]
         [Tooltip("Enabling this field causes the whole room to be converted into the ascending variant where the player is spawned at the bottom and ascends upwards instead of falling")]
 		public bool convertToUpwardRoom = false;
@@ -141,6 +145,8 @@ namespace RudeLevelScript
 		[Space(10)]
 		public CameraClearFlags cameraFillMode = CameraClearFlags.SolidColor;
 		public Color backgroundColor = Color.black;
+		public float cameraNearClipPlane = 0.1f;
+		public float cameraFarClipPlane = 4000f;
 
 		[Header("Level Fields")]
 		[Space(10)]
@@ -449,6 +455,7 @@ namespace RudeLevelScript
 					mf.mesh = col.sharedMesh;
 				}
 			}
+
 			// Update player position and orientation
 			Transform player = NewMovement.Instance.transform;
 			player.transform.parent = firstRoomInst.transform;
@@ -456,7 +463,19 @@ namespace RudeLevelScript
 			firstRoomInst.transform.rotation = transform.rotation;
 			player.transform.parent = null;
 			Utils.SetPlayerWorldRotation(Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0));
-			
+
+			// Update player camera
+			CameraController cc = CameraController.Instance ?? player.GetComponentInChildren<CameraController>(true);
+			if (cc != null && cc.cam != null)
+			{
+				cc.cam.nearClipPlane = cameraNearClipPlane;
+				cc.cam.farClipPlane = cameraFarClipPlane;
+			}
+			else
+			{
+				Debug.LogWarning("Unable to adjust camera properties");
+			}
+
 			if (playerSpawnPos != null)
 			{
 				player.transform.parent = playerSpawnPos.transform.parent;
