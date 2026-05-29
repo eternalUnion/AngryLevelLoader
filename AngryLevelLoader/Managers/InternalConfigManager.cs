@@ -23,6 +23,7 @@ namespace AngryLevelLoader.Managers
 		public static StringField instantLoadLevelGuid;
 		public static StringField instantLoadLevelId;
 		public static StringMultilineField ignoreNoMoWarning;
+		public static IntField reportState;
 
 		public static void InitializeInternalConfig()
 		{
@@ -39,6 +40,7 @@ namespace AngryLevelLoader.Managers
 			lastVersion = new StringField(internalConfig.rootPanel, "lastPluginVersion", "lastPluginVersion", Plugin.PLUGIN_VERSION, true, true, false);
 			ignoreUpdateVersion = new StringField(internalConfig.rootPanel, "ignoreUpdateVersion", "ignoreUpdateVersion", Plugin.PLUGIN_VERSION, true, true, false);
 			configDataPath = new StringField(internalConfig.rootPanel, "dataPath", "dataPath", Path.Combine(AngryIOUtils.AppData, "AngryLevelLoader"), false, true, false);
+			reportState = new IntField(internalConfig.rootPanel, "reportState", "reportState", -1);
 
 			// Might be corrupted
 			Regex badDataPath = new Regex(@"^[^:]+:\\Users\\User\\AppData\\Roaming");

@@ -1,5 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.Fields;
+using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.UserInterface;
 using AngryLevelLoader.Utils;
@@ -464,6 +465,9 @@ namespace AngryLevelLoader.Managers
 			reportsButton.onClick += () =>
 			{
 				NotificationPanel.Open(new ReportViewNotification());
+				
+				if (AngryUser.reportState >= 0)
+					InternalConfigManager.reportState.value = AngryUser.reportState;
 			};
 			reportsButton.hidden = true;
 

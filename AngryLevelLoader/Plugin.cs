@@ -730,7 +730,40 @@ namespace AngryLevelLoader
 				}
 
 				AngryUser.hasLeaderboardPermissions = perms.response.hasLeaderboardModificationPermission;
+				AngryUser.reportState = perms.response.reportState;
 				ConfigManager.reportsButton.hidden = !perms.response.hasLeaderboardModificationPermission;
+
+				if (perms.response.hasLeaderboardModificationPermission)
+				{
+					if (InternalConfigManager.reportState.value == -1)
+					{
+						InternalConfigManager.reportState.value = perms.response.reportState;
+					}
+					else if (perms.response.reportState > InternalConfigManager.reportState.value)
+					{
+						int newReports = perms.response.reportState - InternalConfigManager.reportState.value;
+						string header = "New reports";
+						string body = $"There are {newReports} new reports available!";
+
+						if (SceneHelper.CurrentScene == "Main Menu")
+						{
+							Notiffy.API.NotificationSystem.NotifySend(header, body, iconFilePath: Path.Combine(workingDir, "plugin-icon.png"));
+						}
+						else
+						{
+							void ShowNewLevelsOnMainMenu(Scene scene, LoadSceneMode mode)
+							{
+								if (SceneHelper.CurrentScene != "Main Menu")
+									return;
+
+								Notiffy.API.NotificationSystem.NotifySend(header, body, iconFilePath: Path.Combine(workingDir, "plugin-icon.png"));
+								SceneManager.sceneLoaded -= ShowNewLevelsOnMainMenu;
+							}
+
+							SceneManager.sceneLoaded += ShowNewLevelsOnMainMenu;
+						}
+					}
+				}
 
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 
