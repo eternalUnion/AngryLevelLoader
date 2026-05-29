@@ -76,51 +76,14 @@ namespace AngryLevelLoader
                     return;
             }
 
-            await AngryAsyncUtils.WaitUntilSceneLoaded("Main Menu");
             Plugin.logger.LogWarning("Update available, notifying user...");
 
-            // Show update notification
-			const string changelog_action = "changelog";
-            const string remind_action = "remind";
-			const string ignore_action = "ignore";
-
-			Dictionary<string, string> actions = new()
+            NotificationManager.SendNotificationInMainMenu("AngryLevelLoader updated!", $"Current: {Plugin.PLUGIN_VERSION}, Latest: {json.latestVersion}", new List<(string, Action)>()
             {
-                { changelog_action, "View Changelog" },
-                { remind_action, "Remind Me Later" },
-                { ignore_action, "Ignore" },
-            };
-
-			uint notification_id = Notiffy.API.NotificationSystem.NotifySend("AngryLevelLoader updated!", $"Current: {Plugin.PLUGIN_VERSION}, Latest: {json.latestVersion}", actions: actions, iconFilePath: Path.Combine(Plugin.workingDir, "plugin-icon.png"));
-            Notiffy.API.NotificationSystem.ActionInvoked += OnAction;
-            Notiffy.API.NotificationSystem.NotificationDeleted += OnDeleted;
-
-            void OnAction(uint id, string actionIdentifier)
-            {
-                if (id != notification_id)
-                    return;
-
-                if (actionIdentifier == ignore_action)
-                {
-                    InternalConfigManager.ignoreUpdateVersion.value = json.latestVersion;
-				}
-                else if (actionIdentifier == changelog_action)
-                {
-                    _ = PauseAndShowChangelog(json);
-				}
-
-				Notiffy.API.NotificationSystem.ActionInvoked -= OnAction;
-				Notiffy.API.NotificationSystem.NotificationDeleted -= OnDeleted;
-			}
-
-			void OnDeleted(uint id)
-			{
-				if (id != notification_id)
-					return;
-
-				Notiffy.API.NotificationSystem.ActionInvoked -= OnAction;
-				Notiffy.API.NotificationSystem.NotificationDeleted -= OnDeleted;
-			}
+                ("View Changelog", () => _ = PauseAndShowChangelog(json)),
+                ("Remind Me Later", () => { }),
+                ("Ignore", () => InternalConfigManager.ignoreUpdateVersion.value = json.latestVersion),
+            });
 		}
 
         public static async Task ShowChangelog()

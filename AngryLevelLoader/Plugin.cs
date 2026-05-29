@@ -42,7 +42,7 @@ namespace AngryLevelLoader
 
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 	[BepInDependency(PluginConfiguratorController.PLUGIN_GUID, BepInDependency.DependencyFlags.SoftDependency)]
-	[BepInDependency(Notiffy.NotiffyPlugin.PluginGUID)]
+	[BepInDependency(Notiffy.NotiffyPlugin.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
 	// Soft ban dependencies
 	[BepInDependency("com.eternalUnion.ultraPain", BepInDependency.DependencyFlags.SoftDependency)]
 	[BepInDependency("com.banana.BananaDifficulty", BepInDependency.DependencyFlags.SoftDependency)]
@@ -744,24 +744,7 @@ namespace AngryLevelLoader
 						int newReports = perms.response.reportState - InternalConfigManager.reportState.value;
 						string header = "New reports";
 						string body = $"There are {newReports} new reports available!";
-
-						if (SceneHelper.CurrentScene == "Main Menu")
-						{
-							Notiffy.API.NotificationSystem.NotifySend(header, body, iconFilePath: Path.Combine(workingDir, "plugin-icon.png"));
-						}
-						else
-						{
-							void ShowNewLevelsOnMainMenu(Scene scene, LoadSceneMode mode)
-							{
-								if (SceneHelper.CurrentScene != "Main Menu")
-									return;
-
-								Notiffy.API.NotificationSystem.NotifySend(header, body, iconFilePath: Path.Combine(workingDir, "plugin-icon.png"));
-								SceneManager.sceneLoaded -= ShowNewLevelsOnMainMenu;
-							}
-
-							SceneManager.sceneLoaded += ShowNewLevelsOnMainMenu;
-						}
+						NotificationManager.SendNotificationInMainMenu(header, body);
 					}
 				}
 
