@@ -1,6 +1,7 @@
 ﻿using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Extensions;
 using AngryLevelLoader.Utils;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -54,6 +55,14 @@ namespace AngryLevelLoader.Managers
 			return cachedTexture.currentTask.GetTask();
 		}
 
+		public static void GetThumbnail(string bundleGuid, Action<Texture2D> callback)
+		{
+			GetThumbnail(bundleGuid).ContinueWith((task) =>
+			{
+				callback(task.Result);
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+		}
+
 		private static async Task<Texture2D> _GetTexture(string guid)
 		{
 			LevelCatalog catalog = OnlineCatalogManager.Catalog ?? await OnlineCatalogManager.DownloadCatalogAsync();
@@ -62,7 +71,15 @@ namespace AngryLevelLoader.Managers
 
 			BundleInfo bundle = catalog.Levels.Where(b => b.Guid == guid).FirstOrDefault();
 			if (bundle == null)
-				return null;
+			{
+				LevelCatalog catalogV1 = OnlineCatalogManagerV1.Catalog ?? await OnlineCatalogManagerV1.DownloadCatalogAsync();
+				if (catalogV1 == null)
+					return null;
+
+				bundle = catalogV1.Levels.Where(b => b.Guid == guid).FirstOrDefault();
+				if (bundle == null)
+					return null;
+			}
 
 			string hash = bundle.ThumbnailHash;
 
@@ -140,6 +157,14 @@ namespace AngryLevelLoader.Managers
 			}
 
 			return cachedTexture.currentTask.GetTask();
+		}
+
+		public static void GetThumbnail(string bundleGuid, string levelId, Action<Texture2D> callback)
+		{
+			GetThumbnail(bundleGuid, levelId).ContinueWith((task) =>
+			{
+				callback(task.Result);
+			}, TaskScheduler.FromCurrentSynchronizationContext());
 		}
 
 		private static async Task<Texture2D> _GetTexture(string bundleGuid, string levelId)

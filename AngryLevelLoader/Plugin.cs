@@ -714,6 +714,8 @@ namespace AngryLevelLoader
 
 			AngryUser.GetPermissionsTask().ContinueWith((res) =>
 			{
+				ConfigManager.reportsButton.hidden = false;
+
 				if (!res.IsCompletedSuccessfully || !res.Result.completedSuccessfully)
 				{
 					logger.LogError($"Could not obtain user permissions");
@@ -728,6 +730,7 @@ namespace AngryLevelLoader
 				}
 
 				AngryUser.hasLeaderboardPermissions = perms.response.hasLeaderboardModificationPermission;
+				ConfigManager.reportsButton.hidden = !perms.response.hasLeaderboardModificationPermission;
 
 			}, TaskScheduler.FromCurrentSynchronizationContext());
 

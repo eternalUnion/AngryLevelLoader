@@ -495,6 +495,19 @@ namespace AngryLevelLoader.Managers.ServerManager
 				result.status = ManageUserStatus.FAILED;
 			return result;
 		}
+
+		internal static async Task<ManageUserResult> ManageUserTask(string targetId, bool censorIcon = false, bool censorName = false, bool banUser = false, bool banReports = false, CancellationToken cancellationToken = default)
+		{
+			ManageUserResult result = new ManageUserResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/manageUser?targetId={targetId}&censorIcon={(censorIcon ? "true" : "false")}&censorName={(censorName ? "true" : "false")}&banUser={(banUser ? "true" : "false")}&banReports={(banReports ? "true" : "false")}&";
+
+			await AngryRequest.MakeRequestWithToken(url, result, ManageUserStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = ManageUserStatus.FAILED;
+			return result;
+		}
 		#endregion
 
 		#region Remove Record
@@ -618,6 +631,151 @@ namespace AngryLevelLoader.Managers.ServerManager
 			result.completed = true;
 			if (!result.completedSuccessfully)
 				result.status = GetUserHistoryStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Get All Reports
+		internal enum GetAllReportsStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+		}
+
+#pragma warning disable CS0649
+		internal class ReportObject
+		{
+			public string bundleGuid { get; set; }
+			public string levelId { get; set; }
+			public RecordCategory category { get; set; }
+			public RecordDifficulty difficulty { get; set; }
+			public int time { get; set; }
+		}
+
+		internal class Report
+		{
+			public ReportObject reportObject;
+			public string sender { get; set; }
+			public string targetId { get; set; }
+			public string reason { get; set; }
+		}
+
+		internal class GetAllReportsResponse : AngryResponse
+		{
+			public Dictionary<string, Report[]> reports;
+		}
+#pragma warning restore CS0649
+
+		internal class GetAllReportsResult : AngryResult<GetAllReportsResponse, GetAllReportsStatus>
+		{
+
+		}
+
+		internal static async Task<GetAllReportsResult> GetAllReportsTask(CancellationToken cancellationToken = default)
+		{
+			GetAllReportsResult result = new GetAllReportsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/getAllReports?";
+
+			await AngryRequest.MakeRequestWithToken(url, result, GetAllReportsStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = GetAllReportsStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Remove Report
+		internal enum RemoveReportStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+			NO_SENDER = 4,
+			NO_RECEIVER = 5,
+			NO_BUNDLE_GUID = 6,
+			NO_LEVEL_ID = 7,
+			NO_CATEGORY = 8,
+			NO_DIFFICULTY = 9,
+			INVALID_CATEGORY = 10,
+			INVALID_DIFFICULTY = 11,
+		}
+
+#pragma warning disable CS0649
+		internal class RemoveReportResponse : AngryResponse
+		{
+			public bool removedReport;
+		}
+#pragma warning restore CS0649
+
+		internal class RemoveReportResult : AngryResult<RemoveReportResponse, RemoveReportStatus>
+		{
+
+		}
+
+		internal static async Task<RemoveReportResult> RemoveReportTask(string sender, string targetId, string bundleGuid, string levelId, RecordCategory category, RecordDifficulty difficulty, CancellationToken cancellationToken = default)
+		{
+			RemoveReportResult result = new RemoveReportResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/removeReport?sender={sender}&targetId={targetId}&bundleGuid={bundleGuid}&levelId={levelId}&category={RECORD_CATEGORY_DICT[category]}&difficulty={RECORD_DIFFICULTY_DICT[difficulty]}";
+
+			await AngryRequest.MakeRequestWithToken(url, result, RemoveReportStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = RemoveReportStatus.FAILED;
+			return result;
+		}
+		#endregion
+
+		#region Clear Reports
+		internal enum ClearReportsStatus
+		{
+			FAILED = -2,
+			RATE_LIMITED = -1,
+			OK = 0,
+
+			INVALID_TOKEN = 1,
+			ACCESS_DENIED = 2,
+			INTERNAL_ERROR = 3,
+		}
+
+#pragma warning disable CS0649
+		internal class ClearReportsResponse : AngryResponse
+		{
+			public int removedReports;
+		}
+#pragma warning restore CS0649
+
+		internal class ClearReportsResult : AngryResult<ClearReportsResponse, ClearReportsStatus>
+		{
+
+		}
+
+		internal static async Task<ClearReportsResult> ClearReportsTask(string senderId = null, string receiverId = null, CancellationToken cancellationToken = default)
+		{
+			ClearReportsResult result = new ClearReportsResult();
+			string url = AngryPaths.SERVER_ROOT + $"/leaderboards/clearReports?";
+
+			if (!string.IsNullOrEmpty(senderId))
+				url += $"sender={senderId}&";
+
+			if (!string.IsNullOrEmpty(receiverId))
+				url += $"receiverId={receiverId}&";
+
+			await AngryRequest.MakeRequestWithToken(url, result, ClearReportsStatus.INVALID_TOKEN, cancellationToken);
+
+			result.completed = true;
+			if (!result.completedSuccessfully)
+				result.status = ClearReportsStatus.FAILED;
 			return result;
 		}
 		#endregion

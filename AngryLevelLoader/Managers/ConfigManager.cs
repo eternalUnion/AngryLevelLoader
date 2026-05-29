@@ -71,6 +71,7 @@ namespace AngryLevelLoader.Managers
 		public static StringField newLevelNotifierLevels;
 		public static BoolField newLevelToggle;
 		public static ConfigHeader errorText;
+		public static ButtonField reportsButton;
 		public static ConfigHeader levelBundlesHeader;
 		public static SearchBarField searchBar;
 		public static ConfigDivision folderDivision;
@@ -458,6 +459,13 @@ namespace AngryLevelLoader.Managers
 			{
 				Plugin.ScanForLevels();
 			};
+
+			reportsButton = new ButtonField(config.rootPanel, "View Reports", "s_viewReports");
+			reportsButton.onClick += () =>
+			{
+				NotificationPanel.Open(new ReportViewNotification());
+			};
+			reportsButton.hidden = true;
 
 			errorText = new ConfigHeader(config.rootPanel, "", 16, TMPro.TextAlignmentOptions.Left);
 

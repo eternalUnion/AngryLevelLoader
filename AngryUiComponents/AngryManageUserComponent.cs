@@ -12,6 +12,8 @@ namespace AngryUiComponents
 		public Toggle cencorProfilePicture;
 		public Toggle cencorProfileName;
 		public Toggle banUser;
+		public Toggle banFromReports;
+		public Toggle removeAllSentReports;
 		public Toggle removeRecord;
 		public Toggle removeAll;
 

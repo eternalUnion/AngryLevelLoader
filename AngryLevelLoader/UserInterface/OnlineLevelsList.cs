@@ -69,6 +69,7 @@ namespace AngryLevelLoader.UserInterface
 
             string cachedCatalogPath = AngryPaths.LevelCatalogCachePath;
             OnlineCatalogManager.LoadCachedCatalog();
+            OnlineCatalogManagerV1.LoadCachedCatalog();
             OnlineScriptsManager.LoadCachedCatalog();
 
 			searchBar = new SearchBarField(onlineLevelsPanel);

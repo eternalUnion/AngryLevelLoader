@@ -68,7 +68,12 @@ namespace AngryLevelLoader
             get => Path.Combine(OnlineCacheFolderPath, "thumbnailCacheHashes.txt");
         }
 
-        public static string LevelCatalogCachePath
+		internal static string LevelCatalogV1CachePath
+		{
+			get => Path.Combine(OnlineCacheFolderPath, "LevelCatalog.json");
+		}
+
+		public static string LevelCatalogCachePath
         {
             get => Path.Combine(OnlineCacheFolderPath, "V2", "LevelCatalog.json");
         }

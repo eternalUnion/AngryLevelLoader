@@ -117,6 +117,17 @@ namespace AngryLevelLoader.Managers
 			}
 		}
 
+		private static AsyncAddressableObject<Texture2D> _unknownProfile;
+		public static Texture2D unknownProfile
+		{
+			get
+			{
+				if (!_unknownProfile.completed)
+					_unknownProfile.WaitForCompletion();
+				return _unknownProfile.result;
+			}
+		}
+
 		private static bool _inited = false;
 		public static void Init()
 		{
@@ -130,6 +141,7 @@ namespace AngryLevelLoader.Managers
 			_lockedPreview = new AsyncAddressableObject<Sprite>("Assets/Textures/UI/Level Thumbnails/Locked.png");
 			_favouriteUnselected = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/fav-unselected.png");
 			_favouriteSelected = new AsyncAddressableObject<Sprite>("AngryLevelLoader/Textures/fav-selected.png");
+			_unknownProfile = new AsyncAddressableObject<Texture2D>("AngryLevelLoader/Textures/unknown-profile.png");
 		}
 	}
 }
