@@ -17,6 +17,7 @@ namespace AngryLevelLoader.Patches
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.Awake))]
 	internal class StatsManager_Awake_Patch
 	{
+		[HarmonyPrefix]
 		public static bool Prefix(StatsManager __instance)
 		{
 			if (!AngrySceneManager.isInCustomLevel)
@@ -80,19 +81,40 @@ namespace AngryLevelLoader.Patches
 	[HarmonyPatch(typeof(StatsManager), nameof(StatsManager.SendInfo))]
 	internal class StatsManager_SendInfo_Patch
 	{
-		static string RemoveFormatting(string str)
+		static char GetRank(int[] ranksToCheck, float value, bool reverse)
 		{
-			Regex rich = new Regex(@"<[^>]*>");
-			if (rich.IsMatch(str))
-				return rich.Replace(str, string.Empty);
-			else
-				return str;
+			int num = 0;
+			while (true)
+			{
+				if (num >= ranksToCheck.Length)
+				{
+					return 'S';
+				}
+				if ((reverse && value <= ranksToCheck[num]) || (!reverse && value >= ranksToCheck[num]))
+				{
+					num++;
+				}
+				else
+				{
+					switch (num)
+					{
+						case 0:
+							return 'D';
+						case 1:
+							return 'C';
+						case 2:
+							return 'B';
+						case 3:
+							return 'A';
+					}
+				}
+			}
 		}
 
 		[HarmonyPrefix]
 		static bool Prefix(StatsManager __instance)
 		{
-			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
+			bool secretLevel = AngrySceneManager.currentLevelData.isSecretLevel;
 			if (!AngrySceneManager.isInCustomLevel || secretLevel)
 				return true;
 
@@ -184,7 +206,7 @@ namespace AngryLevelLoader.Patches
 			if (InternalConfigManager.leaderboardToggle.value)
 			{
 				// No gamemode
-				if (ConfigManager.difficultyField.gamemodeListValueIndex == 0)
+				if (AngryGamemodeManager.SelectedGamemode == AngryGamemodeManager.Gamemode.None)
 				{
 					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
 					record.category = AngryLeaderboards.RecordCategory.ALL;
@@ -207,18 +229,21 @@ namespace AngryLevelLoader.Patches
 						AngryLeaderboards.TryPostRecordTask(record);
 					}
 
-					bool postChallengeRecord = ChallengeManager.Instance.challengeDone && !ChallengeManager.Instance.challengeFailed;
-					if (postChallengeRecord && AngrySceneManager.currentLevelData.levelChallengeEnabled)
+					if (ChallengeManager.Instance != null)
 					{
-						record.category = AngryLeaderboards.RecordCategory.CHALLENGE;
-						AngryLeaderboards.TryPostRecordTask(record);
+						bool postChallengeRecord = ChallengeManager.Instance.challengeDone && !ChallengeManager.Instance.challengeFailed;
+						if (postChallengeRecord && AngrySceneManager.currentLevelData.levelChallengeEnabled)
+						{
+							record.category = AngryLeaderboards.RecordCategory.CHALLENGE;
+							AngryLeaderboards.TryPostRecordTask(record);
+						}
 					}
 				}
 				// Nomo/Nomow
-				else if (ConfigManager.difficultyField.gamemodeListValueIndex == 1 || ConfigManager.difficultyField.gamemodeListValueIndex == 2)
+				else if (AngryGamemodeManager.SelectedGamemode == AngryGamemodeManager.Gamemode.NoMonsters || AngryGamemodeManager.SelectedGamemode == AngryGamemodeManager.Gamemode.NoMonstersAndWeapons)
 				{
 					AngryLeaderboards.PostRecordInfo record = new AngryLeaderboards.PostRecordInfo();
-					record.category = ConfigManager.difficultyField.gamemodeListValueIndex == 1 ? AngryLeaderboards.RecordCategory.NOMO : AngryLeaderboards.RecordCategory.NOMOW;
+					record.category = AngryGamemodeManager.SelectedGamemode == AngryGamemodeManager.Gamemode.NoMonsters ? AngryLeaderboards.RecordCategory.NOMO : AngryLeaderboards.RecordCategory.NOMOW;
 					record.difficulty = AngryLeaderboards.RecordDifficulty.HARMLESS;
 					record.bundleGuid = AngrySceneManager.currentBundleContainer.bundleGuid;
 					record.hash = AngrySceneManager.currentBundleContainer.BuildHash;
@@ -234,11 +259,15 @@ namespace AngryLevelLoader.Patches
 				}
 			}
 
-			bool isPlayingWithoutGamemode = ConfigManager.difficultyField.gamemodeListValueIndex == 0;
+			bool isPlayingWithoutGamemode = AngryGamemodeManager.SelectedGamemode == AngryGamemodeManager.Gamemode.None;
+			bool secretLevel = AngrySceneManager.currentLevelData.isSecretLevel;
 
-			bool secretLevel = __instance.fr.transform.Find("Challenge") == null;
-			if (secretLevel && isPlayingWithoutGamemode)
+			// Secret levels only have final ranks
+			if (secretLevel)
 			{
+				if (!isPlayingWithoutGamemode)
+					return;
+
 				char prevRank = AngrySceneManager.currentLevelContainer.FinalRank;
 				if (prevRank != 'P')
 					AngrySceneManager.currentLevelContainer.FinalRank = AssistController.Instance.cheatsEnabled ? ' ' : 'P';
@@ -246,10 +275,39 @@ namespace AngryLevelLoader.Patches
 				return;
 			}
 
-			char currentRank = RemoveFormatting(__instance.fr.totalRank.text)[0];
-			// Ultrakill cheats symbol to angry loader cheats symbol
-			//  '-' : not completed, ' ' : cheats used
-			if (currentRank == '-')
+			char currentRank;
+			if (secretLevel)
+			{
+				currentRank = 'P';
+			}
+			else
+			{
+				switch (__instance.rankScore)
+				{
+					case 12:
+						currentRank = 'P';
+						break;
+					case 4:
+					case 5:
+					case 6:
+						currentRank = 'S';
+						break;
+					case 3:
+						currentRank = 'A';
+						break;
+					case 2:
+						currentRank = 'B';
+						break;
+					case 1:
+						currentRank = 'C';
+						break;
+					default:
+						currentRank = 'D';
+						break;
+				}
+			}
+
+			if (AssistController.Instance.cheatsEnabled)
 				currentRank = ' ';
 
 			int previousRankScore = AngryRankUtils.GetRankScore(AngrySceneManager.currentLevelContainer.FinalRank);
@@ -271,16 +329,12 @@ namespace AngryLevelLoader.Patches
 
 			if ((playerBestWithoutCheats || firstTimeWithCheats) && isPlayingWithoutGamemode)
 			{
-				string timeRank = RemoveFormatting(__instance.fr.timeRank.text);
-				string killsRank = RemoveFormatting(__instance.fr.killsRank.text);
-				string styleRank = RemoveFormatting(__instance.fr.styleRank.text);
-
 				AngrySceneManager.currentLevelContainer.Time = __instance.seconds;
-				AngrySceneManager.currentLevelContainer.TimeRank = (timeRank.Length == 0) ? '-' : timeRank[0];
+				AngrySceneManager.currentLevelContainer.TimeRank = GetRank(__instance.timeRanks, __instance.seconds, true);
 				AngrySceneManager.currentLevelContainer.Kills = __instance.kills;
-				AngrySceneManager.currentLevelContainer.KillsRank = (killsRank.Length == 0) ? '-' : killsRank[0];
+				AngrySceneManager.currentLevelContainer.KillsRank = GetRank(__instance.killRanks, __instance.kills, false);
 				AngrySceneManager.currentLevelContainer.Style = __instance.stylePoints;
-				AngrySceneManager.currentLevelContainer.StyleRank = (styleRank.Length == 0) ? '-' : styleRank[0];
+				AngrySceneManager.currentLevelContainer.StyleRank = GetRank(__instance.styleRanks, __instance.stylePoints, false);
 
 				if (usedCheats)
 				{
@@ -288,8 +342,7 @@ namespace AngryLevelLoader.Patches
 				}
 				else
 				{
-					string finalRank = RemoveFormatting(__instance.fr.totalRank.text);
-					AngrySceneManager.currentLevelContainer.FinalRank = (finalRank.Length == 0) ? '-' : finalRank[0];
+					AngrySceneManager.currentLevelContainer.FinalRank = currentRank;
 				}
 			}
 

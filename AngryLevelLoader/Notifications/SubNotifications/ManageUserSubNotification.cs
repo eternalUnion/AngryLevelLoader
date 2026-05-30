@@ -21,11 +21,6 @@ namespace AngryLevelLoader.Notifications.SubNotifications
 			this.historyPanelNotification = historyPanelNotification;
 		}
 
-		internal Task ManageUser(string steamId)
-		{
-			return ManageUser(steamId, null, null, AngryLeaderboards.RecordCategory.ALL, AngryLeaderboards.RecordDifficulty.STANDARD);
-		}
-
 		internal void Show(string steamId)
 		{
 			Show(steamId, null, null, AngryLeaderboards.RecordCategory.ALL, AngryLeaderboards.RecordDifficulty.STANDARD);
