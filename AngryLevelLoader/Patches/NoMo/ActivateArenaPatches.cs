@@ -14,40 +14,31 @@ namespace AngryLevelLoader.Patches.NoMo
         [HarmonyPrefix]
         public static bool InstantNomoActivasion(ActivateArena __instance)
         {
-            if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
+            if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters || __instance.activated)
                 return true;
 
+            __instance.activated = true;
+
 			foreach (var door in __instance.doors)
-                if (door != null)
+            {
+                if (door == null)
+                    continue;
+                    
+                if (!door.gameObject.activeSelf)
                 {
                     try
                     {
-                        door.Lock();
+                        door.gameObject.SetActive(true);
                     }
                     catch (Exception e)
                     {
-                        Debug.LogException(e);
+                        Plugin.logger.LogError(e);
                     }
                 }
 
-            HashSet<ActivateNextWave> processedWaves = new HashSet<ActivateNextWave>();
-            HashSet<ActivateNextWave> currentWaves = new HashSet<ActivateNextWave>();
-
-            foreach (var enemy in __instance.enemies)
-            {
-                if (enemy == null)
-                    continue;
-
-                ActivateNextWave nextWave = enemy.GetComponentInParent<ActivateNextWave>(true);
-                if (nextWave != null)
-                {
-                    foreach (var childWave in nextWave.gameObject.GetComponents<ActivateNextWave>())
-                        currentWaves.Add(childWave);
-                }
-                
                 try
                 {
-                    enemy.SetActive(true);
+                    door.Lock();
                 }
                 catch (Exception e)
                 {
@@ -55,92 +46,9 @@ namespace AngryLevelLoader.Patches.NoMo
                 }
             }
 
-            while (currentWaves.Count != 0)
+            foreach (GameObject enemy in __instance.enemies)
             {
-                foreach (var wave in currentWaves)
-                    processedWaves.Add(wave);
-
-                HashSet<ActivateNextWave> nextWaves = new HashSet<ActivateNextWave>();
-
-                foreach (var wave in currentWaves)
-                {
-					foreach (var toActivate in wave.toActivate)
-                    {
-                        if (toActivate == null)
-                            continue;
-
-                        try
-                        {
-                            toActivate.SetActive(true);
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogException(e);
-                        }
-
-                        bool checkForParentWave = true;
-
-						if (toActivate.GetComponentInChildren<EnemyIdentifier>() != null)
-                        {
-                            // Enemy specific code if needed
-						}
-                        else if (toActivate.GetComponentInChildren<StatueActivator>() == null && toActivate.GetComponentInChildren<DeathMarker>() == null)
-                        {
-							checkForParentWave = false;
-                        }
-
-						if (checkForParentWave)
-                        {
-                            ActivateNextWave activatedObjectWave = toActivate.GetComponentInParent<ActivateNextWave>(true);
-                            if (activatedObjectWave != null)
-                            {
-                                foreach (var childWave in activatedObjectWave.gameObject.GetComponents<ActivateNextWave>().Where(wave => !processedWaves.Contains(wave)))
-                                    nextWaves.Add(childWave);
-                            }
-                        }
-                    }
-
-                    foreach (var door in wave.doors)
-                    {
-                        if (door != null)
-                        {
-                            try
-                            {
-                                door.Unlock();
-                            }
-                            catch (Exception e)
-                            {
-                                Debug.LogException(e);
-                            }
-                        }
-                    }
-
-                    foreach (var enemy in wave.nextEnemies)
-                    {
-                        if (enemy == null)
-                            continue;
-
-                        try
-                        {
-                            enemy.SetActive(true);
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogException(e);
-                        }
-
-                        ActivateNextWave nextWave = enemy.GetComponentInParent<ActivateNextWave>(true);
-                        if (nextWave != null)
-                        {
-                            foreach (var childWave in nextWave.gameObject.GetComponents<ActivateNextWave>().Where(wave => !processedWaves.Contains(wave)))
-                                nextWaves.Add(childWave);
-                        }
-					}
-
-                    UnityEngine.Object.Destroy(wave);
-                }
-
-                currentWaves = nextWaves;
+                NoMoCommon.TriggerEnemyEvents(enemy);
             }
 
             UnityEngine.Object.Destroy(__instance);

@@ -10,72 +10,43 @@ namespace AngryLevelLoader.Patches.NoMo
     {
 		private class ForceDisable : MonoBehaviour
 		{
+			private bool _inited = false;
+
 			private void OnEnable()
 			{
+				if (_inited)
+					gameObject.SetActive(false);
+			}
+
+			private void Start()
+			{
+				_inited = true;
 				gameObject.SetActive(false);
 			}
 		}
 
 		[HarmonyPatch(nameof(EnemyIdentifier.Start))]
 		[HarmonyPrefix]
-        public static bool DisableSpawnInOnNoMo(EnemyIdentifier __instance)
+		public static void NoSpawnIn(EnemyIdentifier __instance)
+		{
+			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
+				return;
+
+			__instance.spawnIn = false;
+		}
+
+		[HarmonyPatch(nameof(EnemyIdentifier.Start))]
+		[HarmonyPostfix]
+        public static void DisableSpawnInOnNoMo(EnemyIdentifier __instance)
         {
             if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
-                return true;
+                return;
 
-            __instance.spawnIn = false;
+			if (__instance.enemyType == EnemyType.Deathcatcher)
+				return;
 
-			foreach (var obj in __instance.activateOnDeath)
-				if (obj != null)
-                {
-					try
-					{
-						obj.SetActive(true);
-					}
-					catch (Exception e)
-					{
-						Debug.LogException(e);
-					}
-                }
-
-			if (__instance.onDeath != null)
-			{
-				try
-				{
-					__instance.onDeath.Invoke();
-				}
-				catch (Exception e)
-				{
-					Debug.LogException(e);
-				}
-			}
-
-            __instance.dead = true;
-            __instance.health = 0;
-			__instance.gameObject.SetActive(false);
-
-            switch (__instance.enemyType)
-            {
-                case EnemyType.MaliciousFace:
-                    if (__instance.GetComponent<SpiderBody>() != null)
-					{
-						__instance.transform.parent.gameObject.SetActive(false);
-						__instance.transform.parent.gameObject.AddComponent<ForceDisable>();
-					}
-                    break;
-
-				case EnemyType.Cerberus:
-					if (__instance.GetComponent<StatueBoss>() != null)
-					{
-						__instance.transform.parent.gameObject.SetActive(false);
-						__instance.transform.parent.gameObject.AddComponent<ForceDisable>();
-					}
-					break;
-			}
-
+			NoMoCommon.TriggerEnemyEvents(__instance.gameObject);
 			__instance.gameObject.AddComponent<ForceDisable>();
-
-			return false;
 		}
     }
 }

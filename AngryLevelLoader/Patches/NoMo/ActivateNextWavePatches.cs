@@ -1,22 +1,27 @@
 ﻿using AngryLevelLoader.Managers;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace AngryLevelLoader.Patches.NoMo
 {
-	[HarmonyPatch(typeof(ActivateNextWaveHP))]
-	internal static class ActivateNextWaveHPPatches
+	[HarmonyPatch(typeof(ActivateNextWave))]
+	internal class ActivateNextWavePatches
 	{
-		[HarmonyPatch(nameof(ActivateNextWaveHP.Update))]
+		[HarmonyPatch(nameof(ActivateNextWave.FixedUpdate))]
 		[HarmonyPrefix]
-		public static bool PreUpdate(ActivateNextWaveHP __instance)
+		private static bool FixedUpdate(ActivateNextWave __instance)
 		{
-			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters || __instance.activated || (__instance.target != null && !__instance.target.dead))
+			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
 				return true;
 
-			__instance.activated = true;
+			if (__instance.activated || __instance.deadEnemies < __instance.enemyCount)
+				return false;
 
+			__instance.activated = true;
+			
 			if (!__instance.lastWave)
 			{
 				if (__instance.toActivate != null)
@@ -25,10 +30,28 @@ namespace AngryLevelLoader.Patches.NoMo
 					{
 						if (gameObject == null)
 							continue;
-
+						
 						try
 						{
 							gameObject.SetActive(true);
+						}
+						catch (Exception e)
+						{
+							Plugin.logger.LogError(e);
+						}
+					}
+				}
+
+				if (__instance.doors != null)
+				{
+					foreach (Door door in __instance.doors)
+					{
+						if (door == null)
+							continue;
+
+						try
+						{
+							door.Unlock();
 						}
 						catch (Exception e)
 						{
@@ -77,7 +100,7 @@ namespace AngryLevelLoader.Patches.NoMo
 						{
 							Plugin.logger.LogError(e);
 						}
-
+						
 						if (door == __instance.doorForward)
 						{
 							try
@@ -91,6 +114,11 @@ namespace AngryLevelLoader.Patches.NoMo
 						}
 					}
 				}
+
+				if (__instance.killChallenge)
+					ChallengeManager.Instance.ChallengeDone();
+
+				UnityEngine.Object.Destroy(__instance);
 			}
 
 			return false;

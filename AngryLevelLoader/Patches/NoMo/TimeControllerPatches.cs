@@ -6,15 +6,16 @@ using System.Text;
 
 namespace AngryLevelLoader.Patches.NoMo
 {
-	[HarmonyPatch(typeof(Stalker))]
-	internal static class StalkerPatches
+	[HarmonyPatch(typeof(TimeController))]
+	internal class TimeControllerPatches
 	{
-		[HarmonyPatch(nameof(Stalker.SandExplode))]
+		[HarmonyPatch(nameof(TimeController.SlowDown))]
 		[HarmonyPrefix]
-		private static bool DoNotExplode()
+		private static bool DoNotSlowDown()
 		{
 			if (!AngrySceneManager.isInCustomLevel || !AngryGamemodeManager.NoMonsters)
 				return true;
+
 			return false;
 		}
 	}
