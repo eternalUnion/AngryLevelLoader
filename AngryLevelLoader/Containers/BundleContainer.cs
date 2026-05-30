@@ -139,9 +139,9 @@ namespace AngryLevelLoader.Containers
 		/// </summary>
 		public int BundleVersion => (bundleData == null) ? 0 : bundleData.bundleVersion;
 
-        public string BundleName => (bundleData == null) ? "<invalid>" : bundleData.bundleName;
+        public string BundleName => (bundleData == null) ? "<invalid>" : bundleData.bundleName ?? string.Empty;
 
-        public string BundleAuthor => (bundleData == null) ? "<invalid>" : bundleData.bundleAuthor;
+        public string BundleAuthor => (bundleData == null) ? "<invalid>" : bundleData.bundleAuthor ?? string.Empty;
 
         public bool EpilepsyWarning => (bundleData == null) ? false : bundleData.epilepsyWarning;
 
@@ -150,7 +150,7 @@ namespace AngryLevelLoader.Containers
 		/// For example, local hash can be compared to the online catalog.
 		/// Returns empty string if the bundle is invalid.
 		/// </summary>
-		public string BuildHash => (bundleData == null) ? string.Empty : bundleData.buildHash;
+		public string BuildHash => (bundleData == null) ? string.Empty : bundleData.buildHash ?? string.Empty;
 
         // UI
 

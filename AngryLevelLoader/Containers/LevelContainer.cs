@@ -37,7 +37,7 @@ namespace AngryLevelLoader.Containers
         /// </summary>
         public string LevelName
         {
-            get => (data == null) ? string.Empty : data.levelName;
+            get => (data == null) ? string.Empty : data.levelName ?? string.Empty;
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace AngryLevelLoader.Containers
         /// </summary>
         public string[] RequiredScripts
         {
-            get => (data == null) ? new string[0] : data.requiredDllNames;
+            get => (data == null) ? new string[0] : data.requiredDllNames ?? new string[0];
         }
 
         /// <summary>
@@ -264,7 +264,7 @@ namespace AngryLevelLoader.Containers
         /// </summary>
         public string ChallengeText
         {
-            get => (data == null) ? string.Empty : data.levelChallengeText;
+            get => (data == null) ? string.Empty : data.levelChallengeText ?? string.Empty;
         }
 
         /// <summary>
