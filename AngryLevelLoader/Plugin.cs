@@ -636,7 +636,7 @@ namespace AngryLevelLoader
 			{
 				AngryIOUtils.TryCreateDirectory(dataPath);
 			}
-			catch (IOException ex)
+			catch (Exception ex)
 			{
 				logger.LogError($"Failed to create data path at '{dataPath}'! Overwriting with the default value '{InternalConfigManager.configDataPath.defaultValue}'");
 				logger.LogError(ex);
@@ -647,7 +647,7 @@ namespace AngryLevelLoader
 				{
 					AngryIOUtils.TryCreateDirectory(dataPath);
 				}
-				catch (IOException innerEx)
+				catch (Exception innerEx)
 				{
 					logger.LogError($"Failed to create data path at '{dataPath}'! Cannot recover, disabling plugin.");
 					ConfigManager.InitializeErrorConfig($"Error! Failed to create plugin's data folder at '{dataPath}'", innerEx);
@@ -693,7 +693,16 @@ namespace AngryLevelLoader
 			LastPlayedMapManager.LoadLastUpdateMap();
 
 			harmony = new Harmony(PLUGIN_GUID);
-            harmony.PatchAll();
+
+			try
+			{
+				harmony.PatchAll();
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex);
+				ConfigManager.InitializeErrorConfig($"Error! Failed to patch ULTRAKILL. You might be on an older/wrong version of ULTRAKILL.", ex);
+			}
 
 			AngrySceneManager.Init();
 
