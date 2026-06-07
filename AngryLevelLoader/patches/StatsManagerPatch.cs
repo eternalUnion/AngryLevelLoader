@@ -114,8 +114,13 @@ namespace AngryLevelLoader.Patches
 		[HarmonyPrefix]
 		static bool Prefix(StatsManager __instance)
 		{
-			bool secretLevel = AngrySceneManager.currentLevelData.isSecretLevel;
-			if (!AngrySceneManager.isInCustomLevel || secretLevel)
+			if (!AngrySceneManager.isInCustomLevel)
+				return true;
+
+			if (FinalPit_SendInfo_Patch.lastTarget != null && Plugin.TryGetAngryLevel(FinalPit_SendInfo_Patch.lastTarget.targetLevelUniqueId, out LevelContainer level))
+				level.LevelDiscovered = true;
+
+			if (AngrySceneManager.currentLevelData.isSecretLevel)
 				return true;
 
 			Transform secretContainer = __instance.fr.transform.Find("Secrets - Info");

@@ -192,7 +192,7 @@ namespace AngryLevelLoader.Containers
             {
                 finalRank.value = $"{value}";
                 finalRank.TriggerPostValueChangeEvent();
-				bundleContainer.RecalculateFinalRank();
+				bundleContainer.UpdateAllUI();
 			}
 		}
 
