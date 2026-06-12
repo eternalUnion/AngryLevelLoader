@@ -159,6 +159,21 @@ namespace AngryLevelLoader
 
                     bundle.pathToAngryBundle = path;
 
+					if (!bundle.LazyLoaded)
+					{
+						try
+						{
+							bundle.ReloadBundle(false, true);
+						}
+						catch (Exception e)
+						{
+							logger.LogWarning($"Exception thrown while loading level bundle: {e}");
+							if (!string.IsNullOrEmpty(ConfigManager.errorText.text))
+								ConfigManager.errorText.text += '\n';
+							ConfigManager.errorText.text += $"<color=red>Error loading {Path.GetFileNameWithoutExtension(path)}</color>. Check the logs for more information";
+						}
+					}
+
 					// May need to reload the bundle if the loaded bundle is out of date
 					if (bundle.LazyLoaded && bundle.BuildHash != data.buildHash)
 					{

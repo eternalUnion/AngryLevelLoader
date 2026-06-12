@@ -500,7 +500,7 @@ namespace AngryLevelLoader.Containers
                 return false;
             }
 
-            if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData fileData, out _) && fileData.bundleGuid != bundleData.bundleGuid)
+            if (AngryFileUtils.TryGetAngryBundleData(pathToAngryBundle, out AngryBundleData fileData, out _) && fileData.bundleGuid != bundleGuid)
             {
                 statusText.text = "<color=red>Target file has a different guid</color>";
                 return false;

@@ -405,6 +405,8 @@ namespace AngryLevelLoader.UserInterface
             }
         }
 
+        private static bool _alreadyNotified = false;
+
         internal static void CheckNewLevelText(LevelCatalog previousCatalog)
         {
             if (ConfigManager.newLevelNotifierToggle.value && previousCatalog != null)
@@ -423,9 +425,13 @@ namespace AngryLevelLoader.UserInterface
 				    
                     // Show notification
 
-                    string header = newLevels.Count > 1 ? "New levels available!" : "New level available!";
-                    string body = newLevels.Count > 1 ? $"{newLevels.Count} new online levels available!" : "A new online level is available!";
-                    NotificationManager.SendNotificationInMainMenu(header, body);
+                    if (!_alreadyNotified)
+                    {
+                        _alreadyNotified = true;
+						string header = newLevels.Count > 1 ? "New levels available!" : "New level available!";
+                        string body = newLevels.Count > 1 ? $"{newLevels.Count} new online levels available!" : "A new online level is available!";
+                        NotificationManager.SendNotificationInMainMenu(header, body);
+                    }
                 }
 			}
             else
