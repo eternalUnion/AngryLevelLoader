@@ -21,7 +21,7 @@ namespace AngryLevelLoader.Managers.ServerManager
         private static StringField lastTokenFetch;
 
         internal static bool hasLeaderboardPermissions = false;
-        internal static int reportState = -1;
+        internal static string[] reportState;
 
 		internal static void Init()
         {
@@ -249,7 +249,7 @@ namespace AngryLevelLoader.Managers.ServerManager
 		internal class GetPermissionsResponse : AngryResponse
         {
             public bool hasLeaderboardModificationPermission { get; set; }
-            public int reportState { get; set; }
+            public string[] reportState;
 		}
 
 		internal class GetPermissionsResult : AngryResult<GetPermissionsResponse, UserPermissionsStatus>

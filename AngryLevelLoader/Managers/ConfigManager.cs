@@ -477,8 +477,8 @@ namespace AngryLevelLoader.Managers
 			{
 				NotificationPanel.Open(new ReportViewNotification());
 				
-				if (AngryUser.reportState >= 0)
-					InternalConfigManager.reportState.value = AngryUser.reportState;
+				if (AngryUser.reportState != null)
+					InternalConfigManager.reportState.value = string.Join(',', AngryUser.reportState);
 			};
 			reportsButton.hidden = true;
 

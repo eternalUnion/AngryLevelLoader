@@ -740,17 +740,15 @@ namespace AngryLevelLoader
 				AngryUser.reportState = perms.response.reportState;
 				ConfigManager.reportsButton.hidden = !perms.response.hasLeaderboardModificationPermission;
 
-				if (perms.response.hasLeaderboardModificationPermission)
+				if (perms.response.hasLeaderboardModificationPermission && perms.response.reportState != null)
 				{
-					if (InternalConfigManager.reportState.value == -1)
+					string[] knownReports = InternalConfigManager.reportState.value.Split(',');
+					int unknownReportCount = perms.response.reportState.Except(knownReports).Count();
+
+					if (unknownReportCount > 0)
 					{
-						InternalConfigManager.reportState.value = perms.response.reportState;
-					}
-					else if (perms.response.reportState > InternalConfigManager.reportState.value)
-					{
-						int newReports = perms.response.reportState - InternalConfigManager.reportState.value;
 						string header = "New reports";
-						string body = $"There are {newReports} new reports available!";
+						string body = $"There are {unknownReportCount} new report{(unknownReportCount > 1 ? "s" : "")} available!";
 						NotificationManager.SendNotificationInMainMenu(header, body);
 					}
 				}
