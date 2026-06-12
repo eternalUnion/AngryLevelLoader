@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Managers
 {
@@ -91,6 +92,7 @@ namespace AngryLevelLoader.Managers
 		public static ButtonArrayField openButtons;
 		public static KeyCodeField reloadFileKeybind;
 		public static KeyCodeField reloadScriptKeybind;
+		public static EnumField<LogType> filterMode;
 		public static EnumField<CustomLevelButtonPosition> customLevelButtonPosition;
 		public static ColorField customLevelButtonFrameColor;
 		public static ColorField customLevelButtonTextColor;
@@ -288,6 +290,15 @@ namespace AngryLevelLoader.Managers
 			{
 				if (e.value == KeyCode.Mouse0 || e.value == KeyCode.Mouse1 || e.value == KeyCode.Mouse2)
 					e.canceled = true;
+			};
+
+			filterMode = new EnumField<LogType>(settingsPanel, "Unity log level", "s_consoleLogLevel", LogType.Error);
+			SceneManager.sceneLoaded += (scene, mode) =>
+			{
+				if (mode == LoadSceneMode.Additive)
+					return;
+
+				Debug.unityLogger.filterLogType = (AngrySceneManager.isInCustomLevel) ? filterMode.value : LogType.Error;
 			};
 
 			new ConfigHeader(settingsPanel, "User Interface") { textColor = new Color(1f, 0.504717f, 0.9454f) };
