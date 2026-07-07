@@ -764,6 +764,12 @@ namespace AngryLevelLoader
 				AngryUser.reportState = perms.response.reportState;
 				ConfigManager.reportsButton.hidden = !perms.response.hasLeaderboardModificationPermission;
 
+				if (AngryUser.hasLeaderboardPermissions)
+				{
+					foreach (BundleContainer container in GetAllBundleContainers())
+						container.UpdateAllUI();
+				}
+
 				if (perms.response.hasLeaderboardModificationPermission && perms.response.reportState != null)
 				{
 					string[] knownReports = InternalConfigManager.reportState.value.Split(',');

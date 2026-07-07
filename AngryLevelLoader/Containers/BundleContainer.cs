@@ -24,6 +24,7 @@ using System.Text.RegularExpressions;
 using AngryLevelLoader.UserInterface;
 using AngryLevelLoader.Utils;
 using AngryLevelLoader.Extensions;
+using AngryLevelLoader.Managers.ServerManager;
 
 namespace AngryLevelLoader.Containers
 {
@@ -318,7 +319,7 @@ namespace AngryLevelLoader.Containers
 					}
 				}
 
-                levelContainer.Locked = locked;
+                levelContainer.Locked = locked && !AngryUser.hasLeaderboardPermissions;
 			}
 
 			RecalculateFinalRank();

@@ -1,5 +1,6 @@
 ﻿using AngryLevelLoader.Containers;
 using AngryLevelLoader.Managers;
+using AngryLevelLoader.Managers.ServerManager;
 using AngryLevelLoader.Notifications;
 using AngryLevelLoader.Utils;
 using AngryUiComponents;
@@ -73,7 +74,7 @@ namespace AngryLevelLoader.Fields
             set
             {
                 _discovered = value;
-                hidden = !_discovered && HideIfNotPlayed;
+                hidden = !_discovered && HideIfNotPlayed && !AngryUser.hasLeaderboardPermissions;
 			}
         }
 
@@ -84,7 +85,7 @@ namespace AngryLevelLoader.Fields
             set
             {
                 _hideIfNotPlayed = value;
-				hidden = !Discovered && _hideIfNotPlayed;
+				hidden = !Discovered && _hideIfNotPlayed && !AngryUser.hasLeaderboardPermissions;
 			}
         }
 
