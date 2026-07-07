@@ -105,6 +105,11 @@ namespace AngryLevelLoader.Containers
 		private AngryBundleData bundleData;
 		private Dictionary<string, LevelContainer> levels = new Dictionary<string, LevelContainer>();
 
+		internal AngryBundleData GetAngryBundleData()
+		{
+			return bundleData;
+		}
+
 		/// <summary>
 		/// Get all loaded level containers loaded by the bundle.
 		/// The levels are not loaded until the bundle is fully loaded,

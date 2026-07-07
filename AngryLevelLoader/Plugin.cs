@@ -884,18 +884,54 @@ namespace AngryLevelLoader
 
 	public static class RudeLevelInterface
     {
+		private static bool TryGetLevelContainer(string levelId, out LevelContainer level)
+		{
+			level = null;
+
+			if (Plugin.TryGetAngryLevel(levelId, out level))
+				return true;
+
+			// Fallback: Check non-lazy loaded bundles
+			foreach (BundleContainer container in Plugin.GetAllBundleContainers())
+			{
+				if (container.Loaded)
+					continue;
+
+				if (container.LazyUILoadingSupported)
+					continue;
+
+				if (!container.LazyLoaded)
+					container.ReloadBundle(false, true).RunSynchronously();
+
+				AngryBundleData bundleData = container.GetAngryBundleData();
+				if (bundleData == null)
+					continue;
+
+				if (!bundleData.levels.Any(l => l.uniqueIdentifier == levelId))
+					continue;
+
+				container.ReloadBundle(false, false).RunSynchronously();
+				if (container.TryGetLevelContainer(levelId, out level))
+					return true;
+			}
+
+			return false;
+		}
+
 		public static char INCOMPLETE_LEVEL_CHAR = '-';
 		public static char GetLevelRank(string levelId)
         {
-			if (Plugin.TryGetAngryLevel(levelId, out LevelContainer level))
+			if (TryGetLevelContainer(levelId, out LevelContainer level))
 				return level.FinalRank;
+
 			return INCOMPLETE_LEVEL_CHAR;
 		}
 	
         public static bool GetLevelChallenge(string levelId)
 		{
-			if (Plugin.TryGetAngryLevel(levelId, out LevelContainer level))
+			if (TryGetLevelContainer(levelId, out LevelContainer level))
 				return level.ChallengeDone;
+
 			return false;
 		}
 
@@ -904,7 +940,7 @@ namespace AngryLevelLoader
 			if (secretIndex < 0)
 				return false;
 
-			if (Plugin.TryGetAngryLevel(levelId, out LevelContainer level))
+			if (TryGetLevelContainer(levelId, out LevelContainer level))
 				return level.SecretDiscovered(secretIndex);
 
 			return false;
