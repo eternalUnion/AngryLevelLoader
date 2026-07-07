@@ -26,5 +26,7 @@ namespace AngryLevelLoader.DataTypes
         public bool epilepsyWarning { get; set; }
         [DefaultValue(null)]
         public List<AngryLevelData> levels;
+        [DefaultValue(false)]
+        public bool zippedProviderSupported { get; set; }
     }
 }

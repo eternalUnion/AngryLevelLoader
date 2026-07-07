@@ -1,4 +1,5 @@
-﻿using AngryLevelLoader.Containers;
+﻿using AngryLevelLoader.AssetBundleProviders;
+using AngryLevelLoader.Containers;
 using AngryLevelLoader.DataTypes;
 using AngryLevelLoader.Fields;
 using AngryLevelLoader.Managers;
@@ -687,6 +688,14 @@ namespace AngryLevelLoader
 			
 			// Load the loader's assets
 			Addressables.InitializeAsync().WaitForCompletion();
+			ZippedAssetBundleProvider.logger = logger;
+			ZippedAssetBundleProvider.ResolveBundleGuidToZipFilePath = (bundleGuid) =>
+			{
+				if (!TryGetAngryBundleByGuid(bundleGuid, out BundleContainer bundleContainer))
+					return null;
+
+				return bundleContainer.pathToAngryBundle;
+			};
 			ForceLoadAddressableDependencies();
 
 			angryCatalogPath = Path.Combine(workingDir, "Assets");

@@ -48,6 +48,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AngryLevelLoader.Analyzer\AngryLevelLoader.Analyzer.CodeFixes\AngryLevelLoader.Analyzer.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\AngryLevelLoader.Analyzer\AngryLevelLoader.Analyzer\AngryLevelLoader.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\AngryLevelLoader.AssetBundleProviders\AngryLevelLoader.AssetBundleProviders.csproj" />
     <ProjectReference Include="..\AngryUiComponents\AngryUiComponents.csproj" />
     <ProjectReference Include="..\RudeLevelScripts.Essentials\RudeLevelScripts.Essentials.csproj" />
   </ItemGroup>

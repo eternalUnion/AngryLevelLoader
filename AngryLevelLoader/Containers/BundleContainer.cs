@@ -399,7 +399,7 @@ namespace AngryLevelLoader.Containers
                 fileChanged = true;
             }
 
-            if (unzip)
+			if (unzip)
             {
 				if (Directory.Exists(pathToTempFolder))
 					Directory.Delete(pathToTempFolder, true);
@@ -420,14 +420,54 @@ namespace AngryLevelLoader.Containers
 
                 Directory.CreateDirectory(pathToTempFolder);
 
-                using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read)))
-                    zip.ExtractToDirectory(pathToTempFolder);
+                using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read, FileShare.Read)))
+				{
+					foreach (var entry in zip.Entries)
+					{
+						if (entry.Name.EndsWith(".bundle"))
+							continue;
+
+						string entryPath = Path.Combine(pathToTempFolder, entry.FullName);
+						Directory.CreateDirectory(Path.GetDirectoryName(entryPath));
+
+						using (Stream entryStream = entry.Open())
+						{
+							using (FileStream fs = File.Open(entryPath, FileMode.CreateNew, FileAccess.Write))
+								await entryStream.CopyToAsync(fs);
+						}
+					}
+				}
             }
 
 			if (fileChanged)
 				LastPlayedMapManager.UpdateLastUpdate(this);
 
 			bundleData = JsonConvert.DeserializeObject<AngryBundleData>(File.ReadAllText(Path.Combine(pathToTempFolder, "data.json")));
+			
+			// Convert catalog if zipped file is not supported
+			if (!bundleData.zippedProviderSupported)
+			{
+				await AngryFileUtils.MakeCatalogZipProviderSupported(Path.Combine(pathToTempFolder, "catalog.json"));
+				bundleData.zippedProviderSupported = true;
+				await File.WriteAllTextAsync(Path.Combine(pathToTempFolder, "data.json"), JsonConvert.SerializeObject(bundleData));
+
+				// Also delete asset bundle files if present
+				foreach (string path in Directory.GetFiles(pathToTempFolder))
+				{
+					if (path.EndsWith(".bundle"))
+					{
+						try
+						{
+							File.Delete(path);
+						}
+						catch (Exception ex)
+						{
+							Plugin.logger.LogError(ex);
+						}
+					}
+				}
+			}
+			
 			rootPanel.SetIconWithURL("file://" + Path.Combine(pathToTempFolder, "icon.png"));
             rootPanel.forceHidden = !AngryFileSupported;
 			rootPanel.headerText = $"--{BundleName}--";
