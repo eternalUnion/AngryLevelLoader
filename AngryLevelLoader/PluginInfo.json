@@ -1,5 +1,5 @@
 ﻿{
-  "latestVersion": "4.0.4",
+  "latestVersion": "4.1.0",
   "updates": [
     {
       "version": "1.0.0",
@@ -156,6 +156,10 @@
     {
       "version": "4.0.4",
       "updateText": "- Reworked online level voting system\n- Reworked No Monsters gamemode, some levels may have been broken due to the update\n- Added an option to change unity log level while playing custom levels (intended for level makers)\n- Fixed secret level completion not being saved\n- Fixed several UI bugs, such as final rank not appearing after beating a level, locked levels not getting unlocked after beating previous levels, deleted bundles not appearing after downloading the same bundle again"
+    },
+    {
+      "version": "4.1.0",
+      "updateText": "- Asset bundle files are no longer unzipped (with exception of thumbnails and json files), fixing the redundancy caused by having both the zipped and unzipped files\n    - Angry will automatically delete the redundant files, no action is required\n\t- After deletion, levels will not load on older angry versions. Pressing 'Force Reload Bundle' is required when switching to an older version of the loader\n- Fixed final door not automatically opening after level start on NoMo gamemode\n- Fixed rude level rank checker component not working with cross-bundle levels"
     }
   ]
 }
