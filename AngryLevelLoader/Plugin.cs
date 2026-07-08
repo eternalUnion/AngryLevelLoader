@@ -913,7 +913,7 @@ namespace AngryLevelLoader
 				if (bundleData == null)
 					continue;
 
-				if (!bundleData.levels.Any(l => l.uniqueIdentifier == levelId))
+				if (bundleData.levels != null && !bundleData.levels.Any(l => l.uniqueIdentifier == levelId))
 					continue;
 
 				container.ReloadBundle(false, false).RunSynchronously();
