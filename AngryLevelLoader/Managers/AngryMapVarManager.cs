@@ -11,7 +11,7 @@ using UnityEngine.SceneManagement;
 namespace AngryLevelLoader.Managers
 {
     //This will act as a replacement for the MapVarManager, it will sit on the same GameObject as the MapVarManager and will not be destroyed on scene change.
-    internal class AngryMapVarManager : MonoBehaviour
+    public class AngryMapVarManager : MonoBehaviour
     {
         public static AngryMapVarManager Instance { get; private set; }
 
