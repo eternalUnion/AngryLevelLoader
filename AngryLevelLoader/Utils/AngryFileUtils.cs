@@ -140,7 +140,8 @@ namespace AngryLevelLoader.Utils
 
 			catalog["m_EntryDataString"] = Convert.ToBase64String(entryData);
 
-			await File.WriteAllTextAsync(catalogPath, catalog.ToString(Formatting.None));
+            using (JsonWriter jsonStream = new JsonTextWriter(new StreamWriter(File.Open(catalogPath, FileMode.Truncate, FileAccess.Write))))
+                await catalog.WriteToAsync(jsonStream);
 		}
     }
 }
