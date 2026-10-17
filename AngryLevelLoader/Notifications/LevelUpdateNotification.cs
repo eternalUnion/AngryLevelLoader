@@ -44,13 +44,13 @@ namespace AngryLevelLoader.Notifications
                 if (!firstTime)
                 {
                     if (onlineInfo.Updates[currentLevel].Hash != currentHash)
-                        updateTextBuilder.Append($"\n\n<color=#b2b2b2>Past Version</color> <color=gray>({updateTimeString})</color>");
+                        updateTextBuilder.Append($"\n\n<color=#b2b2b2>Past Version</color> <color=grey>({updateTimeString})</color>");
                     else
-                        updateTextBuilder.Append($"\n\n<color=yellow>Current Version</color> <color=gray>({updateTimeString})</color>");
+                        updateTextBuilder.Append($"\n\n<color=yellow>Current Version</color> <color=grey>({updateTimeString})</color>");
                 }
                 else
                 {
-                    updateTextBuilder.Append($"<color=#00FF00>Latest Version</color> <color=gray>({updateTimeString})</color>");
+                    updateTextBuilder.Append($"<color=#00FF00>Latest Version</color> <color=grey>({updateTimeString})</color>");
                 }
 
                 updateTextBuilder.Append("<size=18>\n");
