@@ -239,6 +239,7 @@ namespace AngryLevelLoader.Fields
 			NetworkError,
 			ValidationError,
             FileModifiedError,
+            InvalidLinkError,
 		}
 
 		private ErrorStat _errorStatus = ErrorStat.NoError;
@@ -267,6 +268,8 @@ namespace AngryLevelLoader.Fields
                     return $"<color=red><b>Validation error</b></color>";
                 else if (ErrorStatus == ErrorStat.FileModifiedError)
                     return $"<color=red><b>File was modified</b></color>";
+                else if (ErrorStatus == ErrorStat.InvalidLinkError)
+                    return $"<color=red><b>Invalid link</b></color>";
             }
 
             if (OnlineBundle.Locked)
@@ -566,7 +569,8 @@ namespace AngryLevelLoader.Fields
             return true;
         }
 
-        private async Task DownloadTask()
+		private readonly Regex GUID_REGEX = new Regex("^[a-fA-F0-9]{32}$");
+		private async Task DownloadTask()
         {
             BundleInfo bundle = OnlineBundle;
             ErrorStatus = ErrorStat.NoError;
@@ -586,6 +590,20 @@ namespace AngryLevelLoader.Fields
             string tempDownloadDir = Path.Combine(Plugin.dataPath, "TempDownloads");
             if (!Directory.Exists(tempDownloadDir))
                 Directory.CreateDirectory(tempDownloadDir);
+
+            if (!GUID_REGEX.IsMatch(bundle.Guid))
+            {
+                ErrorStatus = ErrorStat.ValidationError;
+            }
+
+            foreach (string partLink in bundle.Parts)
+            {
+                if (partLink.StartsWith("https://raw.githubusercontent.com"))
+                    continue;
+
+				ErrorStatus = ErrorStat.InvalidLinkError;
+				return;
+			}
 
             int partCount = bundle.Parts.Count;
             for (int i = 0; i < partCount; i++)

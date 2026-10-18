@@ -82,7 +82,18 @@ namespace AngryLevelLoader.Managers.ServerManager
 			try
             {
                 string identify = $"com_eternalUnion_ultrakill";
-				AuthTicket ticketTask = await SteamUser.GetAuthTicketForWebApiAsync(identify);
+
+                AuthTicket ticketTask;
+				try
+                {
+				    ticketTask = await SteamUser.GetAuthTicketForWebApiAsync(identify);
+                }
+                catch (Exception _)
+                {
+                    Plugin.logger.LogError("Failed to get steam ticket, steam client is probably not launched!");
+					result.networkError = true;
+					return result;
+				}
                 
                 if (ticketTask == null)
                 {
