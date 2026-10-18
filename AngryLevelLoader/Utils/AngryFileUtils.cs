@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine.AddressableAssets.Utility;
+using UnityEngine.InputSystem.Utilities;
 using static UnityEngine.AddressableAssets.ResourceLocators.ContentCatalogData;
 
 namespace AngryLevelLoader.Utils
@@ -144,6 +145,8 @@ namespace AngryLevelLoader.Utils
                 await catalog.WriteToAsync(jsonStream);
 		}
 
+		private static Regex zippedInternalIdRegex = new Regex(@"^([\da-f]{32}.*)");
+
 		internal static bool ValidateAddressableCatalog(JObject catalog)
 		{
 			JArray providers = catalog["m_ProviderIds"] as JArray;
@@ -152,14 +155,14 @@ namespace AngryLevelLoader.Utils
 			string[] expectedProviders = new string[] { "UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider", "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider", "AngryLevelLoader.AssetBundleProviders.ZippedAssetBundleProvider" };
 			if (providers.Select(p => p.Value<string>()).Except(expectedProviders).Any())
 			{
-				Plugin.logger.LogError("Invalid provider found");
+				Plugin.logger.LogError($"Invalid provider found: {providers.Select(p => p.Value<string>()).Except(expectedProviders).FirstOrDefault()}");
 				return false;
 			}
 
-			int assetBundleProviderIndex = providers.IndexOf("UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider");
-			int bundledProivderIndex = providers.IndexOf("UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider");
-			int zipProviderIndex = providers.IndexOf("AngryLevelLoader.AssetBundleProviders.ZippedAssetBundleProvider");
-
+			int assetBundleProviderIndex = providers.Select(p => p.Value<string>()).IndexOf("UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider");
+			int bundledProivderIndex = providers.Select(p => p.Value<string>()).IndexOf("UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider");
+			int zipProviderIndex = providers.Select(p => p.Value<string>()).IndexOf("AngryLevelLoader.AssetBundleProviders.ZippedAssetBundleProvider");
+			
 			byte[] entryData = Convert.FromBase64String(catalog["m_EntryDataString"].Value<string>());
 			int entryCnt = BitConverter.ToInt32(entryData, 0);
 
@@ -174,7 +177,7 @@ namespace AngryLevelLoader.Utils
 
 				if (providerIdx == zipProviderIndex)
 				{
-					Match internalIdMatch = internalIdRegex.Match(internalId);
+					Match internalIdMatch = zippedInternalIdRegex.Match(internalId);
 					if (!internalIdMatch.Success)
 					{
 						Plugin.logger.LogError("Invalid internal id for zipped bundle provider");
@@ -183,9 +186,9 @@ namespace AngryLevelLoader.Utils
 				}
 				else if (providerIdx == assetBundleProviderIndex)
 				{
-					if (!internalId.StartsWith("{UnityEngine.AddressableAssets.Addressables.RuntimePath}"))
+					if (!internalId.StartsWith("{UnityEngine.AddressableAssets.Addressables.RuntimePath}") && !internalId.StartsWith("{AngryLevelLoader.Plugin.tempFolderPath}"))
 					{
-						Plugin.logger.LogError("Invalid internal id for asset bundle provider");
+						Plugin.logger.LogError($"Invalid internal id for asset bundle provider: {internalId}");
 						return false;
 					}
 				}
