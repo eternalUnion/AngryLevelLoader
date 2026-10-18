@@ -160,6 +160,10 @@
     {
       "version": "4.1.0",
       "updateText": "- Asset bundle files are no longer unzipped (with exception of thumbnails and json files), fixing the redundancy caused by having both the zipped and unzipped files\n    - Angry will automatically delete the redundant files, no action is required\n\t- After deletion, levels will not load on older angry versions. Pressing 'Force Reload Bundle' is required when switching to an older version of the loader\n- Fixed final door not automatically opening after level start on NoMo gamemode\n- Fixed rude level rank checker component not working with cross-bundle levels"
+    },
+    {
+      "version": "4.1.1",
+      "updateText": "- Fixed a security vulnerability related to angry files @Flazhik\n    * Avoid using older versions of Angry. When using an older version for pre-revamp maps, avoid downloading levels outside the online catalog.\n- Fixed online changelog having incorrect color for dates @greycsont"
     }
   ]
 }
