@@ -143,5 +143,55 @@ namespace AngryLevelLoader.Utils
             using (JsonWriter jsonStream = new JsonTextWriter(new StreamWriter(File.Open(catalogPath, FileMode.Truncate, FileAccess.Write))))
                 await catalog.WriteToAsync(jsonStream);
 		}
-    }
+
+		internal static bool ValidateAddressableCatalog(JObject catalog)
+		{
+			JArray providers = catalog["m_ProviderIds"] as JArray;
+			JArray internalIds = catalog["m_InternalIds"] as JArray;
+
+			string[] expectedProviders = new string[] { "UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider", "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider", "AngryLevelLoader.AssetBundleProviders.ZippedAssetBundleProvider" };
+			if (providers.Select(p => p.Value<string>()).Except(expectedProviders).Any())
+			{
+				Plugin.logger.LogError("Invalid provider found");
+				return false;
+			}
+
+			int assetBundleProviderIndex = providers.IndexOf("UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider");
+			int bundledProivderIndex = providers.IndexOf("UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider");
+			int zipProviderIndex = providers.IndexOf("AngryLevelLoader.AssetBundleProviders.ZippedAssetBundleProvider");
+
+			byte[] entryData = Convert.FromBase64String(catalog["m_EntryDataString"].Value<string>());
+			int entryCnt = BitConverter.ToInt32(entryData, 0);
+
+			for (int i = 0; i < entryCnt; i++)
+			{
+				int internalIdIdx = BitConverter.ToInt32(entryData, 4 + i * 7);
+				if (internalIdIdx < 0 || internalIdIdx >= internalIds.Count)
+					continue;
+
+				int providerIdx = BitConverter.ToInt32(entryData, 4 + i * 7 + 4);
+				string internalId = internalIds[internalIdIdx].Value<string>();
+
+				if (providerIdx == zipProviderIndex)
+				{
+					Match internalIdMatch = internalIdRegex.Match(internalId);
+					if (!internalIdMatch.Success)
+					{
+						Plugin.logger.LogError("Invalid internal id for zipped bundle provider");
+						return false;
+					}
+				}
+				else if (providerIdx == assetBundleProviderIndex)
+				{
+					if (!internalId.StartsWith("{UnityEngine.AddressableAssets.Addressables.RuntimePath}"))
+					{
+						Plugin.logger.LogError("Invalid internal id for asset bundle provider");
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+	}
 }

@@ -1,30 +1,31 @@
-﻿using PluginConfig.API.Decorators;
-using PluginConfig.API.Functionals;
+﻿using AngryLevelLoader.DataTypes;
+using AngryLevelLoader.Extensions;
+using AngryLevelLoader.Fields;
+using AngryLevelLoader.Managers;
+using AngryLevelLoader.Managers.ServerManager;
+using AngryLevelLoader.Notifications;
+using AngryLevelLoader.UserInterface;
+using AngryLevelLoader.Utils;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using PluginConfig;
 using PluginConfig.API;
+using PluginConfig.API.Decorators;
+using PluginConfig.API.Fields;
+using PluginConfig.API.Functionals;
 using RudeLevelScript;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using UnityEngine.SceneManagement;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using System.IO.Compression;
-using Newtonsoft.Json;
-using AngryLevelLoader.Fields;
-using PluginConfig.API.Fields;
-using AngryLevelLoader.Managers;
-using AngryLevelLoader.DataTypes;
-using PluginConfig;
-using AngryLevelLoader.Notifications;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using AngryLevelLoader.UserInterface;
-using AngryLevelLoader.Utils;
-using AngryLevelLoader.Extensions;
-using AngryLevelLoader.Managers.ServerManager;
+using UnityEngine.SceneManagement;
 
 namespace AngryLevelLoader.Containers
 {
@@ -35,6 +36,7 @@ namespace AngryLevelLoader.Containers
     {
         public const int MIN_ANGRY_FILE_VERSION = 6;
 		public const int MAX_ANGRY_FILE_VERSION = 7;
+		private readonly Regex GUID_REGEX = new Regex("^[a-fA-F0-9]{32}$");
 
 		// Addressables data
 
@@ -374,6 +376,13 @@ namespace AngryLevelLoader.Containers
                 return false;
             }
 
+			if (string.IsNullOrEmpty(latestData.bundleGuid) || !GUID_REGEX.IsMatch(latestData.bundleGuid))
+			{
+				statusText.text = $"<color=red>Invalid angry file!</color>\nGUID {latestData.bundleGuid ?? "<null>"} is invalid!";
+				statusText.hidden = false;
+				return false;
+			}
+
 			await Unload();
 
 			bool unzip = true;
@@ -428,18 +437,157 @@ namespace AngryLevelLoader.Containers
 
                 using (ZipArchive zip = new ZipArchive(File.Open(pathToAngryBundle, FileMode.Open, FileAccess.Read, FileShare.Read)))
 				{
+					byte[] headerBuff = new byte[8];
+					string[] supportedFormats = { ".png", ".jpg", ".jpeg", ".json" };
+
 					foreach (var entry in zip.Entries)
 					{
+						if (entry.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+						{
+							// File name is incompatible with the os
+							Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, the file at path {entry.FullName} has invalid name! Current operating system only allows '{string.Join(", ", Path.GetInvalidFileNameChars().Select(c => c.ToString()))}' characters to be used in the file name.");
+							continue;
+						}
+
 						if (entry.Name.EndsWith(".bundle"))
 							continue;
 
+						if (!supportedFormats.Contains(Path.GetExtension(entry.Name)))
+						{
+							// Unknown file format
+							Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, the file at path {entry.FullName} has invalid extension!");
+							continue;
+						}
+
 						string entryPath = Path.Combine(pathToTempFolder, entry.FullName);
+						if (Path.GetFileName(entryPath) != entry.Name)
+						{
+							// Invalid file name
+							Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, failed to parse file name of {entry.FullName}!");
+							continue;
+						}
+						bool child = false;
+						try
+						{
+							child = new Uri(pathToTempFolder).IsBaseOf(new Uri(entryPath));
+						}
+						catch (Exception ex)
+						{
+							Plugin.logger.LogWarning(ex);
+						}
+						if (!child)
+						{
+							// Invalid parent path
+							Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, failed to parse parent directory of {entry.FullName}!");
+							continue;
+						}
+
 						Directory.CreateDirectory(Path.GetDirectoryName(entryPath));
 
 						using (Stream entryStream = entry.Open())
 						{
-							using (FileStream fs = File.Open(entryPath, FileMode.CreateNew, FileAccess.Write))
+							bool delete = false;
+
+							using (FileStream fs = File.Open(entryPath, FileMode.CreateNew, FileAccess.ReadWrite))
+							{
 								await entryStream.CopyToAsync(fs);
+								fs.Seek(0, SeekOrigin.Begin);
+
+								try
+								{
+									if (entry.Name.EndsWith(".png"))
+									{
+										// Verify file contents
+										byte[] PNG_HEADER = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+										int read = fs.Read(headerBuff, 0, PNG_HEADER.Length);
+
+										if (read != PNG_HEADER.Length || !PNG_HEADER.Take(PNG_HEADER.Length).SequenceEqual(headerBuff))
+										{
+											// Invalid file
+											delete = true;
+											Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, the png at path {entry.FullName} is invalid!");
+										}
+									}
+									else if (entry.Name.EndsWith(".jpg") || entry.Name.EndsWith(".jpeg"))
+									{
+										// Verify file contents
+										byte[] JPG_HEADER = { 0xFF, 0xD8, 0xFF, 0xE0 };
+										int read = entryStream.Read(headerBuff, 0, JPG_HEADER.Length);
+
+										if (read != JPG_HEADER.Length || !JPG_HEADER.Take(JPG_HEADER.Length).SequenceEqual(headerBuff))
+										{
+											// Invalid file
+											delete = true;
+											Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, the jpg at path {entry.FullName} is invalid!");
+										}
+									}
+									else if (entry.Name.EndsWith(".json"))
+									{
+										if (entry.Name == "catalog.json")
+										{
+											// Ensure that bundle references are intact
+											JObject catalog;
+											using (StreamReader catalogReader = new StreamReader(fs))
+											{
+												using (JsonReader catalogJsonReader = new JsonTextReader(catalogReader))
+												{
+													catalog = await JObject.LoadAsync(catalogJsonReader);
+												}
+											}
+
+											bool catalogIsValid = false;
+											try
+											{
+												catalogIsValid = AngryFileUtils.ValidateAddressableCatalog(catalog);
+											}
+											catch (Exception ex) { Plugin.logger.LogWarning(ex); }
+
+											if (!catalogIsValid)
+											{
+												delete = true;
+												Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, the catalog is invalid!");
+											}
+										}
+										else if (entry.Name == "data.json")
+										{
+											// Ensure that metadata is intact
+											try
+											{
+												using (StreamReader dataReader = new StreamReader(fs))
+												{
+													AngryBundleData zippedData = JsonConvert.DeserializeObject<AngryBundleData>(dataReader.ReadToEnd());
+													if (!GUID_REGEX.IsMatch(zippedData.bundleGuid))
+													{
+														delete = true;
+														Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, guid {zippedData.bundleGuid} is invalid!");
+													}
+												}
+											}
+											catch (Exception ex)
+											{
+												delete = true;
+												Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, failed to parse metadata!");
+												Plugin.logger.LogError(ex);
+											}
+										}
+										else
+										{
+											// Unknown json
+											delete = true;
+											Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, json file {entryPath} is unknown!");
+										}
+									}
+								}
+								catch (Exception ex)
+								{
+									delete = true;
+									Plugin.logger.LogError($"In file {Path.GetFileName(pathToAngryBundle)}, failed to validate!");
+									Plugin.logger.LogError(ex);
+								}
+							}
+
+							if (delete)
+								File.Delete(entryPath);
 						}
 					}
 				}
@@ -575,7 +723,18 @@ namespace AngryLevelLoader.Containers
 			}
 
 			// Reload data from file
-			bool reloadDataSuccess = await ReloadData(forceReload, lazyLoad);
+			bool reloadDataSuccess;
+			try
+			{
+				reloadDataSuccess = await ReloadData(forceReload, lazyLoad);
+			}
+			catch (Exception ex)
+			{
+				Plugin.logger.LogError(ex);
+				if (inTempScene)
+					await AngryAsyncUtils.LoadSceneAsync("Main Menu");
+				return false;
+			}
 
 			// Disable all level interfaces
 			foreach (KeyValuePair<string, LevelContainer> pair in levels)
